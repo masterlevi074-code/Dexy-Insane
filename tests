@@ -658,18 +658,32 @@ local function CreateRipple(parentBtn)
 end
 
 -- ==========================================
--- SÍMBOLO CUSTOMIZADO (IMAGEM)
+-- SÍMBOLO CUSTOMIZADO COM BORA VERMELHA (IMAGEM)
 -- ==========================================
 local function CreateCustomSymbol(parent, pos, size)
-    local SymbolImage = Instance.new("ImageLabel", parent)
-    SymbolImage.Size = size
-    SymbolImage.Position = pos
+    local SymbolFrame = Instance.new("Frame", parent)
+    SymbolFrame.Size = size
+    SymbolFrame.Position = pos
+    SymbolFrame.AnchorPoint = Vector2.new(0.5, 0.5)
+    SymbolFrame.BackgroundColor3 = Color3.fromRGB(10, 10, 10)
+    SymbolFrame.BorderSizePixel = 0
+    SymbolFrame.ZIndex = 50
+    Instance.new("UICorner", SymbolFrame).CornerRadius = UDim.new(0, 6)
+
+    local SymbolStroke = Instance.new("UIStroke", SymbolFrame)
+    SymbolStroke.Color = Color3.fromRGB(255, 40, 40)
+    SymbolStroke.Thickness = 1.5
+    SymbolStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+
+    local SymbolImage = Instance.new("ImageLabel", SymbolFrame)
+    SymbolImage.Size = UDim2.new(1, -6, 1, -6)
+    SymbolImage.Position = UDim2.new(0.5, 0, 0.5, 0)
     SymbolImage.AnchorPoint = Vector2.new(0.5, 0.5)
     SymbolImage.BackgroundTransparency = 1
     SymbolImage.Image = "rbxassetid://80863202828912"
-    SymbolImage.ZIndex = 50
+    SymbolImage.ZIndex = 51
     
-    return SymbolImage
+    return SymbolFrame
 end
 
 -- ==========================================
@@ -781,7 +795,7 @@ FloatStroke.Color = Color3.fromRGB(255, 0, 0)
 FloatStroke.Thickness = 1.5
 FloatStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
 
-CreateCustomSymbol(FloatingBtn, UDim2.new(0.5, 0, 0.5, 0), UDim2.new(0, 30, 0, 30))
+CreateCustomSymbol(FloatingBtn, UDim2.new(0.5, 0, 0.5, 0), UDim2.new(0, 34, 0, 34))
 
 FloatingBtn.MouseEnter:Connect(function()
     TweenService:Create(FloatingBtn, TweenInfo.new(0.3), {Size = UDim2.new(0, 55, 0, 55)}):Play()
@@ -973,11 +987,11 @@ UserInputService.InputEnded:Connect(function(input)
 	end
 end)
 
-CreateCustomSymbol(TopBar, UDim2.new(0, 25, 0.5, 0), UDim2.new(0, 24, 0, 24))
+CreateCustomSymbol(TopBar, UDim2.new(0, 25, 0.5, 0), UDim2.new(0, 28, 0, 28))
 
 local Title = Instance.new("TextLabel", TopBar)
 Title.Size = UDim2.new(1, -150, 0, 20)
-Title.Position = UDim2.new(0, 45, 0, 5)
+Title.Position = UDim2.new(0, 48, 0, 5)
 Title.BackgroundTransparency = 1
 Title.Text = "DEXY INSANE"
 Title.TextColor3 = Color3.fromRGB(255, 60, 60)
@@ -988,7 +1002,7 @@ Title.ZIndex = 30
 
 local Subtitle = Instance.new("TextLabel", TopBar)
 Subtitle.Size = UDim2.new(1, -150, 0, 15)
-Subtitle.Position = UDim2.new(0, 45, 0, 23)
+Subtitle.Position = UDim2.new(0, 48, 0, 23)
 Subtitle.BackgroundTransparency = 1
 Subtitle.Text = "Dragon Ball Rage"
 Subtitle.TextColor3 = Color3.fromRGB(150, 150, 150)
@@ -997,6 +1011,7 @@ Subtitle.TextSize = 10
 Subtitle.TextXAlignment = Enum.TextXAlignment.Left
 Subtitle.ZIndex = 30
 
+-- FUNÇÃO PARA CRIAR BOTÕES DO TOPO COM BORDA VERMELHA
 local function CreateTopButton(name, text, posOffset, hoverColor)
     local Btn = Instance.new("TextButton", TopBar)
     Btn.Name = name
@@ -1010,6 +1025,11 @@ local function CreateTopButton(name, text, posOffset, hoverColor)
     Btn.AutoButtonColor = false
     Btn.ZIndex = 30
     Instance.new("UICorner", Btn).CornerRadius = UDim.new(0, 8)
+
+    local BtnStroke = Instance.new("UIStroke", Btn)
+    BtnStroke.Color = Color3.fromRGB(255, 40, 40)
+    BtnStroke.Thickness = 1.5
+    BtnStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
 
     Btn.MouseEnter:Connect(function() TweenService:Create(Btn, TweenInfo.new(0.2), {BackgroundColor3 = hoverColor}):Play() end)
     Btn.MouseLeave:Connect(function() TweenService:Create(Btn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(10, 10, 10)}):Play() end)
@@ -1052,7 +1072,7 @@ BypassLabel.TextSize = 10
 BypassLabel.TextXAlignment = Enum.TextXAlignment.Left
 BypassLabel.ZIndex = 30
 
--- BOTÃO "INFO" COM BORDA VERMELHA CORRIGIDA
+-- BOTÃO "INFO" COM BORDA VERMELHA
 local InfoBtn = Instance.new("TextButton", TopBar)
 InfoBtn.Name = "InfoBtn"
 InfoBtn.Size = UDim2.new(0, 34, 0, 18)
@@ -1334,7 +1354,6 @@ local function CreateTabSymbol(parent, iconType)
         Instance.new("UICorner", Pupil).CornerRadius = UDim.new(1, 0)
 
     elseif iconType == "Misc" then
-        -- Chave Inglesa/Combinada Detalhada e Bonita
         local WrenchHandle = Instance.new("Frame", IconFrame)
         WrenchHandle.Size = UDim2.new(0, 3, 0, 13)
         WrenchHandle.Position = UDim2.new(0.5, 0, 0.5, 0)
@@ -1344,7 +1363,6 @@ local function CreateTabSymbol(parent, iconType)
         WrenchHandle.BorderSizePixel = 0
         Instance.new("UICorner", WrenchHandle).CornerRadius = UDim.new(0, 1)
 
-        -- Cabeça da chave (boca aberta superior)
         local WrenchHead = Instance.new("Frame", IconFrame)
         WrenchHead.Size = UDim2.new(0, 9, 0, 8)
         WrenchHead.Position = UDim2.new(0.5, 4, 0.5, -4)
@@ -1361,7 +1379,6 @@ local function CreateTabSymbol(parent, iconType)
         JawCutout.BorderSizePixel = 0
         Instance.new("UICorner", JawCutout).CornerRadius = UDim.new(0, 1)
 
-        -- Anel/Olho inferior (chave combinada)
         local WrenchRing = Instance.new("Frame", IconFrame)
         WrenchRing.Size = UDim2.new(0, 7, 0, 7)
         WrenchRing.Position = UDim2.new(0.5, -4, 0.5, 4)
