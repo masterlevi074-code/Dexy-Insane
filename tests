@@ -48,7 +48,8 @@ local ESPConfig = {
     Names = false,
     Chams = false,
     DragonBalls = false,
-    DBChams = true
+    DBChams = true,
+    DBText = true
 }
 
 -- ==========================================
@@ -157,7 +158,7 @@ end)
 -- ==========================================
 local espObjects = {}
 local chamsObjects = {}
-local dbChamsObjects = {}
+local dbObjects = {}
 
 local function removeESP(player)
     if espObjects[player] then
@@ -175,7 +176,7 @@ end
 Players.PlayerRemoving:Connect(removeESP)
 
 RunService.RenderStepped:Connect(function()
-    -- Gestão de Chams (Highlight)
+    -- Gestão de Chams (Highlight) de Jogadores
     if ESPConfig.Enabled and ESPConfig.Chams then
         for _, player in ipairs(Players:GetPlayers()) do
             if player ~= LocalPlayer and player.Character then
@@ -203,7 +204,7 @@ RunService.RenderStepped:Connect(function()
         end
     end
 
-    -- Gestão de Drawing (Box, Lines, Names)
+    -- Gestão de Drawing (Box, Lines, Names) de Jogadores
     if not ESPConfig.Enabled or not Drawing then
         for player, _ in pairs(espObjects) do
             removeESP(player)
@@ -305,60 +306,89 @@ RunService.RenderStepped:Connect(function()
     end
 end)
 
--- Scanner Dinâmico para ESP DragonBall (Workspace.Map / Irregulares)
+-- Scanner Dinâmico para ESP DragonBall (Highlight Laranja + Nome + Distância)
 task.spawn(function()
-    while task.wait(0.4) do
+    while task.wait(0.3) do
         pcall(function()
             if ESPConfig.DragonBalls then
                 local mapFolder = workspace:FindFirstChild("Map") or workspace
                 local activeItems = {}
+                local hrp = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
 
                 for _, obj in ipairs(mapFolder:GetDescendants()) do
-                    if (obj:IsA("Model") or obj:IsA("BasePart")) and obj ~= LocalPlayer.Character then
-                        local isPotentialDB = false
-                        local nameLower = string.lower(obj.Name)
-                        
-                        -- Deteta itens com nomes irregulares, carácteres estranhos ou nomes comuns de spawn
-                        if string.find(nameLower, "dragon") or string.find(nameLower, "ball") or string.find(nameLower, "db") or #obj.Name > 8 or obj:IsA("Model") then
-                            if obj:IsA("Model") and not obj:FindFirstChildOfClass("Humanoid") then
-                                isPotentialDB = true
-                            elseif obj:IsA("BasePart") and obj.Parent and obj.Parent == mapFolder then
-                                isPotentialDB = true
-                            end
-                        end
-
-                        if isPotentialDB then
+                    if obj:IsA("Model") and obj ~= LocalPlayer.Character then
+                        if obj:FindFirstChild("Decor") or obj:FindFirstChild("Force") or obj:FindFirstChild("Main") then
                             activeItems[obj] = true
-                            if ESPConfig.DBChams and not dbChamsObjects[obj] then
+                            
+                            local dist = 0
+                            local targetPart = obj.PrimaryPart or obj:FindFirstChildWhichIsA("BasePart")
+                            if hrp and targetPart then
+                                dist = math.floor((hrp.Position - targetPart.Position).Magnitude)
+                            end
+
+                            if not dbObjects[obj] then
+                                dbObjects[obj] = {}
+                                
+                                -- Highlight Laranja
                                 local highlight = Instance.new("Highlight")
-                                highlight.Name = "DexyDBChams"
+                                highlight.Name = "DexyDBHighlight"
                                 highlight.Adornee = obj
-                                highlight.FillColor = Color3.fromRGB(255, 165, 0) -- Laranja brilhante
+                                highlight.FillColor = Color3.fromRGB(255, 165, 0)
                                 highlight.FillTransparency = 0.4
                                 highlight.OutlineColor = Color3.fromRGB(255, 255, 255)
                                 highlight.OutlineTransparency = 0
                                 highlight.Parent = obj
-                                dbChamsObjects[obj] = highlight
-                            elseif not ESPConfig.DBChams and dbChamsObjects[obj] then
-                                dbChamsObjects[obj]:Destroy()
-                                dbChamsObjects[obj] = nil
+                                dbObjects[obj].Highlight = highlight
+
+                                -- Billboard com o nome DragonBall e Distância
+                                local billboard = Instance.new("BillboardGui")
+                                billboard.Name = "DexyDBText"
+                                billboard.Size = UDim2.new(0, 120, 0, 50)
+                                billboard.StudsOffset = Vector3.new(0, 3, 0)
+                                billboard.AlwaysOnTop = true
+                                billboard.Adornee = targetPart or obj
+                                
+                                local textLabel = Instance.new("TextLabel", billboard)
+                                textLabel.Size = UDim2.new(1, 0, 1, 0)
+                                textLabel.BackgroundTransparency = 1
+                                textLabel.TextColor3 = Color3.fromRGB(255, 165, 0) -- Laranja
+                                textLabel.Font = Enum.Font.GothamBold
+                                textLabel.TextSize = 12
+                                textLabel.TextStrokeTransparency = 0
+                                textLabel.Text = "DragonBall\n[" .. dist .. "m]"
+                                
+                                billboard.Parent = obj
+                                dbObjects[obj].Billboard = billboard
+                                dbObjects[obj].TextLabel = textLabel
+                            else
+                                if dbObjects[obj].TextLabel then
+                                    dbObjects[obj].TextLabel.Text = "DragonBall\n[" .. dist .. "m]"
+                                end
+                                if dbObjects[obj].Highlight then
+                                    dbObjects[obj].Highlight.Enabled = ESPConfig.DBChams
+                                end
+                                if dbObjects[obj].Billboard then
+                                    dbObjects[obj].Billboard.Enabled = ESPConfig.DBText
+                                end
                             end
                         end
                     end
                 end
 
-                -- Remove marcações de itens que sumiram ou se o ESP foi desativado
-                for obj, highlight in pairs(dbChamsObjects) do
+                -- Remove marcações quando sumirem do mapa
+                for obj, data in pairs(dbObjects) do
                     if not activeItems[obj] or not obj.Parent or not ESPConfig.DragonBalls then
-                        if highlight then highlight:Destroy() end
-                        dbChamsObjects[obj] = nil
+                        if data.Highlight then data.Highlight:Destroy() end
+                        if data.Billboard then data.Billboard:Destroy() end
+                        dbObjects[obj] = nil
                     end
                 end
             else
-                for obj, highlight in pairs(dbChamsObjects) do
-                    if highlight then highlight:Destroy() end
-                    dbChamsObjects[obj] = nil
+                for _, data in pairs(dbObjects) do
+                    if data.Highlight then data.Highlight:Destroy() end
+                    if data.Billboard then data.Billboard:Destroy() end
                 end
+                dbObjects = {}
             end
         end)
     end
@@ -1250,7 +1280,7 @@ local function CreateToggle(parentCol, name, callback, hasConfig, minVal, maxVal
     end
 end
 
--- Componente especializado para sub-opções de ESP
+-- Componente especializado para sub-opções
 local function CreateToggleWithSubOptions(parentCol, name, callback, subOptions)
     local baseHeight = 30
     local expandedHeight = 38 + (#subOptions * 24) + 10
@@ -1584,7 +1614,7 @@ CreateToggle(TabPlayer.Right, "Atravessar Paredes", function(v)
 end, false)
 CreateDropdown(TabPlayer.Right, "Tema de Aura", {"Vermelho Insano", "Azul Divino", "Preto Sombrio"}, function(v) Config.AuraTheme = v end)
 
--- ABA VISUAL: ESP PLAYERS E ESP DRAGONBALL (COM O BOTÃO ⚙)
+-- ABA VISUAL: ESP PLAYERS E ESP DRAGONBALL
 CreateToggleWithSubOptions(TabVisual.Left, "ESP Players", function(v) 
     ESPConfig.Enabled = v 
 end, {
@@ -1597,7 +1627,8 @@ end, {
 CreateToggleWithSubOptions(TabVisual.Right, "ESP DragonBall", function(v) 
     ESPConfig.DragonBalls = v 
 end, {
-    {Name = "Chams 3D (Laranja)", Default = true, Callback = function(v) ESPConfig.DBChams = v end}
+    {Name = "Highlight Laranja", Default = true, Callback = function(v) ESPConfig.DBChams = v end},
+    {Name = "Nome & Distância", Default = true, Callback = function(v) ESPConfig.DBText = v end}
 })
 
 -- ==========================================
