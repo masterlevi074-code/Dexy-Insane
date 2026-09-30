@@ -70,9 +70,9 @@ local ESPConfig = {
 
 local DBConfig = {
     Enabled = false,
-    Highlight = true,
-    Names = true,
-    Distance = true,
+    Highlight = false,
+    Names = false,
+    Distance = false,
     Lines = false,
     Color = Color3.fromRGB(255, 165, 0)
 }
@@ -243,14 +243,12 @@ task.spawn(function()
 
                             if not chargeHolding and percentage <= 10 then
                                 chargeHolding = true
-                                -- 1. Aperta Q e R ao mesmo tempo
                                 VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.Q, false, game)
                                 VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.R, false, game)
                                 task.wait(0.03)
                                 VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.Q, false, game)
                                 VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.R, false, game)
-                                task.wait(0.40) -- Aguarda 0.40 segundos antes de segurar o C
-                                -- 2. Segura o C para recarregar
+                                task.wait(0.40)
                                 VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.C, false, game)
                             elseif chargeHolding and currentEnergy >= maxEnergy then
                                 chargeHolding = false
@@ -649,13 +647,13 @@ local function CreateCustomSymbol(parent, pos, size)
 end
 
 -- ==========================================
--- 1. TELA DE CARREGAMENTO LUXUOSA
+-- 1. TELA DE CARREGAMENTO LUXUOSA (Fundo Preto Puro)
 -- ==========================================
 local LoadingFrame = Instance.new("Frame")
 LoadingFrame.Size = UDim2.new(0, 350, 0, 135)
 LoadingFrame.Position = UDim2.new(0.5, 0, 0.5, 0)
 LoadingFrame.AnchorPoint = Vector2.new(0.5, 0.5)
-LoadingFrame.BackgroundColor3 = Color3.fromRGB(12, 12, 14)
+LoadingFrame.BackgroundColor3 = Color3.fromRGB(5, 5, 5)
 LoadingFrame.BorderSizePixel = 0
 LoadingFrame.ZIndex = 100
 LoadingFrame.Parent = DexyUI
@@ -668,8 +666,8 @@ LoadStroke.Transparency = 1
 
 local LoadGradient = Instance.new("UIGradient", LoadingFrame)
 LoadGradient.Color = ColorSequence.new({
-    ColorSequenceKeypoint.new(0, Color3.fromRGB(28, 8, 8)),
-    ColorSequenceKeypoint.new(1, Color3.fromRGB(10, 10, 14))
+    ColorSequenceKeypoint.new(0, Color3.fromRGB(20, 0, 0)),
+    ColorSequenceKeypoint.new(1, Color3.fromRGB(5, 5, 5))
 })
 LoadGradient.Rotation = 45
 
@@ -720,7 +718,7 @@ LoadStatus.ZIndex = 101
 local ProgressBarBg = Instance.new("Frame", LoadingFrame)
 ProgressBarBg.Size = UDim2.new(1, -40, 0, 6)
 ProgressBarBg.Position = UDim2.new(0, 20, 0, 78)
-ProgressBarBg.BackgroundColor3 = Color3.fromRGB(25, 15, 15)
+ProgressBarBg.BackgroundColor3 = Color3.fromRGB(20, 10, 10)
 ProgressBarBg.BorderSizePixel = 0
 ProgressBarBg.BackgroundTransparency = 1
 ProgressBarBg.ZIndex = 101
@@ -741,7 +739,7 @@ FloatingBtn.Name = "FloatingIcon"
 FloatingBtn.Size = UDim2.new(0, 0, 0, 0)
 FloatingBtn.Position = UDim2.new(0.5, 0, 0.1, 0)
 FloatingBtn.AnchorPoint = Vector2.new(0.5, 0.5)
-FloatingBtn.BackgroundColor3 = Color3.fromRGB(15, 5, 5)
+FloatingBtn.BackgroundColor3 = Color3.fromRGB(5, 5, 5)
 FloatingBtn.Text = ""
 FloatingBtn.AutoButtonColor = false
 FloatingBtn.Draggable = true
@@ -767,14 +765,14 @@ FloatingBtn.MouseLeave:Connect(function()
 end)
 
 -- ==========================================
--- 3. PAINEL PRINCIPAL
+-- 3. PAINEL PRINCIPAL (Fundo Preto Puro)
 -- ==========================================
 local MainPanel = Instance.new("Frame")
 MainPanel.Name = "MainPanel"
 MainPanel.Size = UDim2.new(0, 520, 0, 320)
 MainPanel.Position = UDim2.new(0.5, 0, 0.5, 0)
 MainPanel.AnchorPoint = Vector2.new(0.5, 0.5)
-MainPanel.BackgroundColor3 = Color3.fromRGB(18, 18, 20)
+MainPanel.BackgroundColor3 = Color3.fromRGB(5, 5, 5)
 MainPanel.BorderSizePixel = 0
 MainPanel.Active = true
 MainPanel.ClipsDescendants = false
@@ -785,10 +783,9 @@ MainPanel.Parent = DexyUI
 Instance.new("UICorner", MainPanel).CornerRadius = UDim.new(0, 14)
 
 local PanelStroke = Instance.new("UIStroke", MainPanel)
-PanelStroke.Color = Color3.fromRGB(35, 35, 40)
+PanelStroke.Color = Color3.fromRGB(50, 20, 20)
 PanelStroke.Thickness = 1.5
 
--- 1. LINHA INFERIOR PARA ARRASTAR
 local BottomBar = Instance.new("Frame", MainPanel)
 BottomBar.Name = "BottomBar"
 BottomBar.Size = UDim2.new(1, -60, 0, 24)
@@ -813,7 +810,6 @@ DragLineStroke.Color = Color3.fromRGB(255, 60, 60)
 DragLineStroke.Thickness = 1.5 
 DragLineStroke.Transparency = 0.1
 
--- 2. ÍCONE DE REDIMENSIONAR (Vermelho)
 local ResizeHandle = Instance.new("Frame", MainPanel)
 ResizeHandle.Name = "ResizeHandle"
 ResizeHandle.Size = UDim2.new(0, 28, 0, 28)
@@ -843,7 +839,6 @@ ResizeBar2.BorderSizePixel = 0
 ResizeBar2.ZIndex = 211
 Instance.new("UICorner", ResizeBar2).CornerRadius = UDim.new(1, 0)
 
--- PARTÍCULAS NO PAINEL
 local ParticleContainer = Instance.new("Frame", MainPanel)
 ParticleContainer.Size = UDim2.new(1, 0, 1, 0)
 ParticleContainer.BackgroundTransparency = 1
@@ -981,7 +976,7 @@ local function CreateTopButton(name, text, posOffset, hoverColor)
     Btn.Name = name
     Btn.Size = UDim2.new(0, 30, 0, 30)
     Btn.Position = UDim2.new(1, posOffset, 0.5, -15)
-    Btn.BackgroundColor3 = Color3.fromRGB(25, 15, 15)
+    Btn.BackgroundColor3 = Color3.fromRGB(10, 10, 10)
     Btn.Text = text
     Btn.TextColor3 = Color3.fromRGB(200, 200, 200)
     Btn.Font = Enum.Font.GothamBold
@@ -991,7 +986,7 @@ local function CreateTopButton(name, text, posOffset, hoverColor)
     Instance.new("UICorner", Btn).CornerRadius = UDim.new(0, 8)
 
     Btn.MouseEnter:Connect(function() TweenService:Create(Btn, TweenInfo.new(0.2), {BackgroundColor3 = hoverColor}):Play() end)
-    Btn.MouseLeave:Connect(function() TweenService:Create(Btn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(25, 15, 15)}):Play() end)
+    Btn.MouseLeave:Connect(function() TweenService:Create(Btn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(10, 10, 10)}):Play() end)
     Btn.MouseButton1Click:Connect(function() CreateRipple(Btn) end)
     return Btn
 end
@@ -1031,12 +1026,12 @@ BypassLabel.TextSize = 10
 BypassLabel.TextXAlignment = Enum.TextXAlignment.Left
 BypassLabel.ZIndex = 30
 
--- BOTÃO "INFO" (Texto em maiúsculo e borda vermelha destacada)
+-- BOTÃO "INFO"
 local InfoBtn = Instance.new("TextButton", TopBar)
 InfoBtn.Name = "InfoBtn"
 InfoBtn.Size = UDim2.new(0, 34, 0, 18)
 InfoBtn.Position = UDim2.new(1, -216, 0.5, -9)
-InfoBtn.BackgroundColor3 = Color3.fromRGB(25, 15, 18)
+InfoBtn.BackgroundColor3 = Color3.fromRGB(10, 10, 10)
 InfoBtn.Text = "INFO"
 InfoBtn.TextColor3 = Color3.fromRGB(220, 220, 220)
 InfoBtn.Font = Enum.Font.GothamBold
@@ -1053,7 +1048,7 @@ InfoBtn.MouseEnter:Connect(function()
     TweenService:Create(InfoBtn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(150, 40, 40), TextColor3 = Color3.fromRGB(255, 255, 255)}):Play()
 end)
 InfoBtn.MouseLeave:Connect(function()
-    TweenService:Create(InfoBtn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(25, 15, 18), TextColor3 = Color3.fromRGB(220, 220, 220)}):Play()
+    TweenService:Create(InfoBtn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(10, 10, 10), TextColor3 = Color3.fromRGB(220, 220, 220)}):Play()
 end)
 
 -- POP-UP INFO
@@ -1062,7 +1057,7 @@ InfoPopup.Name = "InfoPopup"
 InfoPopup.Size = UDim2.new(0, 240, 0, 135)
 InfoPopup.Position = UDim2.new(0.5, 0, 0.5, 0)
 InfoPopup.AnchorPoint = Vector2.new(0.5, 0.5)
-InfoPopup.BackgroundColor3 = Color3.fromRGB(14, 12, 16)
+InfoPopup.BackgroundColor3 = Color3.fromRGB(5, 5, 5)
 InfoPopup.BorderSizePixel = 0
 InfoPopup.Visible = false
 InfoPopup.ZIndex = 150
@@ -1079,7 +1074,7 @@ end)
 local AvatarImg = Instance.new("ImageLabel", InfoPopup)
 AvatarImg.Size = UDim2.new(0, 48, 0, 48)
 AvatarImg.Position = UDim2.new(0, 12, 0, 15)
-AvatarImg.BackgroundColor3 = Color3.fromRGB(25, 20, 25)
+AvatarImg.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
 AvatarImg.BorderSizePixel = 0
 AvatarImg.Image = success and thumbUrl or ""
 AvatarImg.ZIndex = 151
@@ -1225,7 +1220,7 @@ end)
 TabsContainer = Instance.new("Frame", MainPanel)
 TabsContainer.Size = UDim2.new(1, -20, 0, 35)
 TabsContainer.Position = UDim2.new(0, 10, 0, 55)
-TabsContainer.BackgroundColor3 = Color3.fromRGB(20, 15, 15)
+TabsContainer.BackgroundColor3 = Color3.fromRGB(10, 10, 10)
 TabsContainer.BorderSizePixel = 0
 TabsContainer.ZIndex = 30
 Instance.new("UICorner", TabsContainer).CornerRadius = UDim.new(0, 8)
@@ -1269,7 +1264,7 @@ local function CreateTabSymbol(parent, iconType)
         Door.Size = UDim2.new(0, 4, 0, 5)
         Door.Position = UDim2.new(0.5, 0, 1, 0)
         Door.AnchorPoint = Vector2.new(0.5, 1)
-        Door.BackgroundColor3 = Color3.fromRGB(20, 15, 15)
+        Door.BackgroundColor3 = Color3.fromRGB(10, 10, 10)
         Door.BorderSizePixel = 0
         Instance.new("UICorner", Door).CornerRadius = UDim.new(0, 1)
 
@@ -1295,7 +1290,7 @@ local function CreateTabSymbol(parent, iconType)
         OuterEye.Size = UDim2.new(0, 14, 0, 10)
         OuterEye.Position = UDim2.new(0.5, 0, 0.5, 0)
         OuterEye.AnchorPoint = Vector2.new(0.5, 0.5)
-        OuterEye.BackgroundColor3 = Color3.fromRGB(25, 15, 15)
+        OuterEye.BackgroundColor3 = Color3.fromRGB(10, 10, 10)
         OuterEye.BorderSizePixel = 0
         Instance.new("UICorner", OuterEye).CornerRadius = UDim.new(1, 0)
         
@@ -1592,14 +1587,14 @@ local function CreateToggle(parentCol, name, callback, hasConfig, minVal, maxVal
     
     local ToggleFrame = Instance.new("Frame", parentCol)
     ToggleFrame.Size = UDim2.new(1, -4, 0, baseHeight)
-    ToggleFrame.BackgroundColor3 = Color3.fromRGB(25, 18, 20)
+    ToggleFrame.BackgroundColor3 = Color3.fromRGB(12, 12, 12)
     ToggleFrame.BorderSizePixel = 0
     ToggleFrame.ClipsDescendants = true
     ToggleFrame.ZIndex = 30
     Instance.new("UICorner", ToggleFrame).CornerRadius = UDim.new(0, 6)
     
     local ToggleStroke = Instance.new("UIStroke", ToggleFrame)
-    ToggleStroke.Color = Color3.fromRGB(45, 30, 30)
+    ToggleStroke.Color = Color3.fromRGB(35, 20, 20)
     ToggleStroke.Thickness = 1
 
     local TitleLbl = Instance.new("TextLabel", ToggleFrame)
@@ -1616,7 +1611,7 @@ local function CreateToggle(parentCol, name, callback, hasConfig, minVal, maxVal
     local ToggleBtn = Instance.new("TextButton", ToggleFrame)
     ToggleBtn.Size = UDim2.new(0, 32, 0, 16)
     ToggleBtn.Position = UDim2.new(1, -38, 0, 7)
-    ToggleBtn.BackgroundColor3 = Color3.fromRGB(40, 25, 25)
+    ToggleBtn.BackgroundColor3 = Color3.fromRGB(25, 15, 15)
     ToggleBtn.Text = ""
     ToggleBtn.AutoButtonColor = false
     ToggleBtn.ZIndex = 30
@@ -1637,7 +1632,7 @@ local function CreateToggle(parentCol, name, callback, hasConfig, minVal, maxVal
             TweenService:Create(ToggleBtn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(255, 40, 40)}):Play()
             TweenService:Create(Circle, TweenInfo.new(0.2), {Position = UDim2.new(0, 18, 0.5, -6), BackgroundColor3 = Color3.fromRGB(255, 255, 255)}):Play()
         else
-            TweenService:Create(ToggleBtn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(40, 25, 25)}):Play()
+            TweenService:Create(ToggleBtn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(25, 15, 15)}):Play()
             TweenService:Create(Circle, TweenInfo.new(0.2), {Position = UDim2.new(0, 2, 0.5, -6), BackgroundColor3 = Color3.fromRGB(180, 180, 180)}):Play()
         end
         if callback then callback(isToggled) end
@@ -1647,7 +1642,7 @@ local function CreateToggle(parentCol, name, callback, hasConfig, minVal, maxVal
         local ConfigBtn = Instance.new("TextButton", ToggleFrame)
         ConfigBtn.Size = UDim2.new(0, 24, 0, 16)
         ConfigBtn.Position = UDim2.new(1, -66, 0, 7)
-        ConfigBtn.BackgroundColor3 = Color3.fromRGB(35, 22, 25)
+        ConfigBtn.BackgroundColor3 = Color3.fromRGB(20, 12, 12)
         ConfigBtn.Text = "⚙"
         ConfigBtn.TextColor3 = Color3.fromRGB(200, 200, 200)
         ConfigBtn.Font = Enum.Font.GothamBold
@@ -1688,7 +1683,7 @@ local function CreateToggle(parentCol, name, callback, hasConfig, minVal, maxVal
         local BarBg = Instance.new("Frame", SliderContainer)
         BarBg.Size = UDim2.new(1, 0, 0, 5)
         BarBg.Position = UDim2.new(0, 0, 0, 18)
-        BarBg.BackgroundColor3 = Color3.fromRGB(40, 25, 25)
+        BarBg.BackgroundColor3 = Color3.fromRGB(20, 12, 12)
         BarBg.BorderSizePixel = 0
         BarBg.ZIndex = 30
         Instance.new("UICorner", BarBg).CornerRadius = UDim.new(1, 0)
@@ -1723,7 +1718,7 @@ local function CreateToggle(parentCol, name, callback, hasConfig, minVal, maxVal
             local DropBtn = Instance.new("TextButton", MethodRow)
             DropBtn.Size = UDim2.new(0, 85, 0, 20)
             DropBtn.Position = UDim2.new(1, -85, 0, 2)
-            DropBtn.BackgroundColor3 = Color3.fromRGB(35, 22, 25)
+            DropBtn.BackgroundColor3 = Color3.fromRGB(20, 12, 12)
             DropBtn.Text = "Clique ▼"
             DropBtn.TextColor3 = Color3.fromRGB(220, 220, 220)
             DropBtn.Font = Enum.Font.GothamBold
@@ -1754,7 +1749,7 @@ local function CreateToggle(parentCol, name, callback, hasConfig, minVal, maxVal
                 TweenService:Create(ConfigBtn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(255, 40, 40), TextColor3 = Color3.fromRGB(255, 255, 255)}):Play()
             else
                 TweenService:Create(ToggleFrame, TweenInfo.new(0.3, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {Size = UDim2.new(1, -4, 0, baseHeight)}):Play()
-                TweenService:Create(ConfigBtn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(35, 22, 25), TextColor3 = Color3.fromRGB(200, 200, 200)}):Play()
+                TweenService:Create(ConfigBtn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(20, 12, 12), TextColor3 = Color3.fromRGB(200, 200, 200)}):Play()
                 task.delay(0.3, function()
                     if not isExpanded then 
                         SliderContainer.Visible = false 
@@ -1797,14 +1792,14 @@ local function CreateToggleWithSubOptions(parentCol, name, callback, subOptions)
     
     local ToggleFrame = Instance.new("Frame", parentCol)
     ToggleFrame.Size = UDim2.new(1, -4, 0, baseHeight)
-    ToggleFrame.BackgroundColor3 = Color3.fromRGB(25, 18, 20)
+    ToggleFrame.BackgroundColor3 = Color3.fromRGB(12, 12, 12)
     ToggleFrame.BorderSizePixel = 0
     ToggleFrame.ClipsDescendants = true
     ToggleFrame.ZIndex = 30
     Instance.new("UICorner", ToggleFrame).CornerRadius = UDim.new(0, 6)
     
     local ToggleStroke = Instance.new("UIStroke", ToggleFrame)
-    ToggleStroke.Color = Color3.fromRGB(45, 30, 30)
+    ToggleStroke.Color = Color3.fromRGB(35, 20, 20)
     ToggleStroke.Thickness = 1
 
     local TitleLbl = Instance.new("TextLabel", ToggleFrame)
@@ -1821,7 +1816,7 @@ local function CreateToggleWithSubOptions(parentCol, name, callback, subOptions)
     local ToggleBtn = Instance.new("TextButton", ToggleFrame)
     ToggleBtn.Size = UDim2.new(0, 32, 0, 16)
     ToggleBtn.Position = UDim2.new(1, -38, 0, 7)
-    ToggleBtn.BackgroundColor3 = Color3.fromRGB(40, 25, 25)
+    ToggleBtn.BackgroundColor3 = Color3.fromRGB(25, 15, 15)
     ToggleBtn.Text = ""
     ToggleBtn.AutoButtonColor = false
     ToggleBtn.ZIndex = 30
@@ -1842,7 +1837,7 @@ local function CreateToggleWithSubOptions(parentCol, name, callback, subOptions)
             TweenService:Create(ToggleBtn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(255, 40, 40)}):Play()
             TweenService:Create(Circle, TweenInfo.new(0.2), {Position = UDim2.new(0, 18, 0.5, -6), BackgroundColor3 = Color3.fromRGB(255, 255, 255)}):Play()
         else
-            TweenService:Create(ToggleBtn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(40, 25, 25)}):Play()
+            TweenService:Create(ToggleBtn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(25, 15, 15)}):Play()
             TweenService:Create(Circle, TweenInfo.new(0.2), {Position = UDim2.new(0, 2, 0.5, -6), BackgroundColor3 = Color3.fromRGB(180, 180, 180)}):Play()
         end
         if callback then callback(isToggled) end
@@ -1851,7 +1846,7 @@ local function CreateToggleWithSubOptions(parentCol, name, callback, subOptions)
     local ConfigBtn = Instance.new("TextButton", ToggleFrame)
     ConfigBtn.Size = UDim2.new(0, 24, 0, 16)
     ConfigBtn.Position = UDim2.new(1, -66, 0, 7)
-    ConfigBtn.BackgroundColor3 = Color3.fromRGB(35, 22, 25)
+    ConfigBtn.BackgroundColor3 = Color3.fromRGB(20, 12, 12)
     ConfigBtn.Text = "⚙"
     ConfigBtn.TextColor3 = Color3.fromRGB(200, 200, 200)
     ConfigBtn.Font = Enum.Font.GothamBold
@@ -1900,7 +1895,7 @@ local function CreateToggleWithSubOptions(parentCol, name, callback, subOptions)
         local SubToggleBtn = Instance.new("TextButton", SubRow)
         SubToggleBtn.Size = UDim2.new(0, 26, 0, 14)
         SubToggleBtn.Position = UDim2.new(1, -26, 0, 4)
-        SubToggleBtn.BackgroundColor3 = Color3.fromRGB(40, 25, 25)
+        SubToggleBtn.BackgroundColor3 = Color3.fromRGB(25, 15, 15)
         SubToggleBtn.Text = ""
         SubToggleBtn.AutoButtonColor = false
         SubToggleBtn.ZIndex = 30
@@ -1920,7 +1915,7 @@ local function CreateToggleWithSubOptions(parentCol, name, callback, subOptions)
                 TweenService:Create(SubToggleBtn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(255, 40, 40)}):Play()
                 TweenService:Create(SubCircle, TweenInfo.new(0.2), {Position = UDim2.new(0, 14, 0.5, -5), BackgroundColor3 = Color3.fromRGB(255, 255, 255)}):Play()
             else
-                TweenService:Create(SubToggleBtn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(40, 25, 25)}):Play()
+                TweenService:Create(SubToggleBtn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(25, 15, 15)}):Play()
                 TweenService:Create(SubCircle, TweenInfo.new(0.2), {Position = UDim2.new(0, 2, 0.5, -5), BackgroundColor3 = Color3.fromRGB(180, 180, 180)}):Play()
             end
             if sub.Callback then sub.Callback(subToggled) end
@@ -1937,7 +1932,7 @@ local function CreateToggleWithSubOptions(parentCol, name, callback, subOptions)
             Instance.new("UICorner", SubColorPreview).CornerRadius = UDim.new(0, 4)
 
             local SubColorStroke = Instance.new("UIStroke", SubColorPreview)
-            SubColorStroke.Color = Color3.fromRGB(80, 50, 50)
+            SubColorStroke.Color = Color3.fromRGB(50, 30, 30)
             SubColorStroke.Thickness = 1
 
             local pickerOpen = false
@@ -1974,7 +1969,7 @@ local function CreateToggleWithSubOptions(parentCol, name, callback, subOptions)
             TweenService:Create(ConfigBtn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(255, 40, 40), TextColor3 = Color3.fromRGB(255, 255, 255)}):Play()
         else
             TweenService:Create(ToggleFrame, TweenInfo.new(0.3, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {Size = UDim2.new(1, -4, 0, baseHeight)}):Play()
-            TweenService:Create(ConfigBtn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(35, 22, 25), TextColor3 = Color3.fromRGB(200, 200, 200)}):Play()
+            TweenService:Create(ConfigBtn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(20, 12, 12), TextColor3 = Color3.fromRGB(200, 200, 200)}):Play()
             task.delay(0.3, function()
                 if not isExpanded then OptionsContainer.Visible = false end
             end)
@@ -1985,13 +1980,13 @@ end
 local function CreateSlider(parentCol, name, min, max, default, callback)
     local SliderFrame = Instance.new("Frame", parentCol)
     SliderFrame.Size = UDim2.new(1, -4, 0, 45)
-    SliderFrame.BackgroundColor3 = Color3.fromRGB(25, 18, 20)
+    SliderFrame.BackgroundColor3 = Color3.fromRGB(12, 12, 12)
     SliderFrame.BorderSizePixel = 0
     SliderFrame.ZIndex = 30
     Instance.new("UICorner", SliderFrame).CornerRadius = UDim.new(0, 6)
     
     local Stroke = Instance.new("UIStroke", SliderFrame)
-    Stroke.Color = Color3.fromRGB(45, 30, 30)
+    Stroke.Color = Color3.fromRGB(35, 20, 20)
     Stroke.Thickness = 1
 
     local TitleLbl = Instance.new("TextLabel", SliderFrame)
@@ -2019,7 +2014,7 @@ local function CreateSlider(parentCol, name, min, max, default, callback)
     local BarBg = Instance.new("Frame", SliderFrame)
     BarBg.Size = UDim2.new(1, -16, 0, 6)
     BarBg.Position = UDim2.new(0, 8, 0, 28)
-    BarBg.BackgroundColor3 = Color3.fromRGB(40, 25, 25)
+    BarBg.BackgroundColor3 = Color3.fromRGB(20, 12, 12)
     BarBg.BorderSizePixel = 0
     BarBg.ZIndex = 30
     Instance.new("UICorner", BarBg).CornerRadius = UDim.new(1, 0)
@@ -2060,14 +2055,14 @@ end
 local function CreateDropdown(parentCol, name, options, callback)
     local DropFrame = Instance.new("Frame", parentCol)
     DropFrame.Size = UDim2.new(1, -4, 0, 32)
-    DropFrame.BackgroundColor3 = Color3.fromRGB(25, 18, 20)
+    DropFrame.BackgroundColor3 = Color3.fromRGB(12, 12, 12)
     DropFrame.BorderSizePixel = 0
     DropFrame.ClipsDescendants = true
     DropFrame.ZIndex = 30
     Instance.new("UICorner", DropFrame).CornerRadius = UDim.new(0, 6)
     
     local Stroke = Instance.new("UIStroke", DropFrame)
-    Stroke.Color = Color3.fromRGB(45, 30, 30)
+    Stroke.Color = Color3.fromRGB(35, 20, 20)
     Stroke.Thickness = 1
 
     local MainBtn = Instance.new("TextButton", DropFrame)
@@ -2202,7 +2197,7 @@ end, {
     }
 })
 
--- ABA VISUAL: ESP DRAGONBALL
+-- ABA VISUAL: ESP DRAGONBALL (Com sub-opções iniciando desligadas)
 CreateToggleWithSubOptions(TabVisual.Right, "ESP DragonBall", function(v) 
     DBConfig.Enabled = v 
 end, {
