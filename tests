@@ -306,7 +306,7 @@ RunService.RenderStepped:Connect(function()
     end
 end)
 
--- Scanner Dinâmico para ESP DragonBall (Highlight Laranja + Nome + Distância + Filtro Anti-Pedestal)
+-- Scanner Dinâmico para ESP DragonBall (Filtro Inteligente Anti-Pedestal Vazio)
 task.spawn(function()
     while task.wait(0.3) do
         pcall(function()
@@ -317,9 +317,16 @@ task.spawn(function()
 
                 for _, obj in ipairs(mapFolder:GetDescendants()) do
                     if obj:IsA("Model") and obj ~= LocalPlayer.Character then
-                        -- Filtro para ignorar o modelo Pedestal
-                        if string.lower(obj.Name) ~= "pedestal" and not string.lower(obj.Name):find("pedestal") then
-                            if obj:FindFirstChild("Decor") or obj:FindFirstChild("Force") or obj:FindFirstChild("Main") then
+                        local nameLower = string.lower(obj.Name)
+                        
+                        -- Ignorar nomes genéricos de suportes/pedestais vazios
+                        if not nameLower:find("pedestal") and not nameLower:find("stand") and not nameLower:find("altar") and not nameLower:find("base") then
+                            -- Verifica se o objeto possui propriedades reais de uma Dragon Ball (TouchInterest, Partículas ou Luz)
+                            local hasTouch = obj:FindFirstChildWhichIsA("TouchInterest", true) ~= nil
+                            local hasParticle = obj:FindFirstChildWhichIsA("ParticleEmitter", true) ~= nil
+                            local hasLight = obj:FindFirstChildWhichIsA("PointLight", true) ~= nil
+                            
+                            if hasTouch or hasParticle or hasLight or nameLower:find("dragon") or nameLower:find("ball") then
                                 activeItems[obj] = true
                                 
                                 local dist = 0
