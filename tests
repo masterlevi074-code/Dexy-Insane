@@ -223,10 +223,42 @@ task.spawn(function()
     end
 end)
 
+-- AUTO CHARGE KI LOOP (Monitorando Energy e MaxEnergy na Workspace)
+local chargeHolding = false
 task.spawn(function()
-    while task.wait(0.2) do
+    while true do
         if Config.AutoCharge then
-            pcall(function() end)
+            pcall(function()
+                local char = workspace:FindFirstChild(LocalPlayer.Name) or LocalPlayer.Character
+                if char then
+                    local state = char:FindFirstChild("State")
+                    if state then
+                        local energyVal = state:FindFirstChild("Energy")
+                        local maxEnergyVal = state:FindFirstChild("MaxEnergy")
+                        
+                        if energyVal and maxEnergyVal and maxEnergyVal.Value > 0 then
+                            local currentEnergy = energyVal.Value
+                            local maxEnergy = maxEnergyVal.Value
+                            local percentage = (currentEnergy / maxEnergy) * 100
+
+                            if not chargeHolding and percentage <= 10 then
+                                chargeHolding = true
+                                VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.C, false, game)
+                            elseif chargeHolding and currentEnergy >= maxEnergy then
+                                chargeHolding = false
+                                VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.C, false, game)
+                            end
+                        end
+                    end
+                end
+            end)
+            task.wait(0.1)
+        else
+            if chargeHolding then
+                chargeHolding = false
+                pcall(function() VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.C, false, game) end)
+            end
+            task.wait(0.2)
         end
     end
 end)
@@ -748,7 +780,7 @@ local PanelStroke = Instance.new("UIStroke", MainPanel)
 PanelStroke.Color = Color3.fromRGB(35, 35, 40)
 PanelStroke.Thickness = 1.5
 
--- 1. LINHA INFERIOR PARA ARRASTAR (Vermelho com transparência e borda visível)
+-- 1. LINHA INFERIOR PARA ARRASTAR
 local BottomBar = Instance.new("Frame", MainPanel)
 BottomBar.Name = "BottomBar"
 BottomBar.Size = UDim2.new(1, -60, 0, 24)
@@ -773,7 +805,7 @@ DragLineStroke.Color = Color3.fromRGB(255, 60, 60)
 DragLineStroke.Thickness = 1.5 
 DragLineStroke.Transparency = 0.1
 
--- 2. ÍCONE DE REDIMENSIONAR (Duas barrinhas diagonais em VERMELHO)
+-- 2. ÍCONE DE REDIMENSIONAR (Vermelho)
 local ResizeHandle = Instance.new("Frame", MainPanel)
 ResizeHandle.Name = "ResizeHandle"
 ResizeHandle.Size = UDim2.new(0, 28, 0, 28)
@@ -783,23 +815,21 @@ ResizeHandle.BackgroundTransparency = 1
 ResizeHandle.Active = true
 ResizeHandle.ZIndex = 210
 
--- Barrinha Maior (Diagonal Vermelha)
 local ResizeBar1 = Instance.new("Frame", ResizeHandle)
 ResizeBar1.Size = UDim2.new(0, 14, 0, 3)
 ResizeBar1.Position = UDim2.new(0.6, 0, 0.6, 0)
 ResizeBar1.AnchorPoint = Vector2.new(0.5, 0.5)
-ResizeBar1.BackgroundColor3 = Color3.fromRGB(255, 60, 60) -- Alterado para vermelho
+ResizeBar1.BackgroundColor3 = Color3.fromRGB(255, 60, 60)
 ResizeBar1.Rotation = -45 
 ResizeBar1.BorderSizePixel = 0
 ResizeBar1.ZIndex = 211
 Instance.new("UICorner", ResizeBar1).CornerRadius = UDim.new(1, 0)
 
--- Barrinha Menor (Diagonal Vermelha)
 local ResizeBar2 = Instance.new("Frame", ResizeHandle)
 ResizeBar2.Size = UDim2.new(0, 6, 0, 3)
 ResizeBar2.Position = UDim2.new(0.8, 0, 0.8, 0)
 ResizeBar2.AnchorPoint = Vector2.new(0.5, 0.5)
-ResizeBar2.BackgroundColor3 = Color3.fromRGB(255, 60, 60) -- Alterado para vermelho
+ResizeBar2.BackgroundColor3 = Color3.fromRGB(255, 60, 60)
 ResizeBar2.Rotation = -45
 ResizeBar2.BorderSizePixel = 0
 ResizeBar2.ZIndex = 211
@@ -853,7 +883,6 @@ TopBar.BackgroundTransparency = 1
 TopBar.ZIndex = 30
 TopBar.Active = true
 
--- LÓGICA DE FUNCIONAMENTO DE ARRASTAR E REDIMENSIONAR
 local resizing = false
 local startSize = nil
 local startInputPos = nil
@@ -862,7 +891,6 @@ local draggingPanel = false
 local dragStartPos = nil
 local startPanelPos = nil
 
--- Guarda o tamanho personalizado do painel
 local lastPanelSize = Vector2.new(520, 320)
 
 ResizeHandle.InputBegan:Connect(function(input)
@@ -904,7 +932,7 @@ UserInputService.InputChanged:Connect(function(input)
 			local newHeight = math.clamp(startSize.Y + delta.Y, 260, 600)
 
 			MainPanel.Size = UDim2.new(0, newWidth, 0, newHeight)
-			lastPanelSize = Vector2.new(newWidth, newHeight) -- Atualiza o tamanho guardado
+			lastPanelSize = Vector2.new(newWidth, newHeight)
 		end
 	end
 end)
@@ -1172,7 +1200,6 @@ FloatingBtn.MouseButton1Click:Connect(function()
         if BottomBar then
             BottomBar.Visible = not isRolledUp
         end
-        -- Restaura usando o tamanho personalizado guardado (lastPanelSize)
         TweenService:Create(MainPanel, TweenInfo.new(0.5, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {Size = UDim2.new(0, lastPanelSize.X, 0, targetHeight)}):Play()
     end)
 end)
