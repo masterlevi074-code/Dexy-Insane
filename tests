@@ -1052,7 +1052,7 @@ BypassLabel.TextSize = 10
 BypassLabel.TextXAlignment = Enum.TextXAlignment.Left
 BypassLabel.ZIndex = 30
 
--- BOTÃO "INFO"
+-- BOTÃO "INFO" COM BORDA VERMELHA CORRIGIDA
 local InfoBtn = Instance.new("TextButton", TopBar)
 InfoBtn.Name = "InfoBtn"
 InfoBtn.Size = UDim2.new(0, 34, 0, 18)
@@ -1069,6 +1069,7 @@ Instance.new("UICorner", InfoBtn).CornerRadius = UDim.new(0, 4)
 local InfoBtnStroke = Instance.new("UIStroke", InfoBtn)
 InfoBtnStroke.Color = Color3.fromRGB(255, 40, 40)
 InfoBtnStroke.Thickness = 1.5
+InfoBtnStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
 
 InfoBtn.MouseEnter:Connect(function()
     TweenService:Create(InfoBtn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(150, 40, 40), TextColor3 = Color3.fromRGB(255, 255, 255)}):Play()
@@ -1333,8 +1334,9 @@ local function CreateTabSymbol(parent, iconType)
         Instance.new("UICorner", Pupil).CornerRadius = UDim.new(1, 0)
 
     elseif iconType == "Misc" then
+        -- Chave Inglesa/Combinada Detalhada e Bonita
         local WrenchHandle = Instance.new("Frame", IconFrame)
-        WrenchHandle.Size = UDim2.new(0, 3, 0, 12)
+        WrenchHandle.Size = UDim2.new(0, 3, 0, 13)
         WrenchHandle.Position = UDim2.new(0.5, 0, 0.5, 0)
         WrenchHandle.AnchorPoint = Vector2.new(0.5, 0.5)
         WrenchHandle.Rotation = 45
@@ -1342,13 +1344,39 @@ local function CreateTabSymbol(parent, iconType)
         WrenchHandle.BorderSizePixel = 0
         Instance.new("UICorner", WrenchHandle).CornerRadius = UDim.new(0, 1)
 
+        -- Cabeça da chave (boca aberta superior)
         local WrenchHead = Instance.new("Frame", IconFrame)
-        WrenchHead.Size = UDim2.new(0, 8, 0, 6)
+        WrenchHead.Size = UDim2.new(0, 9, 0, 8)
         WrenchHead.Position = UDim2.new(0.5, 4, 0.5, -4)
         WrenchHead.AnchorPoint = Vector2.new(0.5, 0.5)
         WrenchHead.BackgroundColor3 = Color3.fromRGB(255, 60, 60)
         WrenchHead.BorderSizePixel = 0
         Instance.new("UICorner", WrenchHead).CornerRadius = UDim.new(0, 2)
+
+        local JawCutout = Instance.new("Frame", WrenchHead)
+        JawCutout.Size = UDim2.new(0, 4, 0, 4)
+        JawCutout.Position = UDim2.new(1, -2, 0.5, 0)
+        JawCutout.AnchorPoint = Vector2.new(1, 0.5)
+        JawCutout.BackgroundColor3 = Color3.fromRGB(10, 10, 10)
+        JawCutout.BorderSizePixel = 0
+        Instance.new("UICorner", JawCutout).CornerRadius = UDim.new(0, 1)
+
+        -- Anel/Olho inferior (chave combinada)
+        local WrenchRing = Instance.new("Frame", IconFrame)
+        WrenchRing.Size = UDim2.new(0, 7, 0, 7)
+        WrenchRing.Position = UDim2.new(0.5, -4, 0.5, 4)
+        WrenchRing.AnchorPoint = Vector2.new(0.5, 0.5)
+        WrenchRing.BackgroundColor3 = Color3.fromRGB(255, 60, 60)
+        WrenchRing.BorderSizePixel = 0
+        Instance.new("UICorner", WrenchRing).CornerRadius = UDim.new(1, 0)
+
+        local RingHole = Instance.new("Frame", WrenchRing)
+        RingHole.Size = UDim2.new(0, 3, 0, 3)
+        RingHole.Position = UDim2.new(0.5, 0, 0.5, 0)
+        RingHole.AnchorPoint = Vector2.new(0.5, 0.5)
+        RingHole.BackgroundColor3 = Color3.fromRGB(10, 10, 10)
+        RingHole.BorderSizePixel = 0
+        Instance.new("UICorner", RingHole).CornerRadius = UDim.new(1, 0)
     end
 end
 
