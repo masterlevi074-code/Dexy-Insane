@@ -306,7 +306,7 @@ RunService.RenderStepped:Connect(function()
     end
 end)
 
--- Scanner Dinâmico para ESP DragonBall (Highlight Laranja + Nome + Distância)
+-- Scanner Dinâmico para ESP DragonBall (Highlight Laranja + Nome + Distância + Filtro Anti-Pedestal)
 task.spawn(function()
     while task.wait(0.3) do
         pcall(function()
@@ -317,58 +317,61 @@ task.spawn(function()
 
                 for _, obj in ipairs(mapFolder:GetDescendants()) do
                     if obj:IsA("Model") and obj ~= LocalPlayer.Character then
-                        if obj:FindFirstChild("Decor") or obj:FindFirstChild("Force") or obj:FindFirstChild("Main") then
-                            activeItems[obj] = true
-                            
-                            local dist = 0
-                            local targetPart = obj.PrimaryPart or obj:FindFirstChildWhichIsA("BasePart")
-                            if hrp and targetPart then
-                                dist = math.floor((hrp.Position - targetPart.Position).Magnitude)
-                            end
-
-                            if not dbObjects[obj] then
-                                dbObjects[obj] = {}
+                        -- Filtro para ignorar o modelo Pedestal
+                        if string.lower(obj.Name) ~= "pedestal" and not string.lower(obj.Name):find("pedestal") then
+                            if obj:FindFirstChild("Decor") or obj:FindFirstChild("Force") or obj:FindFirstChild("Main") then
+                                activeItems[obj] = true
                                 
-                                -- Highlight Laranja
-                                local highlight = Instance.new("Highlight")
-                                highlight.Name = "DexyDBHighlight"
-                                highlight.Adornee = obj
-                                highlight.FillColor = Color3.fromRGB(255, 165, 0)
-                                highlight.FillTransparency = 0.4
-                                highlight.OutlineColor = Color3.fromRGB(255, 255, 255)
-                                highlight.OutlineTransparency = 0
-                                highlight.Parent = obj
-                                dbObjects[obj].Highlight = highlight
-
-                                -- Billboard com o nome DragonBall e Distância
-                                local billboard = Instance.new("BillboardGui")
-                                billboard.Name = "DexyDBText"
-                                billboard.Size = UDim2.new(0, 120, 0, 50)
-                                billboard.StudsOffset = Vector3.new(0, 3, 0)
-                                billboard.AlwaysOnTop = true
-                                billboard.Adornee = targetPart or obj
-                                
-                                local textLabel = Instance.new("TextLabel", billboard)
-                                textLabel.Size = UDim2.new(1, 0, 1, 0)
-                                textLabel.BackgroundTransparency = 1
-                                textLabel.TextColor3 = Color3.fromRGB(255, 165, 0) -- Laranja
-                                textLabel.Font = Enum.Font.GothamBold
-                                textLabel.TextSize = 12
-                                textLabel.TextStrokeTransparency = 0
-                                textLabel.Text = "DragonBall\n[" .. dist .. "m]"
-                                
-                                billboard.Parent = obj
-                                dbObjects[obj].Billboard = billboard
-                                dbObjects[obj].TextLabel = textLabel
-                            else
-                                if dbObjects[obj].TextLabel then
-                                    dbObjects[obj].TextLabel.Text = "DragonBall\n[" .. dist .. "m]"
+                                local dist = 0
+                                local targetPart = obj.PrimaryPart or obj:FindFirstChildWhichIsA("BasePart")
+                                if hrp and targetPart then
+                                    dist = math.floor((hrp.Position - targetPart.Position).Magnitude)
                                 end
-                                if dbObjects[obj].Highlight then
-                                    dbObjects[obj].Highlight.Enabled = ESPConfig.DBChams
-                                end
-                                if dbObjects[obj].Billboard then
-                                    dbObjects[obj].Billboard.Enabled = ESPConfig.DBText
+
+                                if not dbObjects[obj] then
+                                    dbObjects[obj] = {}
+                                    
+                                    -- Highlight Laranja
+                                    local highlight = Instance.new("Highlight")
+                                    highlight.Name = "DexyDBHighlight"
+                                    highlight.Adornee = obj
+                                    highlight.FillColor = Color3.fromRGB(255, 165, 0)
+                                    highlight.FillTransparency = 0.4
+                                    highlight.OutlineColor = Color3.fromRGB(255, 255, 255)
+                                    highlight.OutlineTransparency = 0
+                                    highlight.Parent = obj
+                                    dbObjects[obj].Highlight = highlight
+
+                                    -- Billboard com o nome DragonBall e Distância
+                                    local billboard = Instance.new("BillboardGui")
+                                    billboard.Name = "DexyDBText"
+                                    billboard.Size = UDim2.new(0, 120, 0, 50)
+                                    billboard.StudsOffset = Vector3.new(0, 3, 0)
+                                    billboard.AlwaysOnTop = true
+                                    billboard.Adornee = targetPart or obj
+                                    
+                                    local textLabel = Instance.new("TextLabel", billboard)
+                                    textLabel.Size = UDim2.new(1, 0, 1, 0)
+                                    textLabel.BackgroundTransparency = 1
+                                    textLabel.TextColor3 = Color3.fromRGB(255, 165, 0) -- Laranja
+                                    textLabel.Font = Enum.Font.GothamBold
+                                    textLabel.TextSize = 12
+                                    textLabel.TextStrokeTransparency = 0
+                                    textLabel.Text = "DragonBall\n[" .. dist .. "m]"
+                                    
+                                    billboard.Parent = obj
+                                    dbObjects[obj].Billboard = billboard
+                                    dbObjects[obj].TextLabel = textLabel
+                                else
+                                    if dbObjects[obj].TextLabel then
+                                        dbObjects[obj].TextLabel.Text = "DragonBall\n[" .. dist .. "m]"
+                                    end
+                                    if dbObjects[obj].Highlight then
+                                        dbObjects[obj].Highlight.Enabled = ESPConfig.DBChams
+                                    end
+                                    if dbObjects[obj].Billboard then
+                                        dbObjects[obj].Billboard.Enabled = ESPConfig.DBText
+                                    end
                                 end
                             end
                         end
