@@ -306,7 +306,7 @@ RunService.RenderStepped:Connect(function()
     end
 end)
 
--- Scanner Dinâmico para ESP DragonBall (Filtro Hierárquico Avançado Anti-Pedestal/Balls interna)
+-- Scanner Dinâmico para ESP DragonBall (Bloqueio total do modelo Pedestal e seus filhos)
 task.spawn(function()
     while task.wait(0.3) do
         pcall(function()
@@ -314,12 +314,12 @@ task.spawn(function()
                 local activeItems = {}
                 local hrp = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
 
-                -- Função que sobe na hierarquia (parents) para bloquear qualquer item preso a pedestais ou pastas Balls de suporte
+                -- Função rigorosa que sobe na árvore e bloqueia se encontrar "pedestal" em qualquer ancestral
                 local function shouldIgnore(obj)
                     local curr = obj
                     while curr and curr ~= workspace do
                         local nameLower = string.lower(curr.Name)
-                        if nameLower:find("pedestal") or nameLower:find("stand") or nameLower:find("altar") or nameLower:find("holder") or nameLower:find("base") or nameLower:find("pad") or nameLower:find("spot") or nameLower:find("statue") or nameLower:find("shrine") then
+                        if nameLower:find("pedestal") then
                             return true
                         end
                         curr = curr.Parent
@@ -327,12 +327,8 @@ task.spawn(function()
                     return false
                 end
 
-                -- Alvos de busca
+                -- Alvos de busca (apenas o workspace geral / mapa, ignorando qualquer estrutura de pedestal)
                 local searchTargets = {}
-                local ballsFolder = workspace:FindFirstChild("Balls")
-                if ballsFolder then
-                    table.insert(searchTargets, ballsFolder)
-                end
                 local mapFolder = workspace:FindFirstChild("Map") or workspace
                 table.insert(searchTargets, mapFolder)
 
@@ -341,7 +337,7 @@ task.spawn(function()
                         if (obj:IsA("Model") or obj:IsA("BasePart")) and obj ~= LocalPlayer.Character then
                             if not shouldIgnore(obj) then
                                 local nameLower = string.lower(obj.Name)
-                                local isRealBall = (parentFolder == ballsFolder) or nameLower:find("dragon") or nameLower:find("ball") or obj:GetAttribute("realBall")
+                                local isRealBall = nameLower:find("dragon") or nameLower:find("ball") or obj:GetAttribute("realBall")
 
                                 if isRealBall then
                                     activeItems[obj] = true
