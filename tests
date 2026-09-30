@@ -759,22 +759,21 @@ BottomBar.Active = true
 
 local BottomDragLine = Instance.new("Frame", BottomBar)
 BottomDragLine.Name = "DragLine"
-BottomDragLine.Size = UDim2.new(0.4, 0, 0, 6) -- Formato de pílula visível
+BottomDragLine.Size = UDim2.new(0.4, 0, 0, 6) 
 BottomDragLine.Position = UDim2.new(0.5, 0, 0.5, 0)
 BottomDragLine.AnchorPoint = Vector2.new(0.5, 0.5)
-BottomDragLine.BackgroundColor3 = Color3.fromRGB(220, 40, 40) -- Tom vermelho
-BottomDragLine.BackgroundTransparency = 0.6 -- Transparência aplicada
+BottomDragLine.BackgroundColor3 = Color3.fromRGB(220, 40, 40) 
+BottomDragLine.BackgroundTransparency = 0.6 
 BottomDragLine.BorderSizePixel = 0
 BottomDragLine.ZIndex = 201
 Instance.new("UICorner", BottomDragLine).CornerRadius = UDim.new(1, 0)
 
--- Borda mais visível na linha de baixo
 local DragLineStroke = Instance.new("UIStroke", BottomDragLine)
 DragLineStroke.Color = Color3.fromRGB(255, 60, 60)
 DragLineStroke.Thickness = 1.5 
 DragLineStroke.Transparency = 0.1
 
--- 2. ÍCONE DE REDIMENSIONAR (Duas barrinhas diagonais ao estilo WindUI)
+-- 2. ÍCONE DE REDIMENSIONAR (Duas barrinhas diagonais em VERMELHO)
 local ResizeHandle = Instance.new("Frame", MainPanel)
 ResizeHandle.Name = "ResizeHandle"
 ResizeHandle.Size = UDim2.new(0, 28, 0, 28)
@@ -784,23 +783,23 @@ ResizeHandle.BackgroundTransparency = 1
 ResizeHandle.Active = true
 ResizeHandle.ZIndex = 210
 
--- Barrinha Maior (Diagonal)
+-- Barrinha Maior (Diagonal Vermelha)
 local ResizeBar1 = Instance.new("Frame", ResizeHandle)
 ResizeBar1.Size = UDim2.new(0, 14, 0, 3)
 ResizeBar1.Position = UDim2.new(0.6, 0, 0.6, 0)
 ResizeBar1.AnchorPoint = Vector2.new(0.5, 0.5)
-ResizeBar1.BackgroundColor3 = Color3.fromRGB(160, 160, 165)
-ResizeBar1.Rotation = -45 -- Inclinação para fazer o detalhe clássico de canto
+ResizeBar1.BackgroundColor3 = Color3.fromRGB(255, 60, 60) -- Alterado para vermelho
+ResizeBar1.Rotation = -45 
 ResizeBar1.BorderSizePixel = 0
 ResizeBar1.ZIndex = 211
 Instance.new("UICorner", ResizeBar1).CornerRadius = UDim.new(1, 0)
 
--- Barrinha Menor (Diagonal)
+-- Barrinha Menor (Diagonal Vermelha)
 local ResizeBar2 = Instance.new("Frame", ResizeHandle)
 ResizeBar2.Size = UDim2.new(0, 6, 0, 3)
 ResizeBar2.Position = UDim2.new(0.8, 0, 0.8, 0)
 ResizeBar2.AnchorPoint = Vector2.new(0.5, 0.5)
-ResizeBar2.BackgroundColor3 = Color3.fromRGB(160, 160, 165)
+ResizeBar2.BackgroundColor3 = Color3.fromRGB(255, 60, 60) -- Alterado para vermelho
 ResizeBar2.Rotation = -45
 ResizeBar2.BorderSizePixel = 0
 ResizeBar2.ZIndex = 211
@@ -863,6 +862,9 @@ local draggingPanel = false
 local dragStartPos = nil
 local startPanelPos = nil
 
+-- Guarda o tamanho personalizado do painel
+local lastPanelSize = Vector2.new(520, 320)
+
 ResizeHandle.InputBegan:Connect(function(input)
 	if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
 		resizing = true
@@ -902,6 +904,7 @@ UserInputService.InputChanged:Connect(function(input)
 			local newHeight = math.clamp(startSize.Y + delta.Y, 260, 600)
 
 			MainPanel.Size = UDim2.new(0, newWidth, 0, newHeight)
+			lastPanelSize = Vector2.new(newWidth, newHeight) -- Atualiza o tamanho guardado
 		end
 	end
 end)
@@ -1117,7 +1120,7 @@ local isRolledUp = false
 
 RollUpBtn.MouseButton1Click:Connect(function()
     isRolledUp = not isRolledUp
-    local targetHeight = isRolledUp and 45 or 320
+    local targetHeight = isRolledUp and 45 or lastPanelSize.Y
     local size = UDim2.new(0, MainPanel.AbsoluteSize.X, 0, targetHeight)
     
     TweenService:Create(MainPanel, TweenInfo.new(0.5, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {Size = size}):Play()
@@ -1162,14 +1165,15 @@ FloatingBtn.MouseButton1Click:Connect(function()
         FloatingBtn.Visible = false
         MainPanel.Visible = true
         isPanelOpen = true
-        local targetHeight = isRolledUp and 45 or 320
+        local targetHeight = isRolledUp and 45 or lastPanelSize.Y
         if ResizeHandle then
             ResizeHandle.Visible = not isRolledUp
         end
         if BottomBar then
             BottomBar.Visible = not isRolledUp
         end
-        TweenService:Create(MainPanel, TweenInfo.new(0.5, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {Size = UDim2.new(0, 520, 0, targetHeight)}):Play()
+        -- Restaura usando o tamanho personalizado guardado (lastPanelSize)
+        TweenService:Create(MainPanel, TweenInfo.new(0.5, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {Size = UDim2.new(0, lastPanelSize.X, 0, targetHeight)}):Play()
     end)
 end)
 
