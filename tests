@@ -223,7 +223,7 @@ task.spawn(function()
     end
 end)
 
--- AUTO CHARGE KI LOOP (Monitorando Energy e MaxEnergy na Workspace)
+-- AUTO CHARGE KI LOOP (Aperta Q e R juntos ao chegar em 10%, depois segura C até o MaxEnergy)
 local chargeHolding = false
 task.spawn(function()
     while true do
@@ -243,6 +243,14 @@ task.spawn(function()
 
                             if not chargeHolding and percentage <= 10 then
                                 chargeHolding = true
+                                -- 1. Aperta Q e R ao mesmo tempo
+                                VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.Q, false, game)
+                                VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.R, false, game)
+                                task.wait(0.03)
+                                VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.Q, false, game)
+                                VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.R, false, game)
+                                task.wait(0.05)
+                                -- 2. Segura o C para recarregar
                                 VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.C, false, game)
                             elseif chargeHolding and currentEnergy >= maxEnergy then
                                 chargeHolding = false
