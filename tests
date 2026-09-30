@@ -179,7 +179,7 @@ task.spawn(function()
 end)
 
 -- ==========================================
--- SISTEMA DE ESP PLAYERS (CORES INDEPENDENTES)
+-- SISTEMA DE ESP PLAYERS
 -- ==========================================
 local espObjects = {}
 local chamsObjects = {}
@@ -883,7 +883,8 @@ local function CreateTopButton(name, text, posOffset, hoverColor)
     return Btn
 end
 
-local MinimizeIconBtn = CreateTopButton("MinimizeIconBtn", "_", -110, Color3.fromRGB(150, 40, 40))
+-- ALTERAÇÃO 1: BOTÃO DE MINIMIZAR AGORA É "•"
+local MinimizeIconBtn = CreateTopButton("MinimizeIconBtn", "•", -110, Color3.fromRGB(150, 40, 40))
 local RollUpBtn = CreateTopButton("RollUpBtn", "-", -75, Color3.fromRGB(150, 40, 40))
 local CloseBtn = CreateTopButton("CloseBtn", "X", -40, Color3.fromRGB(255, 30, 30))
 
@@ -1040,12 +1041,19 @@ local pages = {}
 local currentTab = nil
 
 local isRolledUp = false
+
+-- ALTERAÇÃO 2: OCULTA/MOSTRA O REDIMENSIONADOR AO RECOLHER O PAINEL
 RollUpBtn.MouseButton1Click:Connect(function()
     isRolledUp = not isRolledUp
     local targetHeight = isRolledUp and 45 or 320
     local size = UDim2.new(0, MainPanel.AbsoluteSize.X, 0, targetHeight)
     
     TweenService:Create(MainPanel, TweenInfo.new(0.5, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {Size = size}):Play()
+    
+    -- Oculta o puxador de redimensionar quando recolhido
+    if ResizeHandle then
+        ResizeHandle.Visible = not isRolledUp
+    end
     
     if TabsContainer then TabsContainer.Visible = not isRolledUp end
     for tName, data in pairs(pages) do
@@ -1081,6 +1089,9 @@ FloatingBtn.MouseButton1Click:Connect(function()
         MainPanel.Visible = true
         isPanelOpen = true
         local targetHeight = isRolledUp and 45 or 320
+        if ResizeHandle then
+            ResizeHandle.Visible = not isRolledUp
+        end
         TweenService:Create(MainPanel, TweenInfo.new(0.5, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {Size = UDim2.new(0, 520, 0, targetHeight)}):Play()
     end)
 end)
@@ -1276,7 +1287,7 @@ local function CreateTab(name, iconType)
 end
 
 -- ==========================================
--- COLOR PICKER CANVAS 2D INTERATIVO (CORRIGIDO PARA MOBILE/TOUCH)
+-- COLOR PICKER CANVAS 2D INTERATIVO
 -- ==========================================
 local function BuildWindColorPicker(parentFrame, initialColor, onColorChanged)
     local h, s, v = initialColor:ToHSV()
@@ -1760,7 +1771,7 @@ local function CreateToggleWithSubOptions(parentCol, name, callback, subOptions)
             if sub.Callback then sub.Callback(subToggled) end
         end)
 
-        -- BOTÃO/PREVIEW DE COR DENTRO DO SUB-ITEM (SEM EMOJI, MAIOR E RETANGULAR)
+        -- BOTÃO/PREVIEW DE COR DENTRO DO SUB-ITEM
         if sub.GetColor and sub.SetColor then
             local SubColorPreview = Instance.new("TextButton", SubRow)
             SubColorPreview.Size = UDim2.new(0, 28, 0, 16)
@@ -2001,7 +2012,7 @@ CreateToggle(TabPlayer.Right, "Atravessar Paredes", function(v)
 end, false)
 CreateDropdown(TabPlayer.Right, "Tema de Aura", {"Vermelho Insano", "Azul Divino", "Preto Sombrio"}, function(v) Config.AuraTheme = v end)
 
--- ABA VISUAL: ESP PLAYERS COM CONFIGURAÇÃO DE COR INTEGRADA NO BOTÃO DE ENGRENAGEM (⚙)
+-- ABA VISUAL: ESP PLAYERS
 CreateToggleWithSubOptions(TabVisual.Left, "ESP Players", function(v) 
     ESPConfig.Enabled = v 
 end, {
@@ -2037,7 +2048,7 @@ end, {
     }
 })
 
--- ABA VISUAL: ESP DRAGONBALL COM SELETOR DE COR DENTRO DO ⚙
+-- ABA VISUAL: ESP DRAGONBALL
 CreateToggleWithSubOptions(TabVisual.Right, "ESP DragonBall", function(v) 
     DBConfig.Enabled = v 
 end, {
