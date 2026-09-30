@@ -223,7 +223,7 @@ task.spawn(function()
     end
 end)
 
--- AUTO CHARGE KI LOOP (Aperta Q e R juntos ao chegar em 10%, aguarda 0.40s, depois segura C até o MaxEnergy)
+-- AUTO CHARGE KI LOOP
 local chargeHolding = false
 task.spawn(function()
     while true do
@@ -443,7 +443,7 @@ RunService.RenderStepped:Connect(function()
 end)
 
 -- ==========================================
--- SISTEMA DE ESP DRAGONBALL
+-- SISTEMA DE ESP DRAGONBALL E TELEPORT
 -- ==========================================
 local dbObjects = {}
 
@@ -504,11 +504,6 @@ local function UpdateDBTracer(objData, targetPos)
 end
 
 local function ScanDragonBalls()
-    if not DBConfig.Enabled then
-        ClearAllDBESP()
-        return
-    end
-
     local activeItems = {}
     local hrp = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
     local mapFolder = workspace:FindFirstChild("Map") or workspace
@@ -560,12 +555,12 @@ local function ScanDragonBalls()
                         local data = dbObjects[obj]
                         
                         if data.Highlight then
-                            data.Highlight.Enabled = DBConfig.Highlight
+                            data.Highlight.Enabled = DBConfig.Enabled and DBConfig.Highlight
                             data.Highlight.FillColor = DBConfig.Color
                         end
 
                         if data.Billboard and data.TextLabel then
-                            data.Billboard.Enabled = DBConfig.Names or DBConfig.Distance
+                            data.Billboard.Enabled = DBConfig.Enabled and (DBConfig.Names or DBConfig.Distance)
                             data.TextLabel.TextColor3 = DBConfig.Color
                             
                             local textComponents = {}
@@ -575,14 +570,18 @@ local function ScanDragonBalls()
                             data.TextLabel.Text = table.concat(textComponents, "\n")
                         end
 
-                        UpdateDBTracer(data, targetPart.Position)
+                        if DBConfig.Enabled then
+                            UpdateDBTracer(data, targetPart.Position)
+                        else
+                            if data.Tracer then data.Tracer.Visible = false end
+                        end
                     end
                 end
             end
         end
     end
 
-    for obj, _ in pairs(dbObjects) do
+    for obj, data in pairs(dbObjects) do
         if not activeItems[obj] or not obj.Parent then
             RemoveDBESP(obj)
         end
@@ -605,6 +604,33 @@ RunService.RenderStepped:Connect(function()
         end
     end
 end)
+
+local function TeleportToNearestDragonBall()
+    pcall(function()
+        local hrp = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+        if not hrp then return end
+
+        local nearestObj = nil
+        local shortestDist = math.huge
+
+        for obj, _ in pairs(dbObjects) do
+            if obj and obj.Parent then
+                local targetPart = obj.PrimaryPart or obj:FindFirstChildWhichIsA("BasePart") or obj:FindFirstChild("Main")
+                if targetPart then
+                    local dist = (hrp.Position - targetPart.Position).Magnitude
+                    if dist < shortestDist then
+                        shortestDist = dist
+                        nearestObj = targetPart
+                    end
+                end
+            end
+        end
+
+        if nearestObj then
+            hrp.CFrame = nearestObj.CFrame + Vector3.new(0, 3, 0)
+        end
+    end)
+end
 
 -- ==========================================
 -- EFEITO: ONDA AO CLICAR (RIPPLE EFFECT)
@@ -647,7 +673,7 @@ local function CreateCustomSymbol(parent, pos, size)
 end
 
 -- ==========================================
--- 1. TELA DE CARREGAMENTO LUXUOSA (Fundo Preto Puro)
+-- 1. TELA DE CARREGAMENTO
 -- ==========================================
 local LoadingFrame = Instance.new("Frame")
 LoadingFrame.Size = UDim2.new(0, 350, 0, 135)
@@ -765,7 +791,7 @@ FloatingBtn.MouseLeave:Connect(function()
 end)
 
 -- ==========================================
--- 3. PAINEL PRINCIPAL (Fundo Preto Puro)
+-- 3. PAINEL PRINCIPAL
 -- ==========================================
 local MainPanel = Instance.new("Frame")
 MainPanel.Name = "MainPanel"
@@ -1305,12 +1331,30 @@ local function CreateTabSymbol(parent, iconType)
         Pupil.BackgroundColor3 = Color3.fromRGB(255, 60, 60)
         Pupil.BorderSizePixel = 0
         Instance.new("UICorner", Pupil).CornerRadius = UDim.new(1, 0)
+
+    elseif iconType == "Misc" then
+        local WrenchHandle = Instance.new("Frame", IconFrame)
+        WrenchHandle.Size = UDim2.new(0, 3, 0, 12)
+        WrenchHandle.Position = UDim2.new(0.5, 0, 0.5, 0)
+        WrenchHandle.AnchorPoint = Vector2.new(0.5, 0.5)
+        WrenchHandle.Rotation = 45
+        WrenchHandle.BackgroundColor3 = Color3.fromRGB(255, 60, 60)
+        WrenchHandle.BorderSizePixel = 0
+        Instance.new("UICorner", WrenchHandle).CornerRadius = UDim.new(0, 1)
+
+        local WrenchHead = Instance.new("Frame", IconFrame)
+        WrenchHead.Size = UDim2.new(0, 8, 0, 6)
+        WrenchHead.Position = UDim2.new(0.5, 4, 0.5, -4)
+        WrenchHead.AnchorPoint = Vector2.new(0.5, 0.5)
+        WrenchHead.BackgroundColor3 = Color3.fromRGB(255, 60, 60)
+        WrenchHead.BorderSizePixel = 0
+        Instance.new("UICorner", WrenchHead).CornerRadius = UDim.new(0, 2)
     end
 end
 
 local function CreateTab(name, iconType)
     local TabBtn = Instance.new("TextButton", TabsContainer)
-    TabBtn.Size = UDim2.new(0, 100, 1, 0)
+    TabBtn.Size = UDim2.new(0, 85, 1, 0)
     TabBtn.BackgroundTransparency = 1
     TabBtn.Text = "" 
     TabBtn.AutoButtonColor = false
@@ -1578,8 +1622,36 @@ local function BuildWindColorPicker(parentFrame, initialColor, onColorChanged)
 end
 
 -- ==========================================
--- COMPONENTES COM SUPORTE A SLIDER E MÉTODOS DE AÇÃO
+-- COMPONENTES DA UI
 -- ==========================================
+
+local function CreateButton(parentCol, name, callback)
+    local BtnFrame = Instance.new("Frame", parentCol)
+    BtnFrame.Size = UDim2.new(1, -4, 0, 32)
+    BtnFrame.BackgroundColor3 = Color3.fromRGB(12, 12, 12)
+    BtnFrame.BorderSizePixel = 0
+    BtnFrame.ZIndex = 30
+    Instance.new("UICorner", BtnFrame).CornerRadius = UDim.new(0, 6)
+    
+    local Stroke = Instance.new("UIStroke", BtnFrame)
+    Stroke.Color = Color3.fromRGB(35, 20, 20)
+    Stroke.Thickness = 1
+
+    local Button = Instance.new("TextButton", BtnFrame)
+    Button.Size = UDim2.new(1, 0, 1, 0)
+    Button.BackgroundTransparency = 1
+    Button.Text = "  " .. name
+    Button.TextColor3 = Color3.fromRGB(220, 220, 220)
+    Button.Font = Enum.Font.GothamSemibold
+    Button.TextSize = 11
+    Button.TextXAlignment = Enum.TextXAlignment.Left
+    Button.ZIndex = 30
+
+    Button.MouseButton1Click:Connect(function()
+        CreateRipple(BtnFrame)
+        if callback then callback() end
+    end)
+end
 
 local function CreateToggle(parentCol, name, callback, hasConfig, minVal, maxVal, defaultVal, speedCallback, hasMethodDropdown, methodCallback)
     local baseHeight = 30
@@ -2119,6 +2191,7 @@ end
 local TabMain = CreateTab("Principal", "Principal")
 local TabPlayer = CreateTab("Jogador", "Jogador")
 local TabVisual = CreateTab("Visual", "Visual")
+local TabMisc = CreateTab("Misc", "Misc")
 
 CreateToggle(TabMain.Left, "Auto Attack", function(v) 
     Config.AutoAttack = v 
@@ -2197,7 +2270,7 @@ end, {
     }
 })
 
--- ABA VISUAL: ESP DRAGONBALL (Com sub-opções iniciando desligadas)
+-- ABA VISUAL: ESP DRAGONBALL
 CreateToggleWithSubOptions(TabVisual.Right, "ESP DragonBall", function(v) 
     DBConfig.Enabled = v 
 end, {
@@ -2226,6 +2299,11 @@ end, {
         Callback = function(v) DBConfig.Lines = v end
     }
 })
+
+-- ABA MISC: TELEPORT DRAGONBALL
+CreateButton(TabMisc.Left, "Teleportar para DragonBall", function()
+    TeleportToNearestDragonBall()
+end)
 
 -- ==========================================
 -- 8. SEQUÊNCIA DE CARREGAMENTO & ABERTURA
