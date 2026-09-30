@@ -727,7 +727,7 @@ FloatingBtn.MouseLeave:Connect(function()
 end)
 
 -- ==========================================
--- 3. PAINEL PRINCIPAL COM VISUAL WINDUI / IMAGEM
+-- 3. PAINEL PRINCIPAL
 -- ==========================================
 local MainPanel = Instance.new("Frame")
 MainPanel.Name = "MainPanel"
@@ -748,7 +748,7 @@ local PanelStroke = Instance.new("UIStroke", MainPanel)
 PanelStroke.Color = Color3.fromRGB(35, 35, 40)
 PanelStroke.Thickness = 1.5
 
--- 1. LINHA INFERIOR PARA ARRASTAR (ESTILO DA IMAGEM)
+-- 1. LINHA INFERIOR PARA ARRASTAR (Vermelho com transparência e borda visível)
 local BottomBar = Instance.new("Frame", MainPanel)
 BottomBar.Name = "BottomBar"
 BottomBar.Size = UDim2.new(1, -60, 0, 24)
@@ -759,38 +759,52 @@ BottomBar.Active = true
 
 local BottomDragLine = Instance.new("Frame", BottomBar)
 BottomDragLine.Name = "DragLine"
-BottomDragLine.Size = UDim2.new(0.55, 0, 0, 3)
+BottomDragLine.Size = UDim2.new(0.4, 0, 0, 6) -- Formato de pílula visível
 BottomDragLine.Position = UDim2.new(0.5, 0, 0.5, 0)
 BottomDragLine.AnchorPoint = Vector2.new(0.5, 0.5)
-BottomDragLine.BackgroundColor3 = Color3.fromRGB(140, 140, 145)
+BottomDragLine.BackgroundColor3 = Color3.fromRGB(220, 40, 40) -- Tom vermelho
+BottomDragLine.BackgroundTransparency = 0.6 -- Transparência aplicada
 BottomDragLine.BorderSizePixel = 0
 BottomDragLine.ZIndex = 201
 Instance.new("UICorner", BottomDragLine).CornerRadius = UDim.new(1, 0)
 
--- 2. ÍCONE CURVO NO CANTO DIREITO PARA REDIMENSIONAR (ESTILO DA IMAGEM)
+-- Borda mais visível na linha de baixo
+local DragLineStroke = Instance.new("UIStroke", BottomDragLine)
+DragLineStroke.Color = Color3.fromRGB(255, 60, 60)
+DragLineStroke.Thickness = 1.5 
+DragLineStroke.Transparency = 0.1
+
+-- 2. ÍCONE DE REDIMENSIONAR (Duas barrinhas diagonais ao estilo WindUI)
 local ResizeHandle = Instance.new("Frame", MainPanel)
 ResizeHandle.Name = "ResizeHandle"
 ResizeHandle.Size = UDim2.new(0, 28, 0, 28)
 ResizeHandle.AnchorPoint = Vector2.new(1, 1)
-ResizeHandle.Position = UDim2.new(1, 6, 1, 6)
+ResizeHandle.Position = UDim2.new(1, 0, 1, 0)
 ResizeHandle.BackgroundTransparency = 1
 ResizeHandle.Active = true
 ResizeHandle.ZIndex = 210
 
-local CornerArc = Instance.new("Frame", ResizeHandle)
-CornerArc.Name = "CornerArc"
-CornerArc.Size = UDim2.new(0, 16, 0, 16)
-CornerArc.Position = UDim2.new(0.5, 0, 0.5, 0)
-CornerArc.AnchorPoint = Vector2.new(0.5, 0.5)
-CornerArc.BackgroundTransparency = 1
-CornerArc.ZIndex = 211
+-- Barrinha Maior (Diagonal)
+local ResizeBar1 = Instance.new("Frame", ResizeHandle)
+ResizeBar1.Size = UDim2.new(0, 14, 0, 3)
+ResizeBar1.Position = UDim2.new(0.6, 0, 0.6, 0)
+ResizeBar1.AnchorPoint = Vector2.new(0.5, 0.5)
+ResizeBar1.BackgroundColor3 = Color3.fromRGB(160, 160, 165)
+ResizeBar1.Rotation = -45 -- Inclinação para fazer o detalhe clássico de canto
+ResizeBar1.BorderSizePixel = 0
+ResizeBar1.ZIndex = 211
+Instance.new("UICorner", ResizeBar1).CornerRadius = UDim.new(1, 0)
 
-local ArcStroke = Instance.new("UIStroke", CornerArc)
-ArcStroke.Color = Color3.fromRGB(160, 160, 165)
-ArcStroke.Thickness = 2.5
-
-local ArcCorner = Instance.new("UICorner", CornerArc)
-ArcCorner.CornerRadius = UDim.new(0, 6)
+-- Barrinha Menor (Diagonal)
+local ResizeBar2 = Instance.new("Frame", ResizeHandle)
+ResizeBar2.Size = UDim2.new(0, 6, 0, 3)
+ResizeBar2.Position = UDim2.new(0.8, 0, 0.8, 0)
+ResizeBar2.AnchorPoint = Vector2.new(0.5, 0.5)
+ResizeBar2.BackgroundColor3 = Color3.fromRGB(160, 160, 165)
+ResizeBar2.Rotation = -45
+ResizeBar2.BorderSizePixel = 0
+ResizeBar2.ZIndex = 211
+Instance.new("UICorner", ResizeBar2).CornerRadius = UDim.new(1, 0)
 
 -- PARTÍCULAS NO PAINEL
 local ParticleContainer = Instance.new("Frame", MainPanel)
