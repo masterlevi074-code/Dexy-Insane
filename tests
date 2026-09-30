@@ -223,7 +223,7 @@ task.spawn(function()
     end
 end)
 
--- AUTO CHARGE KI LOOP (Aperta Q e R juntos ao chegar em 10%, depois segura C até o MaxEnergy)
+-- AUTO CHARGE KI LOOP (Aperta Q e R juntos ao chegar em 10%, aguarda 0.40s, depois segura C até o MaxEnergy)
 local chargeHolding = false
 task.spawn(function()
     while true do
@@ -249,7 +249,7 @@ task.spawn(function()
                                 task.wait(0.03)
                                 VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.Q, false, game)
                                 VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.R, false, game)
-                                task.wait(0.05)
+                                task.wait(0.40) -- Aguarda 0.40 segundos antes de segurar o C
                                 -- 2. Segura o C para recarregar
                                 VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.C, false, game)
                             elseif chargeHolding and currentEnergy >= maxEnergy then
@@ -1031,13 +1031,13 @@ BypassLabel.TextSize = 10
 BypassLabel.TextXAlignment = Enum.TextXAlignment.Left
 BypassLabel.ZIndex = 30
 
--- BOTÃO "INFO"
+-- BOTÃO "INFO" (Texto em maiúsculo e borda vermelha destacada)
 local InfoBtn = Instance.new("TextButton", TopBar)
 InfoBtn.Name = "InfoBtn"
 InfoBtn.Size = UDim2.new(0, 34, 0, 18)
 InfoBtn.Position = UDim2.new(1, -216, 0.5, -9)
 InfoBtn.BackgroundColor3 = Color3.fromRGB(25, 15, 18)
-InfoBtn.Text = "info"
+InfoBtn.Text = "INFO"
 InfoBtn.TextColor3 = Color3.fromRGB(220, 220, 220)
 InfoBtn.Font = Enum.Font.GothamBold
 InfoBtn.TextSize = 9
@@ -1046,8 +1046,8 @@ InfoBtn.ZIndex = 30
 Instance.new("UICorner", InfoBtn).CornerRadius = UDim.new(0, 4)
 
 local InfoBtnStroke = Instance.new("UIStroke", InfoBtn)
-InfoBtnStroke.Color = Color3.fromRGB(200, 40, 40)
-InfoBtnStroke.Thickness = 1
+InfoBtnStroke.Color = Color3.fromRGB(255, 40, 40)
+InfoBtnStroke.Thickness = 1.5
 
 InfoBtn.MouseEnter:Connect(function()
     TweenService:Create(InfoBtn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(150, 40, 40), TextColor3 = Color3.fromRGB(255, 255, 255)}):Play()
