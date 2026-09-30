@@ -4,6 +4,7 @@ local UserInputService = game:GetService("UserInputService")
 local RunService = game:GetService("RunService")
 local Players = game:GetService("Players")
 local VirtualInputManager = game:GetService("VirtualInputManager")
+local GuiService = game:GetService("GuiService")
 
 local LocalPlayer = Players.LocalPlayer
 
@@ -19,6 +20,17 @@ DexyUI.DisplayOrder = 999999
 DexyUI.Parent = CoreGui 
 
 local UIScale = Instance.new("UIScale", DexyUI)
+
+-- Função auxiliar para pausar a rolagem da aba enquanto arrasta o Color Picker
+local function setParentScrolling(obj, enabled)
+    local current = obj
+    while current and current ~= DexyUI and current ~= workspace do
+        if current:IsA("ScrollingFrame") then
+            current.ScrollingEnabled = enabled
+        end
+        current = current.Parent
+    end
+end
 
 -- ==========================================
 -- ESTADOS / CONFIGURAÇÕES DAS FUNÇÕES
@@ -40,17 +52,33 @@ local Config = {
     AuraTheme = "Vermelho Insano"
 }
 
--- CONFIGURAÇÕES DE ESP
+-- CONFIGURAÇÕES DE ESP PLAYERS (CORES INDIVIDUAIS)
 local ESPConfig = {
     Enabled = false,
     Boxes = false,
     Lines = false,
     Names = false,
-    Chams = false
+    Distance = false,
+    Chams = false,
+    BoxColor = Color3.fromRGB(255, 40, 40),
+    LineColor = Color3.fromRGB(255, 40, 40),
+    NameColor = Color3.fromRGB(255, 255, 255),
+    DistanceColor = Color3.fromRGB(255, 220, 40),
+    ChamsColor = Color3.fromRGB(255, 40, 40)
+}
+
+-- CONFIGURAÇÕES DE ESP DRAGONBALL
+local DBConfig = {
+    Enabled = false,
+    Highlight = true,
+    Names = true,
+    Distance = true,
+    Lines = false,
+    Color = Color3.fromRGB(255, 165, 0)
 }
 
 -- ==========================================
--- LOGICA REAL DAS FUNÇÕES DO JOGO
+-- LÓGICA REAL DAS FUNÇÕES DO JOGO
 -- ==========================================
 
 RunService.RenderStepped:Connect(function()
@@ -151,7 +179,7 @@ task.spawn(function()
 end)
 
 -- ==========================================
--- SISTEMA DE ESP PLAYERS (BOX, LINE, NAME, CHAMS)
+-- SISTEMA DE ESP PLAYERS (CORES INDEPENDENTES)
 -- ==========================================
 local espObjects = {}
 local chamsObjects = {}
@@ -180,13 +208,14 @@ RunService.RenderStepped:Connect(function()
                     local highlight = Instance.new("Highlight")
                     highlight.Name = "DexyESPChams"
                     highlight.Adornee = player.Character
-                    highlight.FillColor = Color3.fromRGB(255, 40, 40)
+                    highlight.FillColor = ESPConfig.ChamsColor
                     highlight.FillTransparency = 0.5
                     highlight.OutlineColor = Color3.fromRGB(255, 255, 255)
                     highlight.OutlineTransparency = 0
                     highlight.Parent = player.Character
                     chamsObjects[player] = highlight
                 else
+                    chamsObjects[player].FillColor = ESPConfig.ChamsColor
                     if chamsObjects[player].Adornee ~= player.Character then
                         chamsObjects[player].Adornee = player.Character
                     end
@@ -200,7 +229,7 @@ RunService.RenderStepped:Connect(function()
         end
     end
 
-    -- Gestão de Drawing (Box, Lines, Names)
+    -- Gestão de Drawing (Box, Lines, Names, Distance)
     if not ESPConfig.Enabled or not Drawing then
         for player, _ in pairs(espObjects) do
             removeESP(player)
@@ -223,22 +252,29 @@ RunService.RenderStepped:Connect(function()
                         espObjects[player] = {
                             Box = Drawing.new("Square"),
                             Line = Drawing.new("Line"),
-                            Name = Drawing.new("Text")
+                            Name = Drawing.new("Text"),
+                            Distance = Drawing.new("Text")
                         }
                         espObjects[player].Box.Visible = false
                         espObjects[player].Box.Thickness = 1.5
-                        espObjects[player].Box.Color = Color3.fromRGB(255, 40, 40)
+                        espObjects[player].Box.Color = ESPConfig.BoxColor
                         espObjects[player].Box.Filled = false
 
                         espObjects[player].Line.Visible = false
                         espObjects[player].Line.Thickness = 1
-                        espObjects[player].Line.Color = Color3.fromRGB(255, 40, 40)
+                        espObjects[player].Line.Color = ESPConfig.LineColor
 
                         espObjects[player].Name.Visible = false
                         espObjects[player].Name.Size = 12
-                        espObjects[player].Name.Color = Color3.fromRGB(255, 255, 255)
+                        espObjects[player].Name.Color = ESPConfig.NameColor
                         espObjects[player].Name.Center = true
                         espObjects[player].Name.Outline = true
+
+                        espObjects[player].Distance.Visible = false
+                        espObjects[player].Distance.Size = 11
+                        espObjects[player].Distance.Color = ESPConfig.DistanceColor
+                        espObjects[player].Distance.Center = true
+                        espObjects[player].Distance.Outline = true
                     end)
                 end
 
@@ -264,6 +300,7 @@ RunService.RenderStepped:Connect(function()
                                 objs.Box.Visible = true
                                 objs.Box.Size = Vector2.new(width, height)
                                 objs.Box.Position = Vector2.new(vector.X - width / 2, topScreen.Y)
+                                objs.Box.Color = ESPConfig.BoxColor
                             else
                                 objs.Box.Visible = false
                             end
@@ -273,6 +310,7 @@ RunService.RenderStepped:Connect(function()
                                 objs.Line.Visible = true
                                 objs.Line.From = Vector2.new(camera.ViewportSize.X / 2, camera.ViewportSize.Y)
                                 objs.Line.To = Vector2.new(vector.X, bottomScreen.Y)
+                                objs.Line.Color = ESPConfig.LineColor
                             else
                                 objs.Line.Visible = false
                             end
@@ -282,18 +320,32 @@ RunService.RenderStepped:Connect(function()
                                 objs.Name.Visible = true
                                 objs.Name.Text = player.Name
                                 objs.Name.Position = Vector2.new(vector.X, topScreen.Y - 16)
+                                objs.Name.Color = ESPConfig.NameColor
                             else
                                 objs.Name.Visible = false
+                            end
+
+                            -- Distance ESP
+                            if ESPConfig.Distance then
+                                objs.Distance.Visible = true
+                                local dist = math.floor((hrp.Position - camera.CFrame.Position).Magnitude)
+                                objs.Distance.Text = "[" .. dist .. "m]"
+                                objs.Distance.Position = Vector2.new(vector.X, bottomScreen.Y + 2)
+                                objs.Distance.Color = ESPConfig.DistanceColor
+                            else
+                                objs.Distance.Visible = false
                             end
                         else
                             objs.Box.Visible = false
                             objs.Line.Visible = false
                             objs.Name.Visible = false
+                            objs.Distance.Visible = false
                         end
                     else
                         objs.Box.Visible = false
                         objs.Line.Visible = false
                         objs.Name.Visible = false
+                        objs.Distance.Visible = false
                     end
                 end
             else
@@ -301,6 +353,170 @@ RunService.RenderStepped:Connect(function()
             end
         else
             removeESP(player)
+        end
+    end
+end)
+
+-- ==========================================
+-- SISTEMA DE ESP DRAGONBALL
+-- ==========================================
+local dbObjects = {}
+
+local function IsPedestal(obj)
+    local current = obj
+    while current and current ~= workspace do
+        local nameLower = string.lower(current.Name)
+        if nameLower:find("pedestal") or nameLower:find("stand") or nameLower:find("altar") or nameLower:find("spawn") then
+            return true
+        end
+        current = current.Parent
+    end
+    return false
+end
+
+local function RemoveDBESP(obj)
+    if dbObjects[obj] then
+        if dbObjects[obj].Highlight then dbObjects[obj].Highlight:Destroy() end
+        if dbObjects[obj].Billboard then dbObjects[obj].Billboard:Destroy() end
+        if dbObjects[obj].Tracer then 
+            pcall(function() dbObjects[obj].Tracer:Remove() end)
+        end
+        dbObjects[obj] = nil
+    end
+end
+
+local function ClearAllDBESP()
+    for obj, _ in pairs(dbObjects) do
+        RemoveDBESP(obj)
+    end
+end
+
+local function UpdateDBTracer(objData, targetPos)
+    local camera = workspace.CurrentCamera
+    if not DBConfig.Lines or not DBConfig.Enabled or not camera then
+        if objData.Tracer then objData.Tracer.Visible = false end
+        return
+    end
+
+    if not objData.Tracer and Drawing then
+        local tracer = Drawing.new("Line")
+        tracer.Thickness = 1.5
+        tracer.Color = DBConfig.Color
+        tracer.Transparency = 1
+        objData.Tracer = tracer
+    end
+
+    if objData.Tracer then
+        local screenPos, onScreen = camera:WorldToViewportPoint(targetPos)
+        if onScreen then
+            objData.Tracer.From = Vector2.new(camera.ViewportSize.X / 2, camera.ViewportSize.Y)
+            objData.Tracer.To = Vector2.new(screenPos.X, screenPos.Y)
+            objData.Tracer.Visible = true
+        else
+            objData.Tracer.Visible = false
+        end
+    end
+end
+
+local function ScanDragonBalls()
+    if not DBConfig.Enabled then
+        ClearAllDBESP()
+        return
+    end
+
+    local activeItems = {}
+    local hrp = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+    local mapFolder = workspace:FindFirstChild("Map") or workspace
+
+    for _, obj in ipairs(mapFolder:GetDescendants()) do
+        if obj:IsA("Model") and obj ~= LocalPlayer.Character then
+            if not IsPedestal(obj) then
+                local hasStructure = obj:FindFirstChild("Decor") or obj:FindFirstChild("Force") or obj:FindFirstChild("Main")
+                
+                if hasStructure then
+                    activeItems[obj] = true
+                    local targetPart = obj.PrimaryPart or obj:FindFirstChildWhichIsA("BasePart") or obj:FindFirstChild("Main")
+                    
+                    if targetPart then
+                        local dist = hrp and math.floor((hrp.Position - targetPart.Position).Magnitude) or 0
+                        
+                        if not dbObjects[obj] then
+                            dbObjects[obj] = {}
+                            
+                            local highlight = Instance.new("Highlight")
+                            highlight.Name = "DBHighlight"
+                            highlight.Adornee = obj
+                            highlight.FillColor = DBConfig.Color
+                            highlight.FillTransparency = 0.4
+                            highlight.OutlineColor = Color3.fromRGB(255, 255, 255)
+                            highlight.Parent = obj
+                            dbObjects[obj].Highlight = highlight
+
+                            local billboard = Instance.new("BillboardGui")
+                            billboard.Name = "DBTextGui"
+                            billboard.Size = UDim2.new(0, 140, 0, 40)
+                            billboard.StudsOffset = Vector3.new(0, 3, 0)
+                            billboard.AlwaysOnTop = true
+                            billboard.Adornee = targetPart
+
+                            local label = Instance.new("TextLabel", billboard)
+                            label.Size = UDim2.new(1, 0, 1, 0)
+                            label.BackgroundTransparency = 1
+                            label.TextColor3 = DBConfig.Color
+                            label.Font = Enum.Font.GothamBold
+                            label.TextSize = 12
+                            label.TextStrokeTransparency = 0
+
+                            billboard.Parent = obj
+                            dbObjects[obj].Billboard = billboard
+                            dbObjects[obj].TextLabel = label
+                        end
+
+                        local data = dbObjects[obj]
+                        
+                        if data.Highlight then
+                            data.Highlight.Enabled = DBConfig.Highlight
+                            data.Highlight.FillColor = DBConfig.Color
+                        end
+
+                        if data.Billboard and data.TextLabel then
+                            data.Billboard.Enabled = DBConfig.Names or DBConfig.Distance
+                            data.TextLabel.TextColor3 = DBConfig.Color
+                            
+                            local textComponents = {}
+                            if DBConfig.Names then table.insert(textComponents, "DragonBall") end
+                            if DBConfig.Distance then table.insert(textComponents, "[" .. dist .. "m]") end
+                            
+                            data.TextLabel.Text = table.concat(textComponents, "\n")
+                        end
+
+                        UpdateDBTracer(data, targetPart.Position)
+                    end
+                end
+            end
+        end
+    end
+
+    for obj, _ in pairs(dbObjects) do
+        if not activeItems[obj] or not obj.Parent then
+            RemoveDBESP(obj)
+        end
+    end
+end
+
+task.spawn(function()
+    while task.wait(0.3) do
+        pcall(ScanDragonBalls)
+    end
+end)
+
+RunService.RenderStepped:Connect(function()
+    if DBConfig.Enabled and DBConfig.Lines then
+        for obj, data in pairs(dbObjects) do
+            local targetPart = obj.PrimaryPart or obj:FindFirstChildWhichIsA("BasePart") or obj:FindFirstChild("Main")
+            if targetPart then
+                UpdateDBTracer(data, targetPart.Position)
+            end
         end
     end
 end)
@@ -474,7 +690,7 @@ MainPanel.AnchorPoint = Vector2.new(0.5, 0.5)
 MainPanel.BackgroundColor3 = Color3.fromRGB(12, 12, 14)
 MainPanel.BorderSizePixel = 0
 MainPanel.Active = true
-MainPanel.Draggable = true
+MainPanel.Draggable = false
 MainPanel.ClipsDescendants = false
 MainPanel.Visible = false
 MainPanel.ZIndex = 25
@@ -492,9 +708,7 @@ MainGradient.Color = ColorSequence.new({
 })
 MainGradient.Rotation = 45
 
--- ==========================================
 -- PUXADOR DE REDIMENSIONAMENTO
--- ==========================================
 local ResizeHandle = Instance.new("Frame", MainPanel)
 ResizeHandle.Size = UDim2.new(0, 35, 0, 35)
 ResizeHandle.AnchorPoint = Vector2.new(1, 1)
@@ -587,12 +801,43 @@ task.spawn(function()
 end)
 
 -- ==========================================
--- 4. BARRA SUPERIOR
+-- 4. BARRA SUPERIOR E SISTEMA DE ARRASTO EXCLUSIVO
 -- ==========================================
 local TopBar = Instance.new("Frame", MainPanel)
 TopBar.Size = UDim2.new(1, 0, 0, 45)
 TopBar.BackgroundTransparency = 1
 TopBar.ZIndex = 30
+TopBar.Active = true
+
+local draggingPanel = false
+local dragStartPos = nil
+local startPanelPos = nil
+
+TopBar.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+        draggingPanel = true
+        dragStartPos = input.Position
+        startPanelPos = MainPanel.Position
+    end
+end)
+
+UserInputService.InputChanged:Connect(function(input)
+    if draggingPanel and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+        local delta = input.Position - dragStartPos
+        MainPanel.Position = UDim2.new(
+            startPanelPos.X.Scale,
+            startPanelPos.X.Offset + delta.X,
+            startPanelPos.Y.Scale,
+            startPanelPos.Y.Offset + delta.Y
+        )
+    end
+end)
+
+UserInputService.InputEnded:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+        draggingPanel = false
+    end
+end)
 
 CreateCustomSymbol(TopBar, UDim2.new(0, 25, 0.5, 0), UDim2.new(0, 24, 0, 24))
 
@@ -673,7 +918,7 @@ BypassLabel.TextSize = 10
 BypassLabel.TextXAlignment = Enum.TextXAlignment.Left
 BypassLabel.ZIndex = 30
 
--- BOTÃO RETANGULAR "INFO"
+-- BOTÃO "INFO"
 local InfoBtn = Instance.new("TextButton", TopBar)
 InfoBtn.Name = "InfoBtn"
 InfoBtn.Size = UDim2.new(0, 34, 0, 18)
@@ -698,7 +943,7 @@ InfoBtn.MouseLeave:Connect(function()
     TweenService:Create(InfoBtn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(25, 15, 18), TextColor3 = Color3.fromRGB(220, 220, 220)}):Play()
 end)
 
--- PAINEL POP-UP INFO DO JOGADOR
+-- POP-UP INFO
 local InfoPopup = Instance.new("Frame", DexyUI)
 InfoPopup.Name = "InfoPopup"
 InfoPopup.Size = UDim2.new(0, 240, 0, 135)
@@ -1031,7 +1276,195 @@ local function CreateTab(name, iconType)
 end
 
 -- ==========================================
--- 6. COMPONENTES (COM SUPORTE A SUB-OPÇÕES EXPANSÍVEIS)
+-- COLOR PICKER CANVAS 2D INTERATIVO (CORRIGIDO PARA MOBILE/TOUCH)
+-- ==========================================
+local function BuildWindColorPicker(parentFrame, initialColor, onColorChanged)
+    local h, s, v = initialColor:ToHSV()
+
+    local pickerContainer = Instance.new("Frame", parentFrame)
+    pickerContainer.Size = UDim2.new(1, -16, 0, 130)
+    pickerContainer.Position = UDim2.new(0, 8, 0, 0)
+    pickerContainer.BackgroundTransparency = 1
+    pickerContainer.ZIndex = 30
+
+    -- 1. CANVAS 2D DE SATURAÇÃO E BRILHO
+    local satValBox = Instance.new("Frame", pickerContainer)
+    satValBox.Size = UDim2.new(1, -28, 0, 85)
+    satValBox.Position = UDim2.new(0, 0, 0, 0)
+    satValBox.BackgroundColor3 = Color3.fromHSV(h, 1, 1)
+    satValBox.BorderSizePixel = 0
+    satValBox.ZIndex = 30
+    Instance.new("UICorner", satValBox).CornerRadius = UDim.new(0, 6)
+
+    -- Overlay Branco -> Transparente (Saturação X)
+    local satOverlay = Instance.new("Frame", satValBox)
+    satOverlay.Size = UDim2.new(1, 0, 1, 0)
+    satOverlay.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+    satOverlay.BorderSizePixel = 0
+    satOverlay.ZIndex = 31
+    Instance.new("UICorner", satOverlay).CornerRadius = UDim.new(0, 6)
+    
+    local satGrad = Instance.new("UIGradient", satOverlay)
+    satGrad.Color = ColorSequence.new(Color3.fromRGB(255, 255, 255), Color3.fromRGB(255, 255, 255))
+    satGrad.Transparency = NumberSequence.new({
+        NumberSequenceKeypoint.new(0, 0),
+        NumberSequenceKeypoint.new(1, 1)
+    })
+
+    -- Overlay Transparente -> Preto (Brilho Y)
+    local valOverlay = Instance.new("Frame", satValBox)
+    valOverlay.Size = UDim2.new(1, 0, 1, 0)
+    valOverlay.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+    valOverlay.BorderSizePixel = 0
+    valOverlay.ZIndex = 32
+    Instance.new("UICorner", valOverlay).CornerRadius = UDim.new(0, 6)
+
+    local valGrad = Instance.new("UIGradient", valOverlay)
+    valGrad.Rotation = 90
+    valGrad.Color = ColorSequence.new(Color3.fromRGB(0, 0, 0), Color3.fromRGB(0, 0, 0))
+    valGrad.Transparency = NumberSequence.new({
+        NumberSequenceKeypoint.new(0, 1),
+        NumberSequenceKeypoint.new(1, 0)
+    })
+
+    -- Cursor da Paleta
+    local cursor = Instance.new("Frame", satValBox)
+    cursor.Size = UDim2.new(0, 10, 0, 10)
+    cursor.AnchorPoint = Vector2.new(0.5, 0.5)
+    cursor.Position = UDim2.new(s, 0, 1 - v, 0)
+    cursor.BackgroundColor3 = initialColor
+    cursor.ZIndex = 35
+    Instance.new("UICorner", cursor).CornerRadius = UDim.new(1, 0)
+
+    local cursorStroke = Instance.new("UIStroke", cursor)
+    cursorStroke.Color = Color3.fromRGB(255, 255, 255)
+    cursorStroke.Thickness = 1.5
+
+    -- 2. BARRA DE MATIZ (HUE SLIDER RAINBOW)
+    local hueBar = Instance.new("Frame", pickerContainer)
+    hueBar.Size = UDim2.new(0, 16, 0, 85)
+    hueBar.Position = UDim2.new(1, -16, 0, 0)
+    hueBar.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+    hueBar.BorderSizePixel = 0
+    hueBar.ZIndex = 30
+    Instance.new("UICorner", hueBar).CornerRadius = UDim.new(0, 6)
+
+    local hueGrad = Instance.new("UIGradient", hueBar)
+    hueGrad.Rotation = 90
+    hueGrad.Color = ColorSequence.new({
+        ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 0, 0)),
+        ColorSequenceKeypoint.new(0.167, Color3.fromRGB(255, 255, 0)),
+        ColorSequenceKeypoint.new(0.333, Color3.fromRGB(0, 255, 0)),
+        ColorSequenceKeypoint.new(0.5, Color3.fromRGB(0, 255, 255)),
+        ColorSequenceKeypoint.new(0.667, Color3.fromRGB(0, 0, 255)),
+        ColorSequenceKeypoint.new(0.833, Color3.fromRGB(255, 0, 255)),
+        ColorSequenceKeypoint.new(1, Color3.fromRGB(255, 0, 0))
+    })
+
+    local hueCursor = Instance.new("Frame", hueBar)
+    hueCursor.Size = UDim2.new(1, 4, 0, 4)
+    hueCursor.AnchorPoint = Vector2.new(0.5, 0.5)
+    hueCursor.Position = UDim2.new(0.5, 0, h, 0)
+    hueCursor.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+    hueCursor.ZIndex = 35
+    Instance.new("UICorner", hueCursor).CornerRadius = UDim.new(0, 2)
+
+    -- 3. PRESETS RÁPIDOS & INDICADOR
+    local bottomRow = Instance.new("Frame", pickerContainer)
+    bottomRow.Size = UDim2.new(1, 0, 0, 30)
+    bottomRow.Position = UDim2.new(0, 0, 0, 95)
+    bottomRow.BackgroundTransparency = 1
+    bottomRow.ZIndex = 30
+
+    local presetsLayout = Instance.new("UIListLayout", bottomRow)
+    presetsLayout.FillDirection = Enum.FillDirection.Horizontal
+    presetsLayout.Padding = UDim.new(0, 5)
+
+    local function updateColor()
+        local newC = Color3.fromHSV(h, s, v)
+        satValBox.BackgroundColor3 = Color3.fromHSV(h, 1, 1)
+        cursor.BackgroundColor3 = newC
+        if onColorChanged then onColorChanged(newC) end
+    end
+
+    -- Eventos da Paleta 2D
+    local draggingBox = false
+    satValBox.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            draggingBox = true
+            setParentScrolling(pickerContainer, false)
+        end
+    end)
+
+    -- Eventos do Hue Slider
+    local draggingHue = false
+    hueBar.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            draggingHue = true
+            setParentScrolling(pickerContainer, false)
+        end
+    end)
+
+    UserInputService.InputEnded:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            if draggingBox or draggingHue then
+                draggingBox = false
+                draggingHue = false
+                setParentScrolling(pickerContainer, true)
+            end
+        end
+    end)
+
+    RunService.RenderStepped:Connect(function()
+        if draggingBox or draggingHue then
+            local guiInset = GuiService:GetGuiInset()
+            local mousePos = UserInputService:GetMouseLocation() - guiInset
+
+            if draggingBox then
+                s = math.clamp((mousePos.X - satValBox.AbsolutePosition.X) / satValBox.AbsoluteSize.X, 0, 1)
+                v = 1 - math.clamp((mousePos.Y - satValBox.AbsolutePosition.Y) / satValBox.AbsoluteSize.Y, 0, 1)
+                cursor.Position = UDim2.new(s, 0, 1 - v, 0)
+                updateColor()
+            elseif draggingHue then
+                h = math.clamp((mousePos.Y - hueBar.AbsolutePosition.Y) / hueBar.AbsoluteSize.Y, 0, 1)
+                hueCursor.Position = UDim2.new(0.5, 0, h, 0)
+                updateColor()
+            end
+        end
+    end)
+
+    local presetColors = {
+        Color3.fromRGB(255, 40, 40),
+        Color3.fromRGB(40, 255, 40),
+        Color3.fromRGB(40, 140, 255),
+        Color3.fromRGB(255, 220, 40),
+        Color3.fromRGB(0, 255, 255),
+        Color3.fromRGB(200, 40, 255),
+        Color3.fromRGB(255, 255, 255)
+    }
+
+    for _, col in ipairs(presetColors) do
+        local pBtn = Instance.new("TextButton", bottomRow)
+        pBtn.Size = UDim2.new(0, 18, 0, 18)
+        pBtn.BackgroundColor3 = col
+        pBtn.Text = ""
+        pBtn.AutoButtonColor = false
+        pBtn.ZIndex = 30
+        Instance.new("UICorner", pBtn).CornerRadius = UDim.new(0, 4)
+
+        pBtn.MouseButton1Click:Connect(function()
+            h, s, v = col:ToHSV()
+            cursor.Position = UDim2.new(s, 0, 1 - v, 0)
+            hueCursor.Position = UDim2.new(0.5, 0, h, 0)
+            updateColor()
+        end)
+    end
+
+    return pickerContainer
+end
+
+-- ==========================================
+-- COMPONENTES COM COLOR PICKER NO BOTÃO DE CONFIG (⚙)
 -- ==========================================
 
 local function CreateToggle(parentCol, name, callback, hasConfig, minVal, maxVal, defaultVal, speedCallback)
@@ -1191,10 +1624,10 @@ local function CreateToggle(parentCol, name, callback, hasConfig, minVal, maxVal
     end
 end
 
--- Componente especializado para sub-opções de ESP
+-- ESTRUTURA COM SUPORTE A PALETA DE COR INTERATIVA NO BOTÃO DE CONFIGURACÃO DAS OPÇÕES
 local function CreateToggleWithSubOptions(parentCol, name, callback, subOptions)
     local baseHeight = 30
-    local expandedHeight = 38 + (#subOptions * 24) + 10
+    local currentHeight = baseHeight
     
     local ToggleFrame = Instance.new("Frame", parentCol)
     ToggleFrame.Size = UDim2.new(1, -4, 0, baseHeight)
@@ -1262,22 +1695,34 @@ local function CreateToggleWithSubOptions(parentCol, name, callback, subOptions)
     Instance.new("UICorner", ConfigBtn).CornerRadius = UDim.new(0, 4)
 
     local OptionsContainer = Instance.new("Frame", ToggleFrame)
-    OptionsContainer.Size = UDim2.new(1, -16, 0, #subOptions * 24)
+    OptionsContainer.Size = UDim2.new(1, -16, 0, 0)
     OptionsContainer.Position = UDim2.new(0, 8, 0, 32)
     OptionsContainer.BackgroundTransparency = 1
     OptionsContainer.Visible = false
     OptionsContainer.ZIndex = 30
 
-    local yOffset = 0
+    local optionsLayout = Instance.new("UIListLayout", OptionsContainer)
+    optionsLayout.SortOrder = Enum.SortOrder.LayoutOrder
+    optionsLayout.Padding = UDim.new(0, 4)
+
+    local function recalculateHeight()
+        optionsLayout:ApplyLayout()
+        local totalContentY = optionsLayout.AbsoluteContentSize.Y
+        OptionsContainer.Size = UDim2.new(1, -16, 0, totalContentY)
+        currentHeight = 38 + totalContentY + 8
+        TweenService:Create(ToggleFrame, TweenInfo.new(0.3, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {Size = UDim2.new(1, -4, 0, currentHeight)}):Play()
+    end
+
     for _, sub in ipairs(subOptions) do
         local SubRow = Instance.new("Frame", OptionsContainer)
-        SubRow.Size = UDim2.new(1, 0, 0, 22)
-        SubRow.Position = UDim2.new(0, 0, 0, yOffset)
+        SubRow.Size = UDim2.new(1, 0, 0, 24)
         SubRow.BackgroundTransparency = 1
+        SubRow.ClipsDescendants = true
         SubRow.ZIndex = 30
 
         local SubLbl = Instance.new("TextLabel", SubRow)
-        SubLbl.Size = UDim2.new(1, -40, 1, 0)
+        SubLbl.Size = UDim2.new(1, -90, 0, 22)
+        SubLbl.Position = UDim2.new(0, 0, 0, 0)
         SubLbl.BackgroundTransparency = 1
         SubLbl.Text = sub.Name
         SubLbl.TextColor3 = Color3.fromRGB(170, 170, 170)
@@ -1288,7 +1733,7 @@ local function CreateToggleWithSubOptions(parentCol, name, callback, subOptions)
 
         local SubToggleBtn = Instance.new("TextButton", SubRow)
         SubToggleBtn.Size = UDim2.new(0, 26, 0, 14)
-        SubToggleBtn.Position = UDim2.new(1, -26, 0.5, -7)
+        SubToggleBtn.Position = UDim2.new(1, -26, 0, 4)
         SubToggleBtn.BackgroundColor3 = Color3.fromRGB(40, 25, 25)
         SubToggleBtn.Text = ""
         SubToggleBtn.AutoButtonColor = false
@@ -1315,7 +1760,44 @@ local function CreateToggleWithSubOptions(parentCol, name, callback, subOptions)
             if sub.Callback then sub.Callback(subToggled) end
         end)
 
-        yOffset = yOffset + 24
+        -- BOTÃO/PREVIEW DE COR DENTRO DO SUB-ITEM (SEM EMOJI, MAIOR E RETANGULAR)
+        if sub.GetColor and sub.SetColor then
+            local SubColorPreview = Instance.new("TextButton", SubRow)
+            SubColorPreview.Size = UDim2.new(0, 28, 0, 16)
+            SubColorPreview.Position = UDim2.new(1, -60, 0, 3)
+            SubColorPreview.BackgroundColor3 = sub.GetColor()
+            SubColorPreview.Text = ""
+            SubColorPreview.AutoButtonColor = false
+            SubColorPreview.ZIndex = 30
+            Instance.new("UICorner", SubColorPreview).CornerRadius = UDim.new(0, 4)
+
+            local SubColorStroke = Instance.new("UIStroke", SubColorPreview)
+            SubColorStroke.Color = Color3.fromRGB(80, 50, 50)
+            SubColorStroke.Thickness = 1
+
+            local pickerOpen = false
+            local activePickerWidget = nil
+
+            SubColorPreview.MouseButton1Click:Connect(function()
+                pickerOpen = not pickerOpen
+                if pickerOpen then
+                    if not activePickerWidget then
+                        activePickerWidget = BuildWindColorPicker(SubRow, sub.GetColor(), function(newC)
+                            sub.SetColor(newC)
+                            SubColorPreview.BackgroundColor3 = newC
+                        end)
+                        activePickerWidget.Position = UDim2.new(0, 0, 0, 26)
+                    end
+                    activePickerWidget.Visible = true
+                    SubRow.Size = UDim2.new(1, 0, 0, 160)
+                else
+                    if activePickerWidget then activePickerWidget.Visible = false end
+                    SubRow.Size = UDim2.new(1, 0, 0, 24)
+                end
+                task.wait()
+                recalculateHeight()
+            end)
+        end
     end
 
     local isExpanded = false
@@ -1323,7 +1805,7 @@ local function CreateToggleWithSubOptions(parentCol, name, callback, subOptions)
         isExpanded = not isExpanded
         if isExpanded then
             OptionsContainer.Visible = true
-            TweenService:Create(ToggleFrame, TweenInfo.new(0.3, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {Size = UDim2.new(1, -4, 0, expandedHeight)}):Play()
+            recalculateHeight()
             TweenService:Create(ConfigBtn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(255, 40, 40), TextColor3 = Color3.fromRGB(255, 255, 255)}):Play()
         else
             TweenService:Create(ToggleFrame, TweenInfo.new(0.3, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {Size = UDim2.new(1, -4, 0, baseHeight)}):Play()
@@ -1519,14 +2001,70 @@ CreateToggle(TabPlayer.Right, "Atravessar Paredes", function(v)
 end, false)
 CreateDropdown(TabPlayer.Right, "Tema de Aura", {"Vermelho Insano", "Azul Divino", "Preto Sombrio"}, function(v) Config.AuraTheme = v end)
 
--- ABA VISUAL: ESP PLAYERS COM MENU DE CONFIGURAÇÃO (⚙)
+-- ABA VISUAL: ESP PLAYERS COM CONFIGURAÇÃO DE COR INTEGRADA NO BOTÃO DE ENGRENAGEM (⚙)
 CreateToggleWithSubOptions(TabVisual.Left, "ESP Players", function(v) 
     ESPConfig.Enabled = v 
 end, {
-    {Name = "ESP Box (Caixa)", Callback = function(v) ESPConfig.Boxes = v end},
-    {Name = "ESP Linhas (Tracers)", Callback = function(v) ESPConfig.Lines = v end},
-    {Name = "ESP Nomes", Callback = function(v) ESPConfig.Names = v end},
-    {Name = "ESP Chams (Highlight)", Callback = function(v) ESPConfig.Chams = v end}
+    {
+        Name = "Box (Caixa)", 
+        GetColor = function() return ESPConfig.BoxColor end,
+        SetColor = function(c) ESPConfig.BoxColor = c end,
+        Callback = function(v) ESPConfig.Boxes = v end
+    },
+    {
+        Name = "Linhas (Tracers)", 
+        GetColor = function() return ESPConfig.LineColor end,
+        SetColor = function(c) ESPConfig.LineColor = c end,
+        Callback = function(v) ESPConfig.Lines = v end
+    },
+    {
+        Name = "Nomes do Player", 
+        GetColor = function() return ESPConfig.NameColor end,
+        SetColor = function(c) ESPConfig.NameColor = c end,
+        Callback = function(v) ESPConfig.Names = v end
+    },
+    {
+        Name = "Distância em Metros", 
+        GetColor = function() return ESPConfig.DistanceColor end,
+        SetColor = function(c) ESPConfig.DistanceColor = c end,
+        Callback = function(v) ESPConfig.Distance = v end
+    },
+    {
+        Name = "Chams (Highlight)", 
+        GetColor = function() return ESPConfig.ChamsColor end,
+        SetColor = function(c) ESPConfig.ChamsColor = c end,
+        Callback = function(v) ESPConfig.Chams = v end
+    }
+})
+
+-- ABA VISUAL: ESP DRAGONBALL COM SELETOR DE COR DENTRO DO ⚙
+CreateToggleWithSubOptions(TabVisual.Right, "ESP DragonBall", function(v) 
+    DBConfig.Enabled = v 
+end, {
+    {
+        Name = "Highlight (Chams)", 
+        GetColor = function() return DBConfig.Color end,
+        SetColor = function(c) DBConfig.Color = c end,
+        Callback = function(v) DBConfig.Highlight = v end
+    },
+    {
+        Name = "Exibir Nomes", 
+        GetColor = function() return DBConfig.Color end,
+        SetColor = function(c) DBConfig.Color = c end,
+        Callback = function(v) DBConfig.Names = v end
+    },
+    {
+        Name = "Exibir Distância", 
+        GetColor = function() return DBConfig.Color end,
+        SetColor = function(c) DBConfig.Color = c end,
+        Callback = function(v) DBConfig.Distance = v end
+    },
+    {
+        Name = "Linhas (Tracers)", 
+        GetColor = function() return DBConfig.Color end,
+        SetColor = function(c) DBConfig.Color = c end,
+        Callback = function(v) DBConfig.Lines = v end
+    }
 })
 
 -- ==========================================
