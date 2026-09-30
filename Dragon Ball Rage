@@ -18,7 +18,6 @@ DexyUI.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 DexyUI.DisplayOrder = 999999
 DexyUI.Parent = CoreGui 
 
--- Opcional: UIScale para manter a proporção correta no celular
 local UIScale = Instance.new("UIScale", DexyUI)
 
 -- ==========================================
@@ -33,10 +32,7 @@ local Config = {
     AutoKiBlastSpeed = 0.15,
     AutoCharge = false,
     AutoQuest = false,
-    AttackSpeed = 3,
     AutoRebirth = false,
-    CollectZenis = false,
-    TrainingMode = "Melee",
     InfJump = false,
     EnableWalkSpeed = false,
     WalkSpeed = 50,
@@ -48,7 +44,6 @@ local Config = {
 -- LOGICA REAL DAS FUNÇÕES DO JOGO
 -- ==========================================
 
--- WalkSpeed com Toggle
 RunService.RenderStepped:Connect(function()
     pcall(function()
         if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then
@@ -66,7 +61,6 @@ RunService.RenderStepped:Connect(function()
     end)
 end)
 
--- Pulo Infinito
 UserInputService.JumpRequest:Connect(function()
     if Config.InfJump then
         pcall(function()
@@ -78,7 +72,6 @@ UserInputService.JumpRequest:Connect(function()
     end
 end)
 
--- Noclip (Atravessar Paredes)
 RunService.Stepped:Connect(function()
     if Config.Noclip then
         pcall(function()
@@ -94,7 +87,6 @@ RunService.Stepped:Connect(function()
     end
 end)
 
--- Auto Attack Funcional
 task.spawn(function()
     while true do
         if Config.AutoAttack then
@@ -110,7 +102,6 @@ task.spawn(function()
     end
 end)
 
--- Auto Defense Funcional
 task.spawn(function()
     while true do
         if Config.AutoDefense then
@@ -126,7 +117,6 @@ task.spawn(function()
     end
 end)
 
--- Auto Ki Blast Funcional
 task.spawn(function()
     while true do
         if Config.AutoKiBlast then
@@ -142,12 +132,10 @@ task.spawn(function()
     end
 end)
 
--- Auto Charge Ki Loop
 task.spawn(function()
     while task.wait(0.2) do
         if Config.AutoCharge then
             pcall(function()
-                -- Lógica de carregamento de Ki
             end)
         end
     end
@@ -179,82 +167,94 @@ local function CreateRipple(parentBtn)
 end
 
 -- ==========================================
--- SÍMBOLO CUSTOMIZADO PARA O BOTÃO FLUTUANTE
+-- SÍMBOLO CUSTOMIZADO (IMAGEM)
 -- ==========================================
 local function CreateCustomSymbol(parent, pos, size)
-    local SymbolMain = Instance.new("Frame", parent)
-    SymbolMain.Size = size
-    SymbolMain.Position = pos
-    SymbolMain.AnchorPoint = Vector2.new(0.5, 0.5)
-    SymbolMain.BackgroundColor3 = Color3.fromRGB(20, 5, 5)
-    SymbolMain.Rotation = 45
-    SymbolMain.BorderSizePixel = 0
-    SymbolMain.ZIndex = 30
+    local SymbolImage = Instance.new("ImageLabel", parent)
+    SymbolImage.Size = size
+    SymbolImage.Position = pos
+    SymbolImage.AnchorPoint = Vector2.new(0.5, 0.5)
+    SymbolImage.BackgroundTransparency = 1
+    SymbolImage.Image = "rbxassetid://80863202828912"
+    SymbolImage.ZIndex = 50
     
-    local Stroke = Instance.new("UIStroke", SymbolMain)
-    Stroke.Color = Color3.fromRGB(255, 40, 40)
-    Stroke.Thickness = 2
-    
-    local Core = Instance.new("Frame", SymbolMain)
-    Core.Size = UDim2.new(0.4, 0, 0.4, 0)
-    Core.Position = UDim2.new(0.5, 0, 0.5, 0)
-    Core.AnchorPoint = Vector2.new(0.5, 0.5)
-    Core.BackgroundColor3 = Color3.fromRGB(255, 20, 20)
-    Core.BorderSizePixel = 0
-    Core.ZIndex = 30
-    
-    local CoreGlow = Instance.new("UIStroke", Core)
-    CoreGlow.Color = Color3.fromRGB(255, 0, 0)
-    CoreGlow.Thickness = 3
-    CoreGlow.Transparency = 0.4
-    
-    return SymbolMain
+    return SymbolImage
 end
 
 -- ==========================================
--- 1. TELA DE CARREGAMENTO LUXUOSA
+-- 1. TELA DE CARREGAMENTO LUXUOSA (RENOVADA)
 -- ==========================================
 local LoadingFrame = Instance.new("Frame")
-LoadingFrame.Size = UDim2.new(0, 320, 0, 110)
+LoadingFrame.Size = UDim2.new(0, 350, 0, 135)
 LoadingFrame.Position = UDim2.new(0.5, 0, 0.5, 0)
 LoadingFrame.AnchorPoint = Vector2.new(0.5, 0.5)
 LoadingFrame.BackgroundColor3 = Color3.fromRGB(12, 12, 14)
 LoadingFrame.BorderSizePixel = 0
 LoadingFrame.ZIndex = 100
 LoadingFrame.Parent = DexyUI
-Instance.new("UICorner", LoadingFrame).CornerRadius = UDim.new(0, 10)
+Instance.new("UICorner", LoadingFrame).CornerRadius = UDim.new(0, 14)
 
 local LoadStroke = Instance.new("UIStroke", LoadingFrame)
-LoadStroke.Color = Color3.fromRGB(255, 40, 40)
-LoadStroke.Thickness = 2
+LoadStroke.Color = Color3.fromRGB(220, 40, 40)
+LoadStroke.Thickness = 1.5
 LoadStroke.Transparency = 1
 
+local LoadGradient = Instance.new("UIGradient", LoadingFrame)
+LoadGradient.Color = ColorSequence.new({
+    ColorSequenceKeypoint.new(0, Color3.fromRGB(28, 8, 8)),
+    ColorSequenceKeypoint.new(1, Color3.fromRGB(10, 10, 14))
+})
+LoadGradient.Rotation = 45
+
+-- Logotipo com a ID solicitada
+local LoadLogo = Instance.new("ImageLabel", LoadingFrame)
+LoadLogo.Size = UDim2.new(0, 36, 0, 36)
+LoadLogo.Position = UDim2.new(0, 20, 0, 18)
+LoadLogo.BackgroundTransparency = 1
+LoadLogo.Image = "rbxassetid://80863202828912"
+LoadLogo.ImageTransparency = 1
+LoadLogo.ZIndex = 101
+
 local LoadTitle = Instance.new("TextLabel", LoadingFrame)
-LoadTitle.Size = UDim2.new(1, 0, 0, 40)
-LoadTitle.Position = UDim2.new(0, 0, 0, 15)
+LoadTitle.Size = UDim2.new(1, -70, 0, 22)
+LoadTitle.Position = UDim2.new(0, 68, 0, 18)
 LoadTitle.BackgroundTransparency = 1
-LoadTitle.Text = "⚡ DEXY INSANE"
+LoadTitle.Text = "DEXY INSANE"
 LoadTitle.TextColor3 = Color3.fromRGB(255, 60, 60)
 LoadTitle.Font = Enum.Font.GothamBlack
-LoadTitle.TextSize = 22
+LoadTitle.TextSize = 18
+LoadTitle.TextXAlignment = Enum.TextXAlignment.Left
 LoadTitle.TextTransparency = 1
 LoadTitle.ZIndex = 101
 
+local LoadSubtitle = Instance.new("TextLabel", LoadingFrame)
+LoadSubtitle.Size = UDim2.new(1, -70, 0, 15)
+LoadSubtitle.Position = UDim2.new(0, 68, 0, 40)
+LoadSubtitle.BackgroundTransparency = 1
+LoadSubtitle.Text = "Dragon Ball Rage"
+LoadSubtitle.TextColor3 = Color3.fromRGB(150, 150, 150)
+LoadSubtitle.Font = Enum.Font.GothamSemibold
+LoadSubtitle.TextSize = 11
+LoadSubtitle.TextXAlignment = Enum.TextXAlignment.Left
+LoadSubtitle.TextTransparency = 1
+LoadSubtitle.ZIndex = 101
+
 local LoadStatus = Instance.new("TextLabel", LoadingFrame)
-LoadStatus.Size = UDim2.new(1, 0, 0, 20)
-LoadStatus.Position = UDim2.new(0, 0, 0, 70)
+LoadStatus.Size = UDim2.new(1, -40, 0, 20)
+LoadStatus.Position = UDim2.new(0, 20, 0, 95)
 LoadStatus.BackgroundTransparency = 1
-LoadStatus.Text = "Carregando Dragon Ball Rage..."
+LoadStatus.Text = "Carregando..."
 LoadStatus.TextColor3 = Color3.fromRGB(180, 180, 180)
 LoadStatus.Font = Enum.Font.GothamSemibold
-LoadStatus.TextSize = 12
+LoadStatus.TextSize = 11
+LoadStatus.TextXAlignment = Enum.TextXAlignment.Left
 LoadStatus.TextTransparency = 1
 LoadStatus.ZIndex = 101
 
 local ProgressBarBg = Instance.new("Frame", LoadingFrame)
-ProgressBarBg.Size = UDim2.new(0.8, 0, 0, 6)
-ProgressBarBg.Position = UDim2.new(0.1, 0, 0, 60)
-ProgressBarBg.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+ProgressBarBg.Size = UDim2.new(1, -40, 0, 6)
+ProgressBarBg.Position = UDim2.new(0, 20, 0, 78)
+ProgressBarBg.BackgroundColor3 = Color3.fromRGB(25, 15, 15)
 ProgressBarBg.BorderSizePixel = 0
 ProgressBarBg.BackgroundTransparency = 1
 ProgressBarBg.ZIndex = 101
@@ -268,7 +268,7 @@ ProgressBarFill.ZIndex = 102
 Instance.new("UICorner", ProgressBarFill).CornerRadius = UDim.new(1, 0)
 
 -- ==========================================
--- 2. BOTÃO FLUTUANTE (MINIMIZADO)
+-- 2. BOTÃO FLUTUANTE (COM BORDA VERMELHA FINA)
 -- ==========================================
 local FloatingBtn = Instance.new("TextButton")
 FloatingBtn.Name = "FloatingIcon"
@@ -285,11 +285,13 @@ FloatingBtn.ZIndex = 40
 FloatingBtn.Parent = DexyUI
 
 Instance.new("UICorner", FloatingBtn).CornerRadius = UDim.new(0, 14)
+
 local FloatStroke = Instance.new("UIStroke", FloatingBtn)
 FloatStroke.Color = Color3.fromRGB(255, 0, 0)
-FloatStroke.Thickness = 2
+FloatStroke.Thickness = 1.5
+FloatStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
 
-CreateCustomSymbol(FloatingBtn, UDim2.new(0.5, 0, 0.5, 0), UDim2.new(0, 20, 0, 20))
+CreateCustomSymbol(FloatingBtn, UDim2.new(0.5, 0, 0.5, 0), UDim2.new(0, 30, 0, 30))
 
 FloatingBtn.MouseEnter:Connect(function()
     TweenService:Create(FloatingBtn, TweenInfo.new(0.3), {Size = UDim2.new(0, 55, 0, 55)}):Play()
@@ -331,8 +333,8 @@ MainGradient.Rotation = 45
 -- PUXADOR DE REDIMENSIONAMENTO MOBILE & PC
 -- ==========================================
 local ResizeHandle = Instance.new("Frame", MainPanel)
-ResizeHandle.Size = UDim2.new(0, 35, 0, 35) -- Hitbox maior para toque
-ResizeHandle.AnchorPoint = Vector2.new(1, 1) -- Fixa no canto
+ResizeHandle.Size = UDim2.new(0, 35, 0, 35)
+ResizeHandle.AnchorPoint = Vector2.new(1, 1)
 ResizeHandle.Position = UDim2.new(1, 0, 1, 0) 
 ResizeHandle.BackgroundTransparency = 1
 ResizeHandle.Active = true 
@@ -341,7 +343,7 @@ ResizeHandle.ZIndex = 35
 local ArcCircle = Instance.new("Frame", ResizeHandle)
 ArcCircle.Size = UDim2.new(0, 20, 0, 20)
 ArcCircle.AnchorPoint = Vector2.new(1, 1)
-ArcCircle.Position = UDim2.new(1, -5, 1, -5) -- Afastamento visual perfeito
+ArcCircle.Position = UDim2.new(1, -5, 1, -5)
 ArcCircle.BackgroundTransparency = 1
 ArcCircle.ZIndex = 35
 Instance.new("UICorner", ArcCircle).CornerRadius = UDim.new(1, 0)
@@ -371,10 +373,8 @@ end)
 UserInputService.InputChanged:Connect(function(input)
     if resizing and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
         local delta = input.Position - startInputPos
-        
         local newWidth = math.clamp(startSize.X + delta.X, 450, 800)
         local newHeight = math.clamp(startSize.Y + delta.Y, 280, 650)
-        
         MainPanel.Size = UDim2.new(0, newWidth, 0, newHeight)
     end
 end)
@@ -424,14 +424,14 @@ task.spawn(function()
 end)
 
 -- ==========================================
--- 4. BARRA SUPERIOR (TÍTULO, BYPASS E BOTÕES)
+-- 4. BARRA SUPERIOR
 -- ==========================================
 local TopBar = Instance.new("Frame", MainPanel)
 TopBar.Size = UDim2.new(1, 0, 0, 45)
 TopBar.BackgroundTransparency = 1
 TopBar.ZIndex = 30
 
-CreateCustomSymbol(TopBar, UDim2.new(0, 25, 0.5, 0), UDim2.new(0, 16, 0, 16))
+CreateCustomSymbol(TopBar, UDim2.new(0, 25, 0.5, 0), UDim2.new(0, 24, 0, 24))
 
 local Title = Instance.new("TextLabel", TopBar)
 Title.Size = UDim2.new(1, -150, 0, 20)
@@ -482,7 +482,7 @@ local CloseBtn = CreateTopButton("CloseBtn", "X", -40, Color3.fromRGB(255, 30, 3
 -- INDICADOR DE BYPASS
 local BypassContainer = Instance.new("Frame", TopBar)
 BypassContainer.Size = UDim2.new(0, 60, 0, 20)
-BypassContainer.Position = UDim2.new(1, -178, 0.5, -10)
+BypassContainer.Position = UDim2.new(1, -176, 0.5, -10)
 BypassContainer.BackgroundTransparency = 1
 BypassContainer.ZIndex = 30
 
@@ -509,6 +509,118 @@ BypassLabel.Font = Enum.Font.GothamBold
 BypassLabel.TextSize = 10
 BypassLabel.TextXAlignment = Enum.TextXAlignment.Left
 BypassLabel.ZIndex = 30
+
+-- ==========================================
+-- BOTÃO RETANGULAR PEQUENO "INFO"
+-- ==========================================
+local InfoBtn = Instance.new("TextButton", TopBar)
+InfoBtn.Name = "InfoBtn"
+InfoBtn.Size = UDim2.new(0, 34, 0, 18)
+InfoBtn.Position = UDim2.new(1, -216, 0.5, -9)
+InfoBtn.BackgroundColor3 = Color3.fromRGB(25, 15, 18)
+InfoBtn.Text = "info"
+InfoBtn.TextColor3 = Color3.fromRGB(220, 220, 220)
+InfoBtn.Font = Enum.Font.GothamBold
+InfoBtn.TextSize = 9
+InfoBtn.AutoButtonColor = false
+InfoBtn.ZIndex = 30
+Instance.new("UICorner", InfoBtn).CornerRadius = UDim.new(0, 4)
+
+local InfoBtnStroke = Instance.new("UIStroke", InfoBtn)
+InfoBtnStroke.Color = Color3.fromRGB(200, 40, 40)
+InfoBtnStroke.Thickness = 1
+
+InfoBtn.MouseEnter:Connect(function()
+    TweenService:Create(InfoBtn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(150, 40, 40), TextColor3 = Color3.fromRGB(255, 255, 255)}):Play()
+end)
+InfoBtn.MouseLeave:Connect(function()
+    TweenService:Create(InfoBtn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(25, 15, 18), TextColor3 = Color3.fromRGB(220, 220, 220)}):Play()
+end)
+
+-- PAINEL POP-UP DE INFORMAÇÕES DO JOGADOR
+local InfoPopup = Instance.new("Frame", DexyUI)
+InfoPopup.Name = "InfoPopup"
+InfoPopup.Size = UDim2.new(0, 240, 0, 135)
+InfoPopup.Position = UDim2.new(0.5, 0, 0.5, 0)
+InfoPopup.AnchorPoint = Vector2.new(0.5, 0.5)
+InfoPopup.BackgroundColor3 = Color3.fromRGB(14, 12, 16)
+InfoPopup.BorderSizePixel = 0
+InfoPopup.Visible = false
+InfoPopup.ZIndex = 150
+Instance.new("UICorner", InfoPopup).CornerRadius = UDim.new(0, 10)
+
+local PopupStroke = Instance.new("UIStroke", InfoPopup)
+PopupStroke.Color = Color3.fromRGB(220, 40, 40)
+PopupStroke.Thickness = 1.5
+
+local success, thumbUrl = pcall(function()
+    return Players:GetUserThumbnailAsync(LocalPlayer.UserId, Enum.ThumbnailType.HeadShot, Enum.ThumbnailSize.Size150x150)
+end)
+
+local AvatarImg = Instance.new("ImageLabel", InfoPopup)
+AvatarImg.Size = UDim2.new(0, 48, 0, 48)
+AvatarImg.Position = UDim2.new(0, 12, 0, 15)
+AvatarImg.BackgroundColor3 = Color3.fromRGB(25, 20, 25)
+AvatarImg.BorderSizePixel = 0
+AvatarImg.Image = success and thumbUrl or ""
+AvatarImg.ZIndex = 151
+Instance.new("UICorner", AvatarImg).CornerRadius = UDim.new(1, 0)
+
+local AvatarStroke = Instance.new("UIStroke", AvatarImg)
+AvatarStroke.Color = Color3.fromRGB(220, 40, 40)
+AvatarStroke.Thickness = 1
+
+local NameLbl = Instance.new("TextLabel", InfoPopup)
+NameLbl.Size = UDim2.new(1, -75, 0, 20)
+NameLbl.Position = UDim2.new(0, 70, 0, 15)
+NameLbl.BackgroundTransparency = 1
+NameLbl.Text = LocalPlayer.Name
+NameLbl.TextColor3 = Color3.fromRGB(255, 255, 255)
+NameLbl.Font = Enum.Font.GothamBold
+NameLbl.TextSize = 13
+NameLbl.TextXAlignment = Enum.TextXAlignment.Left
+NameLbl.ZIndex = 151
+
+local DisplayLbl = Instance.new("TextLabel", InfoPopup)
+DisplayLbl.Size = UDim2.new(1, -75, 0, 15)
+DisplayLbl.Position = UDim2.new(0, 70, 0, 35)
+DisplayLbl.BackgroundTransparency = 1
+DisplayLbl.Text = "@" .. LocalPlayer.DisplayName
+DisplayLbl.TextColor3 = Color3.fromRGB(160, 160, 160)
+DisplayLbl.Font = Enum.Font.Gotham
+DisplayLbl.TextSize = 11
+DisplayLbl.TextXAlignment = Enum.TextXAlignment.Left
+DisplayLbl.ZIndex = 151
+
+local DetailsLbl = Instance.new("TextLabel", InfoPopup)
+DetailsLbl.Size = UDim2.new(1, -24, 0, 55)
+DetailsLbl.Position = UDim2.new(0, 12, 0, 72)
+DetailsLbl.BackgroundTransparency = 1
+DetailsLbl.Text = "ID: " .. LocalPlayer.UserId .. "\nIdade da Conta: " .. (LocalPlayer.AccountAge or 0) .. " dias\nPlataforma: " .. (UserInputService.TouchEnabled and "Mobile" or "PC")
+DetailsLbl.TextColor3 = Color3.fromRGB(200, 200, 200)
+DetailsLbl.Font = Enum.Font.GothamSemibold
+DetailsLbl.TextSize = 10
+DetailsLbl.TextXAlignment = Enum.TextXAlignment.Left
+DetailsLbl.ZIndex = 151
+
+local ClosePopupBtn = Instance.new("TextButton", InfoPopup)
+ClosePopupBtn.Size = UDim2.new(0, 20, 0, 20)
+ClosePopupBtn.Position = UDim2.new(1, -24, 0, 6)
+ClosePopupBtn.BackgroundTransparency = 1
+ClosePopupBtn.Text = "X"
+ClosePopupBtn.TextColor3 = Color3.fromRGB(200, 80, 80)
+ClosePopupBtn.Font = Enum.Font.GothamBold
+ClosePopupBtn.TextSize = 12
+ClosePopupBtn.ZIndex = 152
+
+ClosePopupBtn.MouseButton1Click:Connect(function()
+    InfoPopup.Visible = false
+end)
+
+InfoBtn.MouseButton1Click:Connect(function()
+    CreateRipple(InfoBtn)
+    InfoPopup.Visible = not InfoPopup.Visible
+end)
 
 local Divider = Instance.new("Frame", TopBar)
 Divider.Size = UDim2.new(1, 0, 0, 1)
@@ -543,6 +655,7 @@ end)
 
 MinimizeIconBtn.MouseButton1Click:Connect(function()
     isPanelOpen = false
+    InfoPopup.Visible = false
     local shrink = TweenService:Create(MainPanel, TweenInfo.new(0.4, Enum.EasingStyle.Back, Enum.EasingDirection.In), {Size = UDim2.new(0, 0, 0, 0)})
     shrink:Play()
     shrink.Completed:Connect(function()
@@ -574,7 +687,7 @@ CloseBtn.MouseButton1Click:Connect(function()
 end)
 
 -- ==========================================
--- 5. ABAS E SÍMBOLOS (CASA E JOGADOR)
+-- 5. ABAS E SÍMBOLOS
 -- ==========================================
 TabsContainer = Instance.new("Frame", MainPanel)
 TabsContainer.Size = UDim2.new(1, -20, 0, 35)
@@ -736,7 +849,7 @@ local function CreateTab(name, iconType)
 end
 
 -- ==========================================
--- 6. COMPONENTES: TOGGLES, SLIDERS E DROPDOWNS
+-- 6. COMPONENTES
 -- ==========================================
 
 local function CreateToggle(parentCol, name, callback, hasConfig, minVal, maxVal, defaultVal, speedCallback)
@@ -1054,12 +1167,9 @@ CreateToggle(TabMain.Left, "Auto Ki Blast", function(v)
 end, true, 0.05, 0.5, 0.15, function(v) Config.AutoKiBlastSpeed = v end)
 
 CreateToggle(TabMain.Left, "Auto Charge Ki", function(v) Config.AutoCharge = v end, false)
-CreateSlider(TabMain.Left, "Velocidade de Ataque", 1, 10, 3, function(v) Config.AttackSpeed = v end)
 
 CreateToggle(TabMain.Right, "Auto Quest", function(v) Config.AutoQuest = v end, false)
 CreateToggle(TabMain.Right, "Auto Rebirth", function(v) Config.AutoRebirth = v end, false)
-CreateToggle(TabMain.Right, "Coletar Zenis", function(v) Config.CollectZenis = v end, false)
-CreateDropdown(TabMain.Right, "Modo de Treino", {"Melee", "Energy Blast", "Defense"}, function(v) Config.TrainingMode = v end)
 
 CreateToggle(TabPlayer.Left, "Pulo Infinito", function(v) Config.InfJump = v end, false)
 CreateToggle(TabPlayer.Left, "Ativar Velocidade", function(v) Config.EnableWalkSpeed = v end, false)
@@ -1087,7 +1197,9 @@ CreateDropdown(TabPlayer.Right, "Tema de Aura", {"Vermelho Insano", "Azul Divino
 -- ==========================================
 task.spawn(function()
     TweenService:Create(LoadStroke, TweenInfo.new(0.5), {Transparency = 0.2}):Play()
+    TweenService:Create(LoadLogo, TweenInfo.new(0.5), {ImageTransparency = 0}):Play()
     TweenService:Create(LoadTitle, TweenInfo.new(0.5), {TextTransparency = 0}):Play()
+    TweenService:Create(LoadSubtitle, TweenInfo.new(0.5), {TextTransparency = 0}):Play()
     TweenService:Create(LoadStatus, TweenInfo.new(0.5), {TextTransparency = 0}):Play()
     TweenService:Create(ProgressBarBg, TweenInfo.new(0.5), {BackgroundTransparency = 0}):Play()
     task.wait(0.5)
