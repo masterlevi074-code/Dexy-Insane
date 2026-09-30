@@ -38,10 +38,13 @@ end
 local Config = {
     AutoAttack = false,
     AutoAttackSpeed = 0.1,
+    AutoAttackMethod = "Clique",
     AutoDefense = false,
     AutoDefenseSpeed = 0.15,
+    AutoDefenseMethod = "Clique",
     AutoKiBlast = false,
     AutoKiBlastSpeed = 0.15,
+    AutoKiBlastMethod = "Clique",
     AutoCharge = false,
     AutoQuest = false,
     AutoRebirth = false,
@@ -124,46 +127,100 @@ RunService.Stepped:Connect(function()
     end
 end)
 
+-- AUTO ATTACK LOOP
+local attackHolding = false
 task.spawn(function()
     while true do
         if Config.AutoAttack then
-            pcall(function()
-                VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.E, false, game)
-                task.wait(0.02)
-                VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.E, false, game)
-            end)
-            task.wait(Config.AutoAttackSpeed or 0.1)
+            if Config.AutoAttackMethod == "Clique" then
+                if attackHolding then
+                    attackHolding = false
+                    pcall(function() VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.E, false, game) end)
+                end
+                pcall(function()
+                    VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.E, false, game)
+                    task.wait(0.02)
+                    VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.E, false, game)
+                end)
+                task.wait(Config.AutoAttackSpeed or 0.1)
+            elseif Config.AutoAttackMethod == "Segurar" then
+                if not attackHolding then
+                    attackHolding = true
+                    pcall(function() VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.E, false, game) end)
+                end
+                task.wait(0.1)
+            end
         else
+            if attackHolding then
+                attackHolding = false
+                pcall(function() VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.E, false, game) end)
+            end
             task.wait(0.1)
         end
     end
 end)
 
+-- AUTO DEFENSE LOOP
+local defenseHolding = false
 task.spawn(function()
     while true do
         if Config.AutoDefense then
-            pcall(function()
-                VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.R, false, game)
-                task.wait(0.02)
-                VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.R, false, game)
-            end)
-            task.wait(Config.AutoDefenseSpeed or 0.15)
+            if Config.AutoDefenseMethod == "Clique" then
+                if defenseHolding then
+                    defenseHolding = false
+                    pcall(function() VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.R, false, game) end)
+                end
+                pcall(function()
+                    VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.R, false, game)
+                    task.wait(0.02)
+                    VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.R, false, game)
+                end)
+                task.wait(Config.AutoDefenseSpeed or 0.15)
+            elseif Config.AutoDefenseMethod == "Segurar" then
+                if not defenseHolding then
+                    defenseHolding = true
+                    pcall(function() VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.R, false, game) end)
+                end
+                task.wait(0.1)
+            end
         else
+            if defenseHolding then
+                defenseHolding = false
+                pcall(function() VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.R, false, game) end)
+            end
             task.wait(0.1)
         end
     end
 end)
 
+-- AUTO KI BLAST LOOP
+local kiBlastHolding = false
 task.spawn(function()
     while true do
         if Config.AutoKiBlast then
-            pcall(function()
-                VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.Q, false, game)
-                task.wait(0.02)
-                VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.Q, false, game)
-            end)
-            task.wait(Config.AutoKiBlastSpeed or 0.15)
+            if Config.AutoKiBlastMethod == "Clique" then
+                if kiBlastHolding then
+                    kiBlastHolding = false
+                    pcall(function() VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.Q, false, game) end)
+                end
+                pcall(function()
+                    VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.Q, false, game)
+                    task.wait(0.02)
+                    VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.Q, false, game)
+                end)
+                task.wait(Config.AutoKiBlastSpeed or 0.15)
+            elseif Config.AutoKiBlastMethod == "Segurar" then
+                if not kiBlastHolding then
+                    kiBlastHolding = true
+                    pcall(function() VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.Q, false, game) end)
+                end
+                task.wait(0.1)
+            end
         else
+            if kiBlastHolding then
+                kiBlastHolding = false
+                pcall(function() VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.Q, false, game) end)
+            end
             task.wait(0.1)
         end
     end
@@ -200,7 +257,6 @@ end
 Players.PlayerRemoving:Connect(removeESP)
 
 RunService.RenderStepped:Connect(function()
-    -- Gestão de Chams (Highlight)
     if ESPConfig.Enabled and ESPConfig.Chams then
         for _, player in ipairs(Players:GetPlayers()) do
             if player ~= LocalPlayer and player.Character then
@@ -229,7 +285,6 @@ RunService.RenderStepped:Connect(function()
         end
     end
 
-    -- Gestão de Drawing (Box, Lines, Names, Distance)
     if not ESPConfig.Enabled or not Drawing then
         for player, _ in pairs(espObjects) do
             removeESP(player)
@@ -295,7 +350,6 @@ RunService.RenderStepped:Connect(function()
                             local height = math.abs(topScreen.Y - bottomScreen.Y)
                             local width = height / 2
 
-                            -- Box ESP
                             if ESPConfig.Boxes then
                                 objs.Box.Visible = true
                                 objs.Box.Size = Vector2.new(width, height)
@@ -305,7 +359,6 @@ RunService.RenderStepped:Connect(function()
                                 objs.Box.Visible = false
                             end
 
-                            -- Line / Tracer ESP
                             if ESPConfig.Lines then
                                 objs.Line.Visible = true
                                 objs.Line.From = Vector2.new(camera.ViewportSize.X / 2, camera.ViewportSize.Y)
@@ -315,7 +368,6 @@ RunService.RenderStepped:Connect(function()
                                 objs.Line.Visible = false
                             end
 
-                            -- Name ESP
                             if ESPConfig.Names then
                                 objs.Name.Visible = true
                                 objs.Name.Text = player.Name
@@ -325,7 +377,6 @@ RunService.RenderStepped:Connect(function()
                                 objs.Name.Visible = false
                             end
 
-                            -- Distance ESP
                             if ESPConfig.Distance then
                                 objs.Distance.Visible = true
                                 local dist = math.floor((hrp.Position - camera.CFrame.Position).Magnitude)
@@ -883,7 +934,6 @@ local function CreateTopButton(name, text, posOffset, hoverColor)
     return Btn
 end
 
--- ALTERAÇÃO 1: BOTÃO DE MINIMIZAR AGORA É "•"
 local MinimizeIconBtn = CreateTopButton("MinimizeIconBtn", "•", -110, Color3.fromRGB(150, 40, 40))
 local RollUpBtn = CreateTopButton("RollUpBtn", "-", -75, Color3.fromRGB(150, 40, 40))
 local CloseBtn = CreateTopButton("CloseBtn", "X", -40, Color3.fromRGB(255, 30, 30))
@@ -1042,7 +1092,6 @@ local currentTab = nil
 
 local isRolledUp = false
 
--- ALTERAÇÃO 2: OCULTA/MOSTRA O REDIMENSIONADOR AO RECOLHER O PAINEL
 RollUpBtn.MouseButton1Click:Connect(function()
     isRolledUp = not isRolledUp
     local targetHeight = isRolledUp and 45 or 320
@@ -1050,7 +1099,6 @@ RollUpBtn.MouseButton1Click:Connect(function()
     
     TweenService:Create(MainPanel, TweenInfo.new(0.5, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {Size = size}):Play()
     
-    -- Oculta o puxador de redimensionar quando recolhido
     if ResizeHandle then
         ResizeHandle.Visible = not isRolledUp
     end
@@ -1298,7 +1346,6 @@ local function BuildWindColorPicker(parentFrame, initialColor, onColorChanged)
     pickerContainer.BackgroundTransparency = 1
     pickerContainer.ZIndex = 30
 
-    -- 1. CANVAS 2D DE SATURAÇÃO E BRILHO
     local satValBox = Instance.new("Frame", pickerContainer)
     satValBox.Size = UDim2.new(1, -28, 0, 85)
     satValBox.Position = UDim2.new(0, 0, 0, 0)
@@ -1307,7 +1354,6 @@ local function BuildWindColorPicker(parentFrame, initialColor, onColorChanged)
     satValBox.ZIndex = 30
     Instance.new("UICorner", satValBox).CornerRadius = UDim.new(0, 6)
 
-    -- Overlay Branco -> Transparente (Saturação X)
     local satOverlay = Instance.new("Frame", satValBox)
     satOverlay.Size = UDim2.new(1, 0, 1, 0)
     satOverlay.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
@@ -1322,7 +1368,6 @@ local function BuildWindColorPicker(parentFrame, initialColor, onColorChanged)
         NumberSequenceKeypoint.new(1, 1)
     })
 
-    -- Overlay Transparente -> Preto (Brilho Y)
     local valOverlay = Instance.new("Frame", satValBox)
     valOverlay.Size = UDim2.new(1, 0, 1, 0)
     valOverlay.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
@@ -1338,7 +1383,6 @@ local function BuildWindColorPicker(parentFrame, initialColor, onColorChanged)
         NumberSequenceKeypoint.new(1, 0)
     })
 
-    -- Cursor da Paleta
     local cursor = Instance.new("Frame", satValBox)
     cursor.Size = UDim2.new(0, 10, 0, 10)
     cursor.AnchorPoint = Vector2.new(0.5, 0.5)
@@ -1351,7 +1395,6 @@ local function BuildWindColorPicker(parentFrame, initialColor, onColorChanged)
     cursorStroke.Color = Color3.fromRGB(255, 255, 255)
     cursorStroke.Thickness = 1.5
 
-    -- 2. BARRA DE MATIZ (HUE SLIDER RAINBOW)
     local hueBar = Instance.new("Frame", pickerContainer)
     hueBar.Size = UDim2.new(0, 16, 0, 85)
     hueBar.Position = UDim2.new(1, -16, 0, 0)
@@ -1380,7 +1423,6 @@ local function BuildWindColorPicker(parentFrame, initialColor, onColorChanged)
     hueCursor.ZIndex = 35
     Instance.new("UICorner", hueCursor).CornerRadius = UDim.new(0, 2)
 
-    -- 3. PRESETS RÁPIDOS & INDICADOR
     local bottomRow = Instance.new("Frame", pickerContainer)
     bottomRow.Size = UDim2.new(1, 0, 0, 30)
     bottomRow.Position = UDim2.new(0, 0, 0, 95)
@@ -1398,7 +1440,6 @@ local function BuildWindColorPicker(parentFrame, initialColor, onColorChanged)
         if onColorChanged then onColorChanged(newC) end
     end
 
-    -- Eventos da Paleta 2D
     local draggingBox = false
     satValBox.InputBegan:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
@@ -1407,7 +1448,6 @@ local function BuildWindColorPicker(parentFrame, initialColor, onColorChanged)
         end
     end)
 
-    -- Eventos do Hue Slider
     local draggingHue = false
     hueBar.InputBegan:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
@@ -1475,12 +1515,12 @@ local function BuildWindColorPicker(parentFrame, initialColor, onColorChanged)
 end
 
 -- ==========================================
--- COMPONENTES COM COLOR PICKER NO BOTÃO DE CONFIG (⚙)
+-- COMPONENTES COM SUPORTE A SLIDER E MÉTODOS DE AÇÃO
 -- ==========================================
 
-local function CreateToggle(parentCol, name, callback, hasConfig, minVal, maxVal, defaultVal, speedCallback)
+local function CreateToggle(parentCol, name, callback, hasConfig, minVal, maxVal, defaultVal, speedCallback, hasMethodDropdown, methodCallback)
     local baseHeight = 30
-    local expandedHeight = 68
+    local expandedHeight = hasMethodDropdown and 102 or 68
     
     local ToggleFrame = Instance.new("Frame", parentCol)
     ToggleFrame.Size = UDim2.new(1, -4, 0, baseHeight)
@@ -1592,18 +1632,67 @@ local function CreateToggle(parentCol, name, callback, hasConfig, minVal, maxVal
         BarFill.ZIndex = 30
         Instance.new("UICorner", BarFill).CornerRadius = UDim.new(1, 0)
 
+        -- DROPDOWN DE MÉTODOS (CLIQUE / SEGURAR)
+        local MethodRow
+        if hasMethodDropdown then
+            MethodRow = Instance.new("Frame", ToggleFrame)
+            MethodRow.Size = UDim2.new(1, -16, 0, 24)
+            MethodRow.Position = UDim2.new(0, 8, 0, 68)
+            MethodRow.BackgroundTransparency = 1
+            MethodRow.Visible = false
+            MethodRow.ZIndex = 30
+
+            local MethodLbl = Instance.new("TextLabel", MethodRow)
+            MethodLbl.Size = UDim2.new(0, 70, 1, 0)
+            MethodLbl.Position = UDim2.new(0, 0, 0, 0)
+            MethodLbl.BackgroundTransparency = 1
+            MethodLbl.Text = "Modo Ação:"
+            MethodLbl.TextColor3 = Color3.fromRGB(160, 160, 160)
+            MethodLbl.Font = Enum.Font.GothamSemibold
+            MethodLbl.TextSize = 10
+            MethodLbl.TextXAlignment = Enum.TextXAlignment.Left
+            MethodLbl.ZIndex = 30
+
+            local DropBtn = Instance.new("TextButton", MethodRow)
+            DropBtn.Size = UDim2.new(0, 85, 0, 20)
+            DropBtn.Position = UDim2.new(1, -85, 0, 2)
+            DropBtn.BackgroundColor3 = Color3.fromRGB(35, 22, 25)
+            DropBtn.Text = "Clique ▼"
+            DropBtn.TextColor3 = Color3.fromRGB(220, 220, 220)
+            DropBtn.Font = Enum.Font.GothamBold
+            DropBtn.TextSize = 10
+            DropBtn.AutoButtonColor = false
+            DropBtn.ZIndex = 30
+            Instance.new("UICorner", DropBtn).CornerRadius = UDim.new(0, 4)
+
+            local currentMethod = "Clique"
+            DropBtn.MouseButton1Click:Connect(function()
+                if currentMethod == "Clique" then
+                    currentMethod = "Segurar"
+                else
+                    currentMethod = "Clique"
+                end
+                DropBtn.Text = currentMethod .. " ▼"
+                if methodCallback then methodCallback(currentMethod) end
+            end)
+        end
+
         local isExpanded = false
         ConfigBtn.MouseButton1Click:Connect(function()
             isExpanded = not isExpanded
             if isExpanded then
                 SliderContainer.Visible = true
+                if MethodRow then MethodRow.Visible = true end
                 TweenService:Create(ToggleFrame, TweenInfo.new(0.3, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {Size = UDim2.new(1, -4, 0, expandedHeight)}):Play()
                 TweenService:Create(ConfigBtn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(255, 40, 40), TextColor3 = Color3.fromRGB(255, 255, 255)}):Play()
             else
                 TweenService:Create(ToggleFrame, TweenInfo.new(0.3, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {Size = UDim2.new(1, -4, 0, baseHeight)}):Play()
                 TweenService:Create(ConfigBtn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(35, 22, 25), TextColor3 = Color3.fromRGB(200, 200, 200)}):Play()
                 task.delay(0.3, function()
-                    if not isExpanded then SliderContainer.Visible = false end
+                    if not isExpanded then 
+                        SliderContainer.Visible = false 
+                        if MethodRow then MethodRow.Visible = false end
+                    end
                 end)
             end
         end)
@@ -1771,7 +1860,6 @@ local function CreateToggleWithSubOptions(parentCol, name, callback, subOptions)
             if sub.Callback then sub.Callback(subToggled) end
         end)
 
-        -- BOTÃO/PREVIEW DE COR DENTRO DO SUB-ITEM
         if sub.GetColor and sub.SetColor then
             local SubColorPreview = Instance.new("TextButton", SubRow)
             SubColorPreview.Size = UDim2.new(0, 28, 0, 16)
@@ -1974,17 +2062,17 @@ local TabVisual = CreateTab("Visual", "Visual")
 CreateToggle(TabMain.Left, "Auto Attack", function(v) 
     Config.AutoAttack = v 
     UserInputService.MouseIconEnabled = not (v or Config.AutoDefense or Config.AutoKiBlast)
-end, true, 0.02, 0.5, 0.1, function(v) Config.AutoAttackSpeed = v end)
+end, true, 0.02, 0.5, 0.1, function(v) Config.AutoAttackSpeed = v end, true, function(m) Config.AutoAttackMethod = m end)
 
 CreateToggle(TabMain.Left, "Auto Defense", function(v) 
     Config.AutoDefense = v 
     UserInputService.MouseIconEnabled = not (Config.AutoAttack or v or Config.AutoKiBlast)
-end, true, 0.05, 0.5, 0.15, function(v) Config.AutoDefenseSpeed = v end)
+end, true, 0.05, 0.5, 0.15, function(v) Config.AutoDefenseSpeed = v end, true, function(m) Config.AutoDefenseMethod = m end)
 
 CreateToggle(TabMain.Left, "Auto Ki Blast", function(v) 
     Config.AutoKiBlast = v 
     UserInputService.MouseIconEnabled = not (Config.AutoAttack or Config.AutoDefense or v)
-end, true, 0.05, 0.5, 0.15, function(v) Config.AutoKiBlastSpeed = v end)
+end, true, 0.05, 0.5, 0.15, function(v) Config.AutoKiBlastSpeed = v end, true, function(m) Config.AutoKiBlastMethod = m end)
 
 CreateToggle(TabMain.Left, "Auto Charge Ki", function(v) Config.AutoCharge = v end, false)
 
