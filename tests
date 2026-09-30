@@ -4,6 +4,7 @@ local UserInputService = game:GetService("UserInputService")
 local RunService = game:GetService("RunService")
 local Players = game:GetService("Players")
 local VirtualInputManager = game:GetService("VirtualInputManager")
+local GuiService = game:GetService("GuiService")
 
 local LocalPlayer = Players.LocalPlayer
 
@@ -19,6 +20,17 @@ DexyUI.DisplayOrder = 999999
 DexyUI.Parent = CoreGui 
 
 local UIScale = Instance.new("UIScale", DexyUI)
+
+-- Função auxiliar para pausar a rolagem da aba enquanto arrasta o Color Picker
+local function setParentScrolling(obj, enabled)
+    local current = obj
+    while current and current ~= DexyUI and current ~= workspace do
+        if current:IsA("ScrollingFrame") then
+            current.ScrollingEnabled = enabled
+        end
+        current = current.Parent
+    end
+end
 
 -- ==========================================
 -- ESTADOS / CONFIGURAÇÕES DAS FUNÇÕES
@@ -1264,7 +1276,7 @@ local function CreateTab(name, iconType)
 end
 
 -- ==========================================
--- COLOR PICKER CANVAS 2D INTERATIVO (ESTILO WINDUI)
+-- COLOR PICKER CANVAS 2D INTERATIVO (CORRIGIDO PARA MOBILE/TOUCH)
 -- ==========================================
 local function BuildWindColorPicker(parentFrame, initialColor, onColorChanged)
     local h, s, v = initialColor:ToHSV()
@@ -1380,6 +1392,7 @@ local function BuildWindColorPicker(parentFrame, initialColor, onColorChanged)
     satValBox.InputBegan:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
             draggingBox = true
+            setParentScrolling(pickerContainer, false)
         end
     end)
 
@@ -1388,28 +1401,35 @@ local function BuildWindColorPicker(parentFrame, initialColor, onColorChanged)
     hueBar.InputBegan:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
             draggingHue = true
+            setParentScrolling(pickerContainer, false)
         end
     end)
 
     UserInputService.InputEnded:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-            draggingBox = false
-            draggingHue = false
+            if draggingBox or draggingHue then
+                draggingBox = false
+                draggingHue = false
+                setParentScrolling(pickerContainer, true)
+            end
         end
     end)
 
     RunService.RenderStepped:Connect(function()
-        if draggingBox then
-            local mousePos = UserInputService:GetMouseLocation()
-            s = math.clamp((mousePos.X - satValBox.AbsolutePosition.X) / satValBox.AbsoluteSize.X, 0, 1)
-            v = 1 - math.clamp((mousePos.Y - satValBox.AbsolutePosition.Y) / satValBox.AbsoluteSize.Y, 0, 1)
-            cursor.Position = UDim2.new(s, 0, 1 - v, 0)
-            updateColor()
-        elseif draggingHue then
-            local mousePos = UserInputService:GetMouseLocation()
-            h = math.clamp((mousePos.Y - hueBar.AbsolutePosition.Y) / hueBar.AbsoluteSize.Y, 0, 1)
-            hueCursor.Position = UDim2.new(0.5, 0, h, 0)
-            updateColor()
+        if draggingBox or draggingHue then
+            local guiInset = GuiService:GetGuiInset()
+            local mousePos = UserInputService:GetMouseLocation() - guiInset
+
+            if draggingBox then
+                s = math.clamp((mousePos.X - satValBox.AbsolutePosition.X) / satValBox.AbsoluteSize.X, 0, 1)
+                v = 1 - math.clamp((mousePos.Y - satValBox.AbsolutePosition.Y) / satValBox.AbsoluteSize.Y, 0, 1)
+                cursor.Position = UDim2.new(s, 0, 1 - v, 0)
+                updateColor()
+            elseif draggingHue then
+                h = math.clamp((mousePos.Y - hueBar.AbsolutePosition.Y) / hueBar.AbsoluteSize.Y, 0, 1)
+                hueCursor.Position = UDim2.new(0.5, 0, h, 0)
+                updateColor()
+            end
         end
     end)
 
@@ -1685,8 +1705,6 @@ local function CreateToggleWithSubOptions(parentCol, name, callback, subOptions)
     optionsLayout.SortOrder = Enum.SortOrder.LayoutOrder
     optionsLayout.Padding = UDim.new(0, 4)
 
-    local activePickers = {}
-
     local function recalculateHeight()
         optionsLayout:ApplyLayout()
         local totalContentY = optionsLayout.AbsoluteContentSize.Y
@@ -1703,7 +1721,7 @@ local function CreateToggleWithSubOptions(parentCol, name, callback, subOptions)
         SubRow.ZIndex = 30
 
         local SubLbl = Instance.new("TextLabel", SubRow)
-        SubLbl.Size = UDim2.new(1, -80, 0, 22)
+        SubLbl.Size = UDim2.new(1, -90, 0, 22)
         SubLbl.Position = UDim2.new(0, 0, 0, 0)
         SubLbl.BackgroundTransparency = 1
         SubLbl.Text = sub.Name
@@ -1742,20 +1760,19 @@ local function CreateToggleWithSubOptions(parentCol, name, callback, subOptions)
             if sub.Callback then sub.Callback(subToggled) end
         end)
 
-        -- BOTÃO/PREVIEW DE COR DENTRO DO SUB-ITEM
+        -- BOTÃO/PREVIEW DE COR DENTRO DO SUB-ITEM (SEM EMOJI, MAIOR E RETANGULAR)
         if sub.GetColor and sub.SetColor then
             local SubColorPreview = Instance.new("TextButton", SubRow)
-            SubColorPreview.Size = UDim2.new(0, 18, 0, 14)
-            SubColorPreview.Position = UDim2.new(1, -50, 0, 4)
+            SubColorPreview.Size = UDim2.new(0, 28, 0, 16)
+            SubColorPreview.Position = UDim2.new(1, -60, 0, 3)
             SubColorPreview.BackgroundColor3 = sub.GetColor()
-            SubColorPreview.Text = "🎨"
-            SubColorPreview.TextSize = 8
+            SubColorPreview.Text = ""
             SubColorPreview.AutoButtonColor = false
             SubColorPreview.ZIndex = 30
             Instance.new("UICorner", SubColorPreview).CornerRadius = UDim.new(0, 4)
 
             local SubColorStroke = Instance.new("UIStroke", SubColorPreview)
-            SubColorStroke.Color = Color3.fromRGB(60, 40, 40)
+            SubColorStroke.Color = Color3.fromRGB(80, 50, 50)
             SubColorStroke.Thickness = 1
 
             local pickerOpen = false
