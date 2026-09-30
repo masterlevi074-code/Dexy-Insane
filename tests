@@ -1,44 +1,323 @@
--- ============================================================================
--- PAINEL PRINCIPAL - ESP DRAGONBALL INTEGRADO
--- ============================================================================
+local TweenService = game:GetService("TweenService")
+local CoreGui = game:GetService("CoreGui")
+local UserInputService = game:GetService("UserInputService")
+local RunService = game:GetService("RunService")
+local Players = game:GetService("Players")
+local VirtualInputManager = game:GetService("VirtualInputManager")
+local Workspace = game:GetService("Workspace")
 
-local Services = {
-    CoreGui = game:GetService("CoreGui"),
-    Players = game:GetService("Players"),
-    RunService = game:GetService("RunService"),
-    Workspace = game:GetService("Workspace")
-}
+local LocalPlayer = Players.LocalPlayer
+local Camera = Workspace.CurrentCamera
 
-local LocalPlayer = Services.Players.LocalPlayer
-local Camera = Services.Workspace.CurrentCamera
-
--- Remove versão anterior da UI se existir
-if Services.CoreGui:FindFirstChild("DexyMainPanelUI") then
-    Services.CoreGui.DexyMainPanelUI:Destroy()
+if CoreGui:FindFirstChild("DexyInsaneUI") then
+    CoreGui.DexyInsaneUI:Destroy()
 end
 
--- ============================================================================
--- 1. CONFIGURAÇÕES DO ESP DRAGONBALL
--- ============================================================================
+local DexyUI = Instance.new("ScreenGui")
+DexyUI.Name = "DexyInsaneUI"
+DexyUI.ResetOnSpawn = false
+DexyUI.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+DexyUI.DisplayOrder = 999999
+DexyUI.Parent = CoreGui 
+
+local UIScale = Instance.new("UIScale", DexyUI)
+
+-- ==========================================
+-- ESTADOS / CONFIGURAÇÕES GERAIS
+-- ==========================================
+local Config = {
+    AutoAttack = false,
+    AutoAttackSpeed = 0.1,
+    AutoDefense = false,
+    AutoDefenseSpeed = 0.15,
+    AutoKiBlast = false,
+    AutoKiBlastSpeed = 0.15,
+    AutoCharge = false,
+    AutoQuest = false,
+    AutoRebirth = false,
+    InfJump = false,
+    EnableWalkSpeed = false,
+    WalkSpeed = 50,
+    Noclip = false,
+    AuraTheme = "Vermelho Insano"
+}
+
+-- ESP PLAYERS CONFIG
+local PlayerESPConfig = {
+    Enabled = false,
+    Boxes = false,
+    Lines = false,
+    Names = false,
+    Chams = false
+}
+
+-- ESP DRAGONBALL CONFIG (COM A LÓGICA DE PEDESTAL)
 local DBConfig = {
-    Enabled = true,
+    Enabled = false,
     Highlight = true,
     Names = true,
     Distance = true,
     Lines = false,
-    Color = Color3.fromRGB(255, 165, 0) -- Laranja
+    Color = Color3.fromRGB(255, 165, 0)
 }
 
+-- ==========================================
+-- LÓGICA DE MOVIMENTAÇÃO E COMBATE
+-- ==========================================
+
+RunService.RenderStepped:Connect(function()
+    pcall(function()
+        if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then
+            local humanoid = LocalPlayer.Character.Humanoid
+            if Config.EnableWalkSpeed then
+                if humanoid.WalkSpeed ~= Config.WalkSpeed then
+                    humanoid.WalkSpeed = Config.WalkSpeed
+                end
+            else
+                if humanoid.WalkSpeed == Config.WalkSpeed and Config.WalkSpeed ~= 16 then
+                    humanoid.WalkSpeed = 16
+                end
+            end
+        end
+    end)
+end)
+
+UserInputService.JumpRequest:Connect(function()
+    if Config.InfJump then
+        pcall(function()
+            local humanoid = LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
+            if humanoid then
+                humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
+            end
+        end)
+    end
+end)
+
+RunService.Stepped:Connect(function()
+    if Config.Noclip then
+        pcall(function()
+            local character = LocalPlayer.Character
+            if character then
+                for _, part in ipairs(character:GetDescendants()) do
+                    if part:IsA("BasePart") then
+                        part.CanCollide = false
+                    end
+                end
+            end
+        end)
+    end
+end)
+
+task.spawn(function()
+    while true do
+        if Config.AutoAttack then
+            pcall(function()
+                VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.E, false, game)
+                task.wait(0.02)
+                VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.E, false, game)
+            end)
+            task.wait(Config.AutoAttackSpeed or 0.1)
+        else
+            task.wait(0.1)
+        end
+    end
+end)
+
+task.spawn(function()
+    while true do
+        if Config.AutoDefense then
+            pcall(function()
+                VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.R, false, game)
+                task.wait(0.02)
+                VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.R, false, game)
+            end)
+            task.wait(Config.AutoDefenseSpeed or 0.15)
+        else
+            task.wait(0.1)
+        end
+    end
+end)
+
+task.spawn(function()
+    while true do
+        if Config.AutoKiBlast then
+            pcall(function()
+                VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.Q, false, game)
+                task.wait(0.02)
+                VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.Q, false, game)
+            end)
+            task.wait(Config.AutoKiBlastSpeed or 0.15)
+        else
+            task.wait(0.1)
+        end
+    end
+end)
+
+task.spawn(function()
+    while task.wait(0.2) do
+        if Config.AutoCharge then
+            pcall(function()
+                -- Lógica de Auto Charge
+            end)
+        end
+    end
+end)
+
+-- ==========================================
+-- SISTEMA DE ESP PLAYERS
+-- ==========================================
+local playerEspObjects = {}
+local playerChamsObjects = {}
+
+local function removePlayerESP(player)
+    if playerEspObjects[player] then
+        for _, obj in pairs(playerEspObjects[player]) do
+            pcall(function() obj:Remove() end)
+        end
+        playerEspObjects[player] = nil
+    end
+    if playerChamsObjects[player] then
+        pcall(function() playerChamsObjects[player]:Destroy() end)
+        playerChamsObjects[player] = nil
+    end
+end
+
+Players.PlayerRemoving:Connect(removePlayerESP)
+
+RunService.RenderStepped:Connect(function()
+    if PlayerESPConfig.Enabled and PlayerESPConfig.Chams then
+        for _, player in ipairs(Players:GetPlayers()) do
+            if player ~= LocalPlayer and player.Character then
+                if not playerChamsObjects[player] then
+                    local highlight = Instance.new("Highlight")
+                    highlight.Name = "DexyESPChams"
+                    highlight.Adornee = player.Character
+                    highlight.FillColor = Color3.fromRGB(255, 40, 40)
+                    highlight.FillTransparency = 0.5
+                    highlight.OutlineColor = Color3.fromRGB(255, 255, 255)
+                    highlight.OutlineTransparency = 0
+                    highlight.Parent = player.Character
+                    playerChamsObjects[player] = highlight
+                else
+                    if playerChamsObjects[player].Adornee ~= player.Character then
+                        playerChamsObjects[player].Adornee = player.Character
+                    end
+                end
+            end
+        end
+    else
+        for player, highlight in pairs(playerChamsObjects) do
+            if highlight then highlight:Destroy() end
+            playerChamsObjects[player] = nil
+        end
+    end
+
+    if not PlayerESPConfig.Enabled or not Drawing then
+        for player, _ in pairs(playerEspObjects) do
+            removePlayerESP(player)
+        end
+        return
+    end
+
+    for _, player in ipairs(Players:GetPlayers()) do
+        if player ~= LocalPlayer and player.Character and player.Character:FindFirstChild("HumanoidRootPart") and player.Character:FindFirstChild("Humanoid") then
+            local char = player.Character
+            local hrp = char.HumanoidRootPart
+            local humanoid = char.Humanoid
+
+            if humanoid.Health > 0 then
+                if not playerEspObjects[player] then
+                    pcall(function()
+                        playerEspObjects[player] = {
+                            Box = Drawing.new("Square"),
+                            Line = Drawing.new("Line"),
+                            Name = Drawing.new("Text")
+                        }
+                        playerEspObjects[player].Box.Visible = false
+                        playerEspObjects[player].Box.Thickness = 1.5
+                        playerEspObjects[player].Box.Color = Color3.fromRGB(255, 40, 40)
+                        playerEspObjects[player].Box.Filled = false
+
+                        playerEspObjects[player].Line.Visible = false
+                        playerEspObjects[player].Line.Thickness = 1
+                        playerEspObjects[player].Line.Color = Color3.fromRGB(255, 40, 40)
+
+                        playerEspObjects[player].Name.Visible = false
+                        playerEspObjects[player].Name.Size = 12
+                        playerEspObjects[player].Name.Color = Color3.fromRGB(255, 255, 255)
+                        playerEspObjects[player].Name.Center = true
+                        playerEspObjects[player].Name.Outline = true
+                    end)
+                end
+
+                local objs = playerEspObjects[player]
+                if objs then
+                    local vector, onScreen = Camera:WorldToViewportPoint(hrp.Position)
+
+                    if onScreen then
+                        local head = char:FindFirstChild("Head")
+                        local rootPos = hrp.Position
+                        local topPos = head and head.Position + Vector3.new(0, 0.5, 0) or rootPos + Vector3.new(0, 3, 0)
+                        local bottomPos = rootPos - Vector3.new(0, 3, 0)
+
+                        local topScreen, topVisible = Camera:WorldToViewportPoint(topPos)
+                        local bottomScreen, bottomVisible = Camera:WorldToViewportPoint(bottomPos)
+
+                        if topVisible or bottomVisible then
+                            local height = math.abs(topScreen.Y - bottomScreen.Y)
+                            local width = height / 2
+
+                            if PlayerESPConfig.Boxes then
+                                objs.Box.Visible = true
+                                objs.Box.Size = Vector2.new(width, height)
+                                objs.Box.Position = Vector2.new(vector.X - width / 2, topScreen.Y)
+                            else
+                                objs.Box.Visible = false
+                            end
+
+                            if PlayerESPConfig.Lines then
+                                objs.Line.Visible = true
+                                objs.Line.From = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y)
+                                objs.Line.To = Vector2.new(vector.X, bottomScreen.Y)
+                            else
+                                objs.Line.Visible = false
+                            end
+
+                            if PlayerESPConfig.Names then
+                                objs.Name.Visible = true
+                                objs.Name.Text = player.Name
+                                objs.Name.Position = Vector2.new(vector.X, topScreen.Y - 16)
+                            else
+                                objs.Name.Visible = false
+                            end
+                        else
+                            objs.Box.Visible = false
+                            objs.Line.Visible = false
+                            objs.Name.Visible = false
+                        end
+                    else
+                        objs.Box.Visible = false
+                        objs.Line.Visible = false
+                        objs.Name.Visible = false
+                    end
+                end
+            else
+                removePlayerESP(player)
+            end
+        else
+            removePlayerESP(player)
+        end
+    end
+end)
+
+-- ==========================================
+-- SISTEMA DE ESP DRAGONBALL (FILTRO PEDESTAL)
+-- ==========================================
 local dbObjects = {}
 
--- ============================================================================
--- 2. LÓGICA DE FILTRAGEM E CRIAÇÃO DO ESP
--- ============================================================================
-
--- Verifica se o objeto pertence a um pedestal ou local estático do mapa
 local function IsPedestal(obj)
     local current = obj
-    while current and current ~= Services.Workspace do
+    while current and current ~= Workspace do
         local nameLower = string.lower(current.Name)
         if nameLower:find("pedestal") or nameLower:find("stand") or nameLower:find("altar") or nameLower:find("spawn") then
             return true
@@ -48,8 +327,7 @@ local function IsPedestal(obj)
     return false
 end
 
--- Limpa recursos de um objeto específico
-local function RemoveESP(obj)
+local function RemoveDBESP(obj)
     if dbObjects[obj] then
         if dbObjects[obj].Highlight then dbObjects[obj].Highlight:Destroy() end
         if dbObjects[obj].Billboard then dbObjects[obj].Billboard:Destroy() end
@@ -60,28 +338,24 @@ local function RemoveESP(obj)
     end
 end
 
--- Limpa todos os elementos do ESP
-local function ClearAllESP()
+local function ClearAllDBESP()
     for obj, _ in pairs(dbObjects) do
-        RemoveESP(obj)
+        RemoveDBESP(obj)
     end
 end
 
--- Atualiza ou cria as linhas (Tracers) via Drawing API
-local function UpdateTracer(objData, targetPos)
+local function UpdateDBTracer(objData, targetPos)
     if not DBConfig.Lines or not DBConfig.Enabled then
         if objData.Tracer then objData.Tracer.Visible = false end
         return
     end
 
-    if not objData.Tracer then
-        if Drawing then
-            local tracer = Drawing.new("Line")
-            tracer.Thickness = 1.5
-            tracer.Color = DBConfig.Color
-            tracer.Transparency = 1
-            objData.Tracer = tracer
-        end
+    if not objData.Tracer and Drawing then
+        local tracer = Drawing.new("Line")
+        tracer.Thickness = 1.5
+        tracer.Color = DBConfig.Color
+        tracer.Transparency = 1
+        objData.Tracer = tracer
     end
 
     if objData.Tracer then
@@ -96,16 +370,15 @@ local function UpdateTracer(objData, targetPos)
     end
 end
 
--- Varredura principal do mapa
-local function ScanWorkspace()
+local function ScanDragonBalls()
     if not DBConfig.Enabled then
-        ClearAllESP()
+        ClearAllDBESP()
         return
     end
 
     local activeItems = {}
     local hrp = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
-    local mapFolder = Services.Workspace:FindFirstChild("Map") or Services.Workspace
+    local mapFolder = Workspace:FindFirstChild("Map") or Workspace
 
     for _, obj in ipairs(mapFolder:GetDescendants()) do
         if obj:IsA("Model") and obj ~= LocalPlayer.Character then
@@ -122,7 +395,6 @@ local function ScanWorkspace()
                         if not dbObjects[obj] then
                             dbObjects[obj] = {}
                             
-                            -- Highlight (Chams)
                             local highlight = Instance.new("Highlight")
                             highlight.Name = "DBHighlight"
                             highlight.Adornee = obj
@@ -132,7 +404,6 @@ local function ScanWorkspace()
                             highlight.Parent = obj
                             dbObjects[obj].Highlight = highlight
 
-                            -- Billboard Gui (Texto e Distância)
                             local billboard = Instance.new("BillboardGui")
                             billboard.Name = "DBTextGui"
                             billboard.Size = UDim2.new(0, 140, 0, 40)
@@ -153,7 +424,6 @@ local function ScanWorkspace()
                             dbObjects[obj].TextLabel = label
                         end
 
-                        -- Atualiza visibilidade e textos
                         local data = dbObjects[obj]
                         
                         if data.Highlight then
@@ -170,110 +440,414 @@ local function ScanWorkspace()
                             data.TextLabel.Text = table.concat(textComponents, "\n")
                         end
 
-                        -- Atualiza a Linha
-                        UpdateTracer(data, targetPart.Position)
+                        UpdateDBTracer(data, targetPart.Position)
                     end
                 end
             end
         end
     end
 
-    -- Limpa itens recolhidos ou destruídos
     for obj, _ in pairs(dbObjects) do
         if not activeItems[obj] or not obj.Parent then
-            RemoveESP(obj)
+            RemoveDBESP(obj)
         end
     end
 end
 
--- ============================================================================
--- 3. PAINEL PRINCIPAL (INTERFACE GRAFICA)
--- ============================================================================
-local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "DexyMainPanelUI"
-ScreenGui.ResetOnSpawn = false
-ScreenGui.Parent = Services.CoreGui
-
-local MainFrame = Instance.new("Frame")
-MainFrame.Name = "MainPanel"
-MainFrame.Size = UDim2.new(0, 240, 0, 260)
-MainFrame.Position = UDim2.new(0.05, 0, 0.25, 0)
-MainFrame.BackgroundColor3 = Color3.fromRGB(18, 18, 22)
-MainFrame.BorderSizePixel = 0
-MainFrame.Active = true
-MainFrame.Draggable = true
-MainFrame.Parent = ScreenGui
-
-Instance.new("UICorner", MainFrame).CornerRadius = UDim.new(0, 10)
-local Stroke = Instance.new("UIStroke", MainFrame)
-Stroke.Color = DBConfig.Color
-Stroke.Thickness = 1.5
-
--- Título
-local Title = Instance.new("TextLabel", MainFrame)
-Title.Size = UDim2.new(1, 0, 0, 35)
-Title.BackgroundTransparency = 1
-Title.Text = "DEXY HUB - ESP DRAGONBALL"
-Title.TextColor3 = DBConfig.Color
-Title.Font = Enum.Font.GothamBold
-Title.TextSize = 12
-Title.LayoutOrder = 1
-
-local ListLayout = Instance.new("UIListLayout", MainFrame)
-ListLayout.SortOrder = Enum.SortOrder.LayoutOrder
-ListLayout.Padding = UDim.new(0, 5)
-ListLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
-
-Title.Parent = MainFrame
-
--- Criador de Botões de Alternância (Toggle)
-local function CreateToggle(text, defaultState, callback)
-    local Button = Instance.new("TextButton", MainFrame)
-    Button.Size = UDim2.new(1, -20, 0, 32)
-    Button.BackgroundColor3 = defaultState and Color3.fromRGB(255, 140, 0) or Color3.fromRGB(32, 32, 38)
-    Button.Text = text .. ": " .. (defaultState and "ON" or "OFF")
-    Button.TextColor3 = Color3.fromRGB(255, 255, 255)
-    Button.Font = Enum.Font.GothamSemibold
-    Button.TextSize = 11
-    Button.AutoButtonColor = false
-
-    Instance.new("UICorner", Button).CornerRadius = UDim.new(0, 6)
-
-    local state = defaultState
-    Button.MouseButton1Click:Connect(function()
-        state = not state
-        Button.BackgroundColor3 = state and Color3.fromRGB(255, 140, 0) or Color3.fromRGB(32, 32, 38)
-        Button.Text = text .. ": " .. (state and "ON" or "OFF")
-        callback(state)
-    end)
-end
-
--- Botões do Painel
-CreateToggle("ESP Master", DBConfig.Enabled, function(v) DBConfig.Enabled = v end)
-CreateToggle("Highlight (Chams)", DBConfig.Highlight, function(v) DBConfig.Highlight = v end)
-CreateToggle("Exibir Nomes", DBConfig.Names, function(v) DBConfig.Names = v end)
-CreateToggle("Exibir Distância", DBConfig.Distance, function(v) DBConfig.Distance = v end)
-CreateToggle("Linhas (Tracers)", DBConfig.Lines, function(v) DBConfig.Lines = v end)
-
--- ============================================================================
--- 4. LOOPS DE ATUALIZAÇÃO
--- ============================================================================
-
--- Loop de varredura no Workspace
 task.spawn(function()
     while task.wait(0.3) do
-        pcall(ScanWorkspace)
+        pcall(ScanDragonBalls)
     end
 end)
 
--- Loop para atualização suave das Linhas
-Services.RunService.RenderStepped:Connect(function()
+RunService.RenderStepped:Connect(function()
     if DBConfig.Enabled and DBConfig.Lines then
         for obj, data in pairs(dbObjects) do
             local targetPart = obj.PrimaryPart or obj:FindFirstChildWhichIsA("BasePart") or obj:FindFirstChild("Main")
             if targetPart then
-                UpdateTracer(data, targetPart.Position)
+                UpdateDBTracer(data, targetPart.Position)
             end
         end
     end
+end)
+
+-- ==========================================
+-- INTERFACE GRÁFICA (UI COMPLETA DA DEXY INSANE)
+-- ==========================================
+
+local function CreateRipple(parentBtn)
+    parentBtn.ClipsDescendants = true
+    local ripple = Instance.new("Frame")
+    ripple.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+    ripple.BackgroundTransparency = 0.6
+    ripple.BorderSizePixel = 0
+    ripple.AnchorPoint = Vector2.new(0.5, 0.5)
+    ripple.Position = UDim2.new(0.5, 0, 0.5, 0)
+    ripple.Size = UDim2.new(0, 0, 0, 0)
+    ripple.ZIndex = 50
+    
+    Instance.new("UICorner", ripple).CornerRadius = UDim.new(1, 0)
+    ripple.Parent = parentBtn
+    
+    local tween = TweenService:Create(ripple, TweenInfo.new(0.4, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+        Size = UDim2.new(3, 0, 3, 0),
+        BackgroundTransparency = 1
+    })
+    tween:Play()
+    tween.Completed:Connect(function() ripple:Destroy() end)
+end
+
+local function CreateCustomSymbol(parent, pos, size)
+    local SymbolImage = Instance.new("ImageLabel", parent)
+    SymbolImage.Size = size
+    SymbolImage.Position = pos
+    SymbolImage.AnchorPoint = Vector2.new(0.5, 0.5)
+    SymbolImage.BackgroundTransparency = 1
+    SymbolImage.Image = "rbxassetid://80863202828912"
+    SymbolImage.ZIndex = 50
+    return SymbolImage
+end
+
+-- 1. TELA DE CARREGAMENTO
+local LoadingFrame = Instance.new("Frame")
+LoadingFrame.Size = UDim2.new(0, 350, 0, 135)
+LoadingFrame.Position = UDim2.new(0.5, 0, 0.5, 0)
+LoadingFrame.AnchorPoint = Vector2.new(0.5, 0.5)
+LoadingFrame.BackgroundColor3 = Color3.fromRGB(12, 12, 14)
+LoadingFrame.BorderSizePixel = 0
+LoadingFrame.ZIndex = 100
+LoadingFrame.Parent = DexyUI
+Instance.new("UICorner", LoadingFrame).CornerRadius = UDim.new(0, 14)
+
+local LoadStroke = Instance.new("UIStroke", LoadingFrame)
+LoadStroke.Color = Color3.fromRGB(220, 40, 40)
+LoadStroke.Thickness = 1.5
+LoadStroke.Transparency = 1
+
+local LoadLogo = Instance.new("ImageLabel", LoadingFrame)
+LoadLogo.Size = UDim2.new(0, 36, 0, 36)
+LoadLogo.Position = UDim2.new(0, 20, 0, 18)
+LoadLogo.BackgroundTransparency = 1
+LoadLogo.Image = "rbxassetid://80863202828912"
+LoadLogo.ImageTransparency = 1
+LoadLogo.ZIndex = 101
+
+local LoadTitle = Instance.new("TextLabel", LoadingFrame)
+LoadTitle.Size = UDim2.new(1, -70, 0, 22)
+LoadTitle.Position = UDim2.new(0, 68, 0, 18)
+LoadTitle.BackgroundTransparency = 1
+LoadTitle.Text = "DEXY INSANE"
+LoadTitle.TextColor3 = Color3.fromRGB(255, 60, 60)
+LoadTitle.Font = Enum.Font.GothamBlack
+LoadTitle.TextSize = 18
+LoadTitle.TextXAlignment = Enum.TextXAlignment.Left
+LoadTitle.TextTransparency = 1
+LoadTitle.ZIndex = 101
+
+local LoadStatus = Instance.new("TextLabel", LoadingFrame)
+LoadStatus.Size = UDim2.new(1, -40, 0, 20)
+LoadStatus.Position = UDim2.new(0, 20, 0, 95)
+LoadStatus.BackgroundTransparency = 1
+LoadStatus.Text = "Carregando..."
+LoadStatus.TextColor3 = Color3.fromRGB(180, 180, 180)
+LoadStatus.Font = Enum.Font.GothamSemibold
+LoadStatus.TextSize = 11
+LoadStatus.TextXAlignment = Enum.TextXAlignment.Left
+LoadStatus.TextTransparency = 1
+LoadStatus.ZIndex = 101
+
+local ProgressBarBg = Instance.new("Frame", LoadingFrame)
+ProgressBarBg.Size = UDim2.new(1, -40, 0, 6)
+ProgressBarBg.Position = UDim2.new(0, 20, 0, 78)
+ProgressBarBg.BackgroundColor3 = Color3.fromRGB(25, 15, 15)
+ProgressBarBg.BorderSizePixel = 0
+ProgressBarBg.BackgroundTransparency = 1
+ProgressBarBg.ZIndex = 101
+Instance.new("UICorner", ProgressBarBg).CornerRadius = UDim.new(1, 0)
+
+local ProgressBarFill = Instance.new("Frame", ProgressBarBg)
+ProgressBarFill.Size = UDim2.new(0, 0, 1, 0)
+ProgressBarFill.BackgroundColor3 = Color3.fromRGB(255, 40, 40)
+ProgressBarFill.BorderSizePixel = 0
+ProgressBarFill.ZIndex = 102
+Instance.new("UICorner", ProgressBarFill).CornerRadius = UDim.new(1, 0)
+
+-- 2. BOTÃO FLUTUANTE
+local FloatingBtn = Instance.new("TextButton")
+FloatingBtn.Name = "FloatingIcon"
+FloatingBtn.Size = UDim2.new(0, 0, 0, 0)
+FloatingBtn.Position = UDim2.new(0.5, 0, 0.1, 0)
+FloatingBtn.AnchorPoint = Vector2.new(0.5, 0.5)
+FloatingBtn.BackgroundColor3 = Color3.fromRGB(15, 5, 5)
+FloatingBtn.Text = ""
+FloatingBtn.AutoButtonColor = false
+FloatingBtn.Draggable = true
+FloatingBtn.Active = true
+FloatingBtn.Visible = false
+FloatingBtn.ZIndex = 40
+FloatingBtn.Parent = DexyUI
+Instance.new("UICorner", FloatingBtn).CornerRadius = UDim.new(0, 14)
+
+local FloatStroke = Instance.new("UIStroke", FloatingBtn)
+FloatStroke.Color = Color3.fromRGB(255, 0, 0)
+FloatStroke.Thickness = 1.5
+
+CreateCustomSymbol(FloatingBtn, UDim2.new(0.5, 0, 0.5, 0), UDim2.new(0, 30, 0, 30))
+
+-- 3. PAINEL PRINCIPAL
+local MainPanel = Instance.new("Frame")
+MainPanel.Name = "MainPanel"
+MainPanel.Size = UDim2.new(0, 520, 0, 0) 
+MainPanel.Position = UDim2.new(0.5, 0, 0.5, 0)
+MainPanel.AnchorPoint = Vector2.new(0.5, 0.5)
+MainPanel.BackgroundColor3 = Color3.fromRGB(12, 12, 14)
+MainPanel.BorderSizePixel = 0
+MainPanel.Active = true
+MainPanel.Draggable = true
+MainPanel.Visible = false
+MainPanel.ZIndex = 25
+MainPanel.Parent = DexyUI
+
+Instance.new("UICorner", MainPanel).CornerRadius = UDim.new(0, 12)
+local PanelStroke = Instance.new("UIStroke", MainPanel)
+PanelStroke.Color = Color3.fromRGB(200, 30, 30)
+PanelStroke.Thickness = 2
+
+-- BARRA SUPERIOR
+local TopBar = Instance.new("Frame", MainPanel)
+TopBar.Size = UDim2.new(1, 0, 0, 45)
+TopBar.BackgroundTransparency = 1
+TopBar.ZIndex = 30
+
+CreateCustomSymbol(TopBar, UDim2.new(0, 25, 0.5, 0), UDim2.new(0, 24, 0, 24))
+
+local Title = Instance.new("TextLabel", TopBar)
+Title.Size = UDim2.new(1, -150, 0, 20)
+Title.Position = UDim2.new(0, 45, 0, 12)
+Title.BackgroundTransparency = 1
+Title.Text = "DEXY INSANE"
+Title.TextColor3 = Color3.fromRGB(255, 60, 60)
+Title.Font = Enum.Font.GothamBlack
+Title.TextSize = 15
+Title.TextXAlignment = Enum.TextXAlignment.Left
+Title.ZIndex = 30
+
+local function CreateTopButton(name, text, posOffset, hoverColor)
+    local Btn = Instance.new("TextButton", TopBar)
+    Btn.Name = name
+    Btn.Size = UDim2.new(0, 30, 0, 30)
+    Btn.Position = UDim2.new(1, posOffset, 0.5, -15)
+    Btn.BackgroundColor3 = Color3.fromRGB(25, 15, 15)
+    Btn.Text = text
+    Btn.TextColor3 = Color3.fromRGB(200, 200, 200)
+    Btn.Font = Enum.Font.GothamBold
+    Btn.TextSize = 14
+    Btn.AutoButtonColor = false
+    Btn.ZIndex = 30
+    Instance.new("UICorner", Btn).CornerRadius = UDim.new(0, 8)
+    return Btn
+end
+
+local MinimizeIconBtn = CreateTopButton("MinimizeIconBtn", "_", -110, Color3.fromRGB(150, 40, 40))
+local RollUpBtn = CreateTopButton("RollUpBtn", "-", -75, Color3.fromRGB(150, 40, 40))
+local CloseBtn = CreateTopButton("CloseBtn", "X", -40, Color3.fromRGB(255, 30, 30))
+
+local isPanelOpen = false
+local isRolledUp = false
+
+MinimizeIconBtn.MouseButton1Click:Connect(function()
+    isPanelOpen = false
+    TweenService:Create(MainPanel, TweenInfo.new(0.4, Enum.EasingStyle.Back, Enum.EasingDirection.In), {Size = UDim2.new(0, 0, 0, 0)}):Play()
+    task.wait(0.4)
+    MainPanel.Visible = false
+    FloatingBtn.Visible = true
+    TweenService:Create(FloatingBtn, TweenInfo.new(0.5, Enum.EasingStyle.Elastic, Enum.EasingDirection.Out), {Size = UDim2.new(0, 50, 0, 50)}):Play()
+end)
+
+FloatingBtn.MouseButton1Click:Connect(function()
+    CreateRipple(FloatingBtn)
+    FloatingBtn.Visible = false
+    MainPanel.Visible = true
+    isPanelOpen = true
+    TweenService:Create(MainPanel, TweenInfo.new(0.5, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {Size = UDim2.new(0, 520, 0, 320)}):Play()
+end)
+
+CloseBtn.MouseButton1Click:Connect(function()
+    DexyUI:Destroy()
+end)
+
+-- ABAS E SÍMBOLOS
+local TabsContainer = Instance.new("Frame", MainPanel)
+TabsContainer.Size = UDim2.new(1, -20, 0, 35)
+TabsContainer.Position = UDim2.new(0, 10, 0, 55)
+TabsContainer.BackgroundColor3 = Color3.fromRGB(20, 15, 15)
+TabsContainer.BorderSizePixel = 0
+TabsContainer.ZIndex = 30
+Instance.new("UICorner", TabsContainer).CornerRadius = UDim.new(0, 8)
+
+local TabsLayout = Instance.new("UIListLayout", TabsContainer)
+TabsLayout.FillDirection = Enum.FillDirection.Horizontal
+
+local PagesContainer = Instance.new("Frame", MainPanel)
+PagesContainer.Size = UDim2.new(1, -20, 1, -110)
+PagesContainer.Position = UDim2.new(0, 10, 0, 100)
+PagesContainer.BackgroundTransparency = 1
+PagesContainer.ZIndex = 30
+
+local pages = {}
+local currentTab = nil
+
+local function CreateTab(name)
+    local TabBtn = Instance.new("TextButton", TabsContainer)
+    TabBtn.Size = UDim2.new(0, 100, 1, 0)
+    TabBtn.BackgroundTransparency = 1
+    TabBtn.Text = name
+    TabBtn.TextColor3 = Color3.fromRGB(150, 150, 150)
+    TabBtn.Font = Enum.Font.GothamSemibold
+    TabBtn.TextSize = 12
+    TabBtn.ZIndex = 30
+
+    local Page = Instance.new("Frame", PagesContainer)
+    Page.Size = UDim2.new(1, 0, 1, 0)
+    Page.BackgroundTransparency = 1
+    Page.Visible = false
+
+    local LeftCol = Instance.new("ScrollingFrame", Page)
+    LeftCol.Size = UDim2.new(0.5, -5, 1, 0)
+    LeftCol.BackgroundTransparency = 1
+    LeftCol.BorderSizePixel = 0
+    LeftCol.ScrollBarThickness = 3
+    local LeftLayout = Instance.new("UIListLayout", LeftCol)
+    LeftLayout.Padding = UDim.new(0, 6)
+
+    local RightCol = Instance.new("ScrollingFrame", Page)
+    RightCol.Size = UDim2.new(0.5, -5, 1, 0)
+    RightCol.Position = UDim2.new(0.5, 5, 0, 0)
+    RightCol.BackgroundTransparency = 1
+    RightCol.BorderSizePixel = 0
+    RightCol.ScrollBarThickness = 3
+    local RightLayout = Instance.new("UIListLayout", RightCol)
+    RightLayout.Padding = UDim.new(0, 6)
+
+    pages[name] = {Btn = TabBtn, Page = Page, Left = LeftCol, Right = RightCol}
+
+    TabBtn.MouseButton1Click:Connect(function()
+        if currentTab == name then return end
+        currentTab = name
+        for tName, data in pairs(pages) do
+            if tName == name then
+                data.Btn.TextColor3 = Color3.fromRGB(255, 60, 60)
+                data.Page.Visible = true
+            else
+                data.Btn.TextColor3 = Color3.fromRGB(150, 150, 150)
+                data.Page.Visible = false
+            end
+        end
+    end)
+
+    if currentTab == nil then
+        TabBtn.TextColor3 = Color3.fromRGB(255, 60, 60)
+        Page.Visible = true
+        currentTab = name
+    end
+    return pages[name]
+end
+
+local function CreateToggle(parentCol, name, callback)
+    local ToggleFrame = Instance.new("Frame", parentCol)
+    ToggleFrame.Size = UDim2.new(1, -4, 0, 30)
+    ToggleFrame.BackgroundColor3 = Color3.fromRGB(25, 18, 20)
+    ToggleFrame.BorderSizePixel = 0
+    Instance.new("UICorner", ToggleFrame).CornerRadius = UDim.new(0, 6)
+
+    local TitleLbl = Instance.new("TextLabel", ToggleFrame)
+    TitleLbl.Size = UDim2.new(1, -45, 1, 0)
+    TitleLbl.Position = UDim2.new(0, 8, 0, 0)
+    TitleLbl.BackgroundTransparency = 1
+    TitleLbl.Text = name
+    TitleLbl.TextColor3 = Color3.fromRGB(220, 220, 220)
+    TitleLbl.Font = Enum.Font.GothamSemibold
+    TitleLbl.TextSize = 11
+    TitleLbl.TextXAlignment = Enum.TextXAlignment.Left
+
+    local ToggleBtn = Instance.new("TextButton", ToggleFrame)
+    ToggleBtn.Size = UDim2.new(0, 32, 0, 16)
+    ToggleBtn.Position = UDim2.new(1, -38, 0.5, -8)
+    ToggleBtn.BackgroundColor3 = Color3.fromRGB(40, 25, 25)
+    ToggleBtn.Text = ""
+    Instance.new("UICorner", ToggleBtn).CornerRadius = UDim.new(1, 0)
+
+    local Circle = Instance.new("Frame", ToggleBtn)
+    Circle.Size = UDim2.new(0, 12, 0, 12)
+    Circle.Position = UDim2.new(0, 2, 0.5, -6)
+    Circle.BackgroundColor3 = Color3.fromRGB(180, 180, 180)
+    Instance.new("UICorner", Circle).CornerRadius = UDim.new(1, 0)
+
+    local isToggled = false
+    ToggleBtn.MouseButton1Click:Connect(function()
+        isToggled = not isToggled
+        if isToggled then
+            TweenService:Create(ToggleBtn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(255, 40, 40)}):Play()
+            TweenService:Create(Circle, TweenInfo.new(0.2), {Position = UDim2.new(0, 18, 0.5, -6), BackgroundColor3 = Color3.fromRGB(255, 255, 255)}):Play()
+        else
+            TweenService:Create(ToggleBtn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(40, 25, 25)}):Play()
+            TweenService:Create(Circle, TweenInfo.new(0.2), {Position = UDim2.new(0, 2, 0.5, -6), BackgroundColor3 = Color3.fromRGB(180, 180, 180)}):Play()
+        end
+        if callback then callback(isToggled) end
+    end)
+end
+
+-- CRIAÇÃO DAS ABAS
+local TabMain = CreateTab("Principal")
+local TabPlayer = CreateTab("Jogador")
+local TabVisual = CreateTab("Visual")
+
+-- FUNÇÕES PRINCIPAIS
+CreateToggle(TabMain.Left, "Auto Attack", function(v) Config.AutoAttack = v end)
+CreateToggle(TabMain.Left, "Auto Defense", function(v) Config.AutoDefense = v end)
+CreateToggle(TabMain.Left, "Auto Ki Blast", function(v) Config.AutoKiBlast = v end)
+CreateToggle(TabMain.Left, "Auto Charge Ki", function(v) Config.AutoCharge = v end)
+
+CreateToggle(TabMain.Right, "Auto Quest", function(v) Config.AutoQuest = v end)
+CreateToggle(TabMain.Right, "Auto Rebirth", function(v) Config.AutoRebirth = v end)
+
+-- FUNÇÕES DE JOGADOR
+CreateToggle(TabPlayer.Left, "Pulo Infinito", function(v) Config.InfJump = v end)
+CreateToggle(TabPlayer.Left, "Ativar Velocidade", function(v) Config.EnableWalkSpeed = v end)
+CreateToggle(TabPlayer.Right, "Atravessar Paredes", function(v) Config.Noclip = v end)
+
+-- FUNÇÕES VISUAIS (ESP PLAYERS)
+CreateToggle(TabVisual.Left, "ESP Players Master", function(v) PlayerESPConfig.Enabled = v end)
+CreateToggle(TabVisual.Left, "Player Box", function(v) PlayerESPConfig.Boxes = v end)
+CreateToggle(TabVisual.Left, "Player Line", function(v) PlayerESPConfig.Lines = v end)
+CreateToggle(TabVisual.Left, "Player Name", function(v) PlayerESPConfig.Names = v end)
+CreateToggle(TabVisual.Left, "Player Chams", function(v) PlayerESPConfig.Chams = v end)
+
+-- FUNÇÕES VISUAIS (ESP DRAGONBALL - LÓGICA ATUALIZADA)
+CreateToggle(TabVisual.Right, "ESP DragonBall Master", function(v) DBConfig.Enabled = v end)
+CreateToggle(TabVisual.Right, "DB Highlight", function(v) DBConfig.Highlight = v end)
+CreateToggle(TabVisual.Right, "DB Nome", function(v) DBConfig.Names = v end)
+CreateToggle(TabVisual.Right, "DB Distância", function(v) DBConfig.Distance = v end)
+CreateToggle(TabVisual.Right, "DB Linha (Tracer)", function(v) DBConfig.Lines = v end)
+
+-- INICIALIZAÇÃO
+task.spawn(function()
+    TweenService:Create(LoadStroke, TweenInfo.new(0.5), {Transparency = 0.2}):Play()
+    TweenService:Create(LoadLogo, TweenInfo.new(0.5), {ImageTransparency = 0}):Play()
+    TweenService:Create(LoadTitle, TweenInfo.new(0.5), {TextTransparency = 0}):Play()
+    TweenService:Create(LoadStatus, TweenInfo.new(0.5), {TextTransparency = 0}):Play()
+    TweenService:Create(ProgressBarBg, TweenInfo.new(0.5), {BackgroundTransparency = 0}):Play()
+    task.wait(0.5)
+    
+    LoadStatus.Text = "Sincronizando rotinas e ESPs..."
+    TweenService:Create(ProgressBarFill, TweenInfo.new(1.0, Enum.EasingStyle.Sine), {Size = UDim2.new(1, 0, 1, 0)}):Play()
+    task.wait(1.0)
+    
+    TweenService:Create(LoadingFrame, TweenInfo.new(0.4, Enum.EasingStyle.Back, Enum.EasingDirection.In), {Size = UDim2.new(0, 0, 0, 0)}):Play()
+    task.wait(0.4)
+    LoadingFrame:Destroy()
+    
+    MainPanel.Visible = true
+    isPanelOpen = true
+    TweenService:Create(MainPanel, TweenInfo.new(0.6, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {Size = UDim2.new(0, 520, 0, 320)}):Play()
 end)
