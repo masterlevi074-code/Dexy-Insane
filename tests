@@ -46,7 +46,9 @@ local ESPConfig = {
     Boxes = false,
     Lines = false,
     Names = false,
-    Chams = false
+    Distance = false,
+    Chams = false,
+    Color = Color3.fromRGB(255, 40, 40)
 }
 
 -- CONFIGURAÇÕES DE ESP DRAGONBALL
@@ -161,7 +163,7 @@ task.spawn(function()
 end)
 
 -- ==========================================
--- SISTEMA DE ESP PLAYERS (BOX, LINE, NAME, CHAMS)
+-- SISTEMA DE ESP PLAYERS (BOX, LINE, NAME, DISTANCE, CHAMS)
 -- ==========================================
 local espObjects = {}
 local chamsObjects = {}
@@ -190,13 +192,14 @@ RunService.RenderStepped:Connect(function()
                     local highlight = Instance.new("Highlight")
                     highlight.Name = "DexyESPChams"
                     highlight.Adornee = player.Character
-                    highlight.FillColor = Color3.fromRGB(255, 40, 40)
+                    highlight.FillColor = ESPConfig.Color
                     highlight.FillTransparency = 0.5
                     highlight.OutlineColor = Color3.fromRGB(255, 255, 255)
                     highlight.OutlineTransparency = 0
                     highlight.Parent = player.Character
                     chamsObjects[player] = highlight
                 else
+                    chamsObjects[player].FillColor = ESPConfig.Color
                     if chamsObjects[player].Adornee ~= player.Character then
                         chamsObjects[player].Adornee = player.Character
                     end
@@ -210,7 +213,7 @@ RunService.RenderStepped:Connect(function()
         end
     end
 
-    -- Gestão de Drawing (Box, Lines, Names)
+    -- Gestão de Drawing (Box, Lines, Names, Distance)
     if not ESPConfig.Enabled or not Drawing then
         for player, _ in pairs(espObjects) do
             removeESP(player)
@@ -237,16 +240,16 @@ RunService.RenderStepped:Connect(function()
                         }
                         espObjects[player].Box.Visible = false
                         espObjects[player].Box.Thickness = 1.5
-                        espObjects[player].Box.Color = Color3.fromRGB(255, 40, 40)
+                        espObjects[player].Box.Color = ESPConfig.Color
                         espObjects[player].Box.Filled = false
 
                         espObjects[player].Line.Visible = false
                         espObjects[player].Line.Thickness = 1
-                        espObjects[player].Line.Color = Color3.fromRGB(255, 40, 40)
+                        espObjects[player].Line.Color = ESPConfig.Color
 
                         espObjects[player].Name.Visible = false
                         espObjects[player].Name.Size = 12
-                        espObjects[player].Name.Color = Color3.fromRGB(255, 255, 255)
+                        espObjects[player].Name.Color = ESPConfig.Color
                         espObjects[player].Name.Center = true
                         espObjects[player].Name.Outline = true
                     end)
@@ -274,6 +277,7 @@ RunService.RenderStepped:Connect(function()
                                 objs.Box.Visible = true
                                 objs.Box.Size = Vector2.new(width, height)
                                 objs.Box.Position = Vector2.new(vector.X - width / 2, topScreen.Y)
+                                objs.Box.Color = ESPConfig.Color
                             else
                                 objs.Box.Visible = false
                             end
@@ -283,15 +287,23 @@ RunService.RenderStepped:Connect(function()
                                 objs.Line.Visible = true
                                 objs.Line.From = Vector2.new(camera.ViewportSize.X / 2, camera.ViewportSize.Y)
                                 objs.Line.To = Vector2.new(vector.X, bottomScreen.Y)
+                                objs.Line.Color = ESPConfig.Color
                             else
                                 objs.Line.Visible = false
                             end
 
-                            -- Name ESP
-                            if ESPConfig.Names then
+                            -- Name & Distance ESP
+                            if ESPConfig.Names or ESPConfig.Distance then
                                 objs.Name.Visible = true
-                                objs.Name.Text = player.Name
+                                local textParts = {}
+                                if ESPConfig.Names then table.insert(textParts, player.Name) end
+                                if ESPConfig.Distance then
+                                    local dist = math.floor((hrp.Position - camera.CFrame.Position).Magnitude)
+                                    table.insert(textParts, "[" .. dist .. "m]")
+                                end
+                                objs.Name.Text = table.concat(textParts, " ")
                                 objs.Name.Position = Vector2.new(vector.X, topScreen.Y - 16)
+                                objs.Name.Color = ESPConfig.Color
                             else
                                 objs.Name.Visible = false
                             end
@@ -1203,7 +1215,7 @@ local function CreateTab(name, iconType)
 end
 
 -- ==========================================
--- 6. COMPONENTES (COM SUPORTE A SUB-OPÇÕES EXPANSÍVEIS)
+-- 6. COMPONENTES (TOGGLES, SLIDERS, PALETA DE CORES)
 -- ==========================================
 
 local function CreateToggle(parentCol, name, callback, hasConfig, minVal, maxVal, defaultVal, speedCallback)
@@ -1363,7 +1375,6 @@ local function CreateToggle(parentCol, name, callback, hasConfig, minVal, maxVal
     end
 end
 
--- Componente especializado para sub-opções de ESP
 local function CreateToggleWithSubOptions(parentCol, name, callback, subOptions)
     local baseHeight = 30
     local expandedHeight = 38 + (#subOptions * 24) + 10
@@ -1504,6 +1515,195 @@ local function CreateToggleWithSubOptions(parentCol, name, callback, subOptions)
                 if not isExpanded then OptionsContainer.Visible = false end
             end)
         end
+    end)
+end
+
+-- SELETOR E PALETA DE CORES COMPLETA
+local function CreateColorPicker(parentCol, name, defaultColor, callback)
+    local pickerFrame = Instance.new("Frame", parentCol)
+    pickerFrame.Size = UDim2.new(1, -4, 0, 115)
+    pickerFrame.BackgroundColor3 = Color3.fromRGB(25, 18, 20)
+    pickerFrame.BorderSizePixel = 0
+    pickerFrame.ZIndex = 30
+    Instance.new("UICorner", pickerFrame).CornerRadius = UDim.new(0, 6)
+
+    local stroke = Instance.new("UIStroke", pickerFrame)
+    stroke.Color = Color3.fromRGB(45, 30, 30)
+    stroke.Thickness = 1
+
+    local titleLbl = Instance.new("TextLabel", pickerFrame)
+    titleLbl.Size = UDim2.new(1, -50, 0, 25)
+    titleLbl.Position = UDim2.new(0, 8, 0, 2)
+    titleLbl.BackgroundTransparency = 1
+    titleLbl.Text = name
+    titleLbl.TextColor3 = Color3.fromRGB(220, 220, 220)
+    titleLbl.Font = Enum.Font.GothamSemibold
+    titleLbl.TextSize = 11
+    titleLbl.TextXAlignment = Enum.TextXAlignment.Left
+    titleLbl.ZIndex = 30
+
+    local colorPreview = Instance.new("Frame", pickerFrame)
+    colorPreview.Size = UDim2.new(0, 30, 0, 16)
+    colorPreview.Position = UDim2.new(1, -38, 0, 6)
+    colorPreview.BackgroundColor3 = defaultColor
+    colorPreview.BorderSizePixel = 0
+    colorPreview.ZIndex = 30
+    Instance.new("UICorner", colorPreview).CornerRadius = UDim.new(0, 4)
+
+    -- Paleta de Cores Rápidas (Presets)
+    local paletteContainer = Instance.new("Frame", pickerFrame)
+    paletteContainer.Size = UDim2.new(1, -16, 0, 20)
+    paletteContainer.Position = UDim2.new(0, 8, 0, 28)
+    paletteContainer.BackgroundTransparency = 1
+    paletteContainer.ZIndex = 30
+
+    local paletteLayout = Instance.new("UIListLayout", paletteContainer)
+    paletteLayout.FillDirection = Enum.FillDirection.Horizontal
+    paletteLayout.Padding = UDim.new(0, 6)
+
+    local presetColors = {
+        Color3.fromRGB(255, 40, 40),   -- Vermelho
+        Color3.fromRGB(40, 255, 40),   -- Verde
+        Color3.fromRGB(40, 140, 255),  -- Azul
+        Color3.fromRGB(255, 220, 40),  -- Amarelo
+        Color3.fromRGB(0, 255, 255),   -- Ciano
+        Color3.fromRGB(200, 40, 255),  -- Roxo
+        Color3.fromRGB(255, 255, 255)  -- Branco
+    }
+
+    local currentR = math.floor(defaultColor.R * 255)
+    local currentG = math.floor(defaultColor.G * 255)
+    local currentB = math.floor(defaultColor.B * 255)
+
+    local updateColor
+
+    for _, color in ipairs(presetColors) do
+        local pBtn = Instance.new("TextButton", paletteContainer)
+        pBtn.Size = UDim2.new(0, 18, 0, 18)
+        pBtn.BackgroundColor3 = color
+        pBtn.Text = ""
+        pBtn.AutoButtonColor = false
+        pBtn.ZIndex = 30
+        Instance.new("UICorner", pBtn).CornerRadius = UDim.new(0, 4)
+
+        pBtn.MouseButton1Click:Connect(function()
+            currentR = math.floor(color.R * 255)
+            currentG = math.floor(color.G * 255)
+            currentB = math.floor(color.B * 255)
+            updateColor(Color3.fromRGB(currentR, currentG, currentB))
+        end)
+    end
+
+    -- Sliders RGB para ajuste de tom/cor
+    local rgbContainer = Instance.new("Frame", pickerFrame)
+    rgbContainer.Size = UDim2.new(1, -16, 0, 55)
+    rgbContainer.Position = UDim2.new(0, 8, 0, 52)
+    rgbContainer.BackgroundTransparency = 1
+    rgbContainer.ZIndex = 30
+
+    local function createRGBSlider(yPos, colorName, initialVal, sliderColor, onValChanged)
+        local sRow = Instance.new("Frame", rgbContainer)
+        sRow.Size = UDim2.new(1, 0, 0, 16)
+        sRow.Position = UDim2.new(0, 0, 0, yPos)
+        sRow.BackgroundTransparency = 1
+        sRow.ZIndex = 30
+
+        local sLabel = Instance.new("TextLabel", sRow)
+        sLabel.Size = UDim2.new(0, 15, 1, 0)
+        sLabel.BackgroundTransparency = 1
+        sLabel.Text = colorName
+        sLabel.TextColor3 = sliderColor
+        sLabel.Font = Enum.Font.GothamBold
+        sLabel.TextSize = 10
+        sLabel.ZIndex = 30
+
+        local sBar = Instance.new("Frame", sRow)
+        sBar.Size = UDim2.new(1, -55, 0, 5)
+        sBar.Position = UDim2.new(0, 20, 0.5, -2)
+        sBar.BackgroundColor3 = Color3.fromRGB(40, 25, 25)
+        sBar.BorderSizePixel = 0
+        sBar.ZIndex = 30
+        Instance.new("UICorner", sBar).CornerRadius = UDim.new(1, 0)
+
+        local sFill = Instance.new("Frame", sBar)
+        sFill.Size = UDim2.new(initialVal / 255, 0, 1, 0)
+        sFill.BackgroundColor3 = sliderColor
+        sFill.BorderSizePixel = 0
+        sFill.ZIndex = 30
+        Instance.new("UICorner", sFill).CornerRadius = UDim.new(1, 0)
+
+        local vLabel = Instance.new("TextLabel", sRow)
+        vLabel.Size = UDim2.new(0, 30, 1, 0)
+        vLabel.Position = UDim2.new(1, -30, 0, 0)
+        vLabel.BackgroundTransparency = 1
+        vLabel.Text = tostring(initialVal)
+        vLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
+        vLabel.Font = Enum.Font.GothamSemibold
+        vLabel.TextSize = 10
+        vLabel.TextXAlignment = Enum.TextXAlignment.Right
+        vLabel.ZIndex = 30
+
+        local dragging = false
+        sBar.InputBegan:Connect(function(input)
+            if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+                dragging = true
+            end
+        end)
+
+        UserInputService.InputEnded:Connect(function(input)
+            if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+                dragging = false
+            end
+        end)
+
+        RunService.RenderStepped:Connect(function()
+            if dragging then
+                local mousePos = UserInputService:GetMouseLocation()
+                local pos = math.clamp((mousePos.X - sBar.AbsolutePosition.X) / sBar.AbsoluteSize.X, 0, 1)
+                local val = math.floor(pos * 255)
+                sFill.Size = UDim2.new(pos, 0, 1, 0)
+                vLabel.Text = tostring(val)
+                onValChanged(val)
+            end
+        end)
+
+        return {
+            SetVal = function(val)
+                sFill.Size = UDim2.new(val / 255, 0, 1, 0)
+                vLabel.Text = tostring(val)
+            end
+        }
+    end
+
+    local rSlider, gSlider, bSlider
+
+    updateColor = function(newColor)
+        colorPreview.BackgroundColor3 = newColor
+        rSlider.SetVal(math.floor(newColor.R * 255))
+        gSlider.SetVal(math.floor(newColor.G * 255))
+        bSlider.SetVal(math.floor(newColor.B * 255))
+        if callback then callback(newColor) end
+    end
+
+    rSlider = createRGBSlider(0, "R", currentR, Color3.fromRGB(255, 60, 60), function(val)
+        currentR = val
+        local newC = Color3.fromRGB(currentR, currentG, currentB)
+        colorPreview.BackgroundColor3 = newC
+        if callback then callback(newC) end
+    end)
+
+    gSlider = createRGBSlider(18, "G", currentG, Color3.fromRGB(60, 255, 60), function(val)
+        currentG = val
+        local newC = Color3.fromRGB(currentR, currentG, currentB)
+        colorPreview.BackgroundColor3 = newC
+        if callback then callback(newC) end
+    end)
+
+    bSlider = createRGBSlider(36, "B", currentB, Color3.fromRGB(60, 120, 255), function(val)
+        currentB = val
+        local newC = Color3.fromRGB(currentR, currentG, currentB)
+        colorPreview.BackgroundColor3 = newC
+        if callback then callback(newC) end
     end)
 end
 
@@ -1691,17 +1891,22 @@ CreateToggle(TabPlayer.Right, "Atravessar Paredes", function(v)
 end, false)
 CreateDropdown(TabPlayer.Right, "Tema de Aura", {"Vermelho Insano", "Azul Divino", "Preto Sombrio"}, function(v) Config.AuraTheme = v end)
 
--- ABA VISUAL: ESP PLAYERS COM MENU DE CONFIGURAÇÃO (⚙)
+-- ABA VISUAL: ESP PLAYERS COM DISTÂNCIA E PALETA DE CORES
 CreateToggleWithSubOptions(TabVisual.Left, "ESP Players", function(v) 
     ESPConfig.Enabled = v 
 end, {
     {Name = "ESP Box (Caixa)", Callback = function(v) ESPConfig.Boxes = v end},
     {Name = "ESP Linhas (Tracers)", Callback = function(v) ESPConfig.Lines = v end},
     {Name = "ESP Nomes", Callback = function(v) ESPConfig.Names = v end},
+    {Name = "ESP Distância", Callback = function(v) ESPConfig.Distance = v end},
     {Name = "ESP Chams (Highlight)", Callback = function(v) ESPConfig.Chams = v end}
 })
 
--- ABA VISUAL: ESP DRAGONBALL COM MENU DE CONFIGURAÇÃO (⚙)
+CreateColorPicker(TabVisual.Left, "Cor do ESP Players", ESPConfig.Color, function(newColor)
+    ESPConfig.Color = newColor
+end)
+
+-- ABA VISUAL: ESP DRAGONBALL
 CreateToggleWithSubOptions(TabVisual.Right, "ESP DragonBall", function(v) 
     DBConfig.Enabled = v 
 end, {
