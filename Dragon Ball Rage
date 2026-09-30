@@ -40,6 +40,15 @@ local Config = {
     AuraTheme = "Vermelho Insano"
 }
 
+-- CONFIGURAÇÕES DE ESP
+local ESPConfig = {
+    Enabled = false,
+    Boxes = false,
+    Lines = false,
+    Names = false,
+    Chams = false
+}
+
 -- ==========================================
 -- LOGICA REAL DAS FUNÇÕES DO JOGO
 -- ==========================================
@@ -142,6 +151,161 @@ task.spawn(function()
 end)
 
 -- ==========================================
+-- SISTEMA DE ESP PLAYERS (BOX, LINE, NAME, CHAMS)
+-- ==========================================
+local espObjects = {}
+local chamsObjects = {}
+
+local function removeESP(player)
+    if espObjects[player] then
+        for _, obj in pairs(espObjects[player]) do
+            pcall(function() obj:Remove() end)
+        end
+        espObjects[player] = nil
+    end
+    if chamsObjects[player] then
+        pcall(function() chamsObjects[player]:Destroy() end)
+        chamsObjects[player] = nil
+    end
+end
+
+Players.PlayerRemoving:Connect(removeESP)
+
+RunService.RenderStepped:Connect(function()
+    -- Gestão de Chams (Highlight)
+    if ESPConfig.Enabled and ESPConfig.Chams then
+        for _, player in ipairs(Players:GetPlayers()) do
+            if player ~= LocalPlayer and player.Character then
+                if not chamsObjects[player] then
+                    local highlight = Instance.new("Highlight")
+                    highlight.Name = "DexyESPChams"
+                    highlight.Adornee = player.Character
+                    highlight.FillColor = Color3.fromRGB(255, 40, 40)
+                    highlight.FillTransparency = 0.5
+                    highlight.OutlineColor = Color3.fromRGB(255, 255, 255)
+                    highlight.OutlineTransparency = 0
+                    highlight.Parent = player.Character
+                    chamsObjects[player] = highlight
+                else
+                    if chamsObjects[player].Adornee ~= player.Character then
+                        chamsObjects[player].Adornee = player.Character
+                    end
+                end
+            end
+        end
+    else
+        for player, highlight in pairs(chamsObjects) do
+            if highlight then highlight:Destroy() end
+            chamsObjects[player] = nil
+        end
+    end
+
+    -- Gestão de Drawing (Box, Lines, Names)
+    if not ESPConfig.Enabled or not Drawing then
+        for player, _ in pairs(espObjects) do
+            removeESP(player)
+        end
+        return
+    end
+
+    local camera = workspace.CurrentCamera
+    if not camera then return end
+
+    for _, player in ipairs(Players:GetPlayers()) do
+        if player ~= LocalPlayer and player.Character and player.Character:FindFirstChild("HumanoidRootPart") and player.Character:FindFirstChild("Humanoid") then
+            local char = player.Character
+            local hrp = char.HumanoidRootPart
+            local humanoid = char.Humanoid
+
+            if humanoid.Health > 0 then
+                if not espObjects[player] then
+                    pcall(function()
+                        espObjects[player] = {
+                            Box = Drawing.new("Square"),
+                            Line = Drawing.new("Line"),
+                            Name = Drawing.new("Text")
+                        }
+                        espObjects[player].Box.Visible = false
+                        espObjects[player].Box.Thickness = 1.5
+                        espObjects[player].Box.Color = Color3.fromRGB(255, 40, 40)
+                        espObjects[player].Box.Filled = false
+
+                        espObjects[player].Line.Visible = false
+                        espObjects[player].Line.Thickness = 1
+                        espObjects[player].Line.Color = Color3.fromRGB(255, 40, 40)
+
+                        espObjects[player].Name.Visible = false
+                        espObjects[player].Name.Size = 12
+                        espObjects[player].Name.Color = Color3.fromRGB(255, 255, 255)
+                        espObjects[player].Name.Center = true
+                        espObjects[player].Name.Outline = true
+                    end)
+                end
+
+                local objs = espObjects[player]
+                if objs then
+                    local vector, onScreen = camera:WorldToViewportPoint(hrp.Position)
+
+                    if onScreen then
+                        local head = char:FindFirstChild("Head")
+                        local rootPos = hrp.Position
+                        local topPos = head and head.Position + Vector3.new(0, 0.5, 0) or rootPos + Vector3.new(0, 3, 0)
+                        local bottomPos = rootPos - Vector3.new(0, 3, 0)
+
+                        local topScreen, topVisible = camera:WorldToViewportPoint(topPos)
+                        local bottomScreen, bottomVisible = camera:WorldToViewportPoint(bottomPos)
+
+                        if topVisible or bottomVisible then
+                            local height = math.abs(topScreen.Y - bottomScreen.Y)
+                            local width = height / 2
+
+                            -- Box ESP
+                            if ESPConfig.Boxes then
+                                objs.Box.Visible = true
+                                objs.Box.Size = Vector2.new(width, height)
+                                objs.Box.Position = Vector2.new(vector.X - width / 2, topScreen.Y)
+                            else
+                                objs.Box.Visible = false
+                            end
+
+                            -- Line / Tracer ESP
+                            if ESPConfig.Lines then
+                                objs.Line.Visible = true
+                                objs.Line.From = Vector2.new(camera.ViewportSize.X / 2, camera.ViewportSize.Y)
+                                objs.Line.To = Vector2.new(vector.X, bottomScreen.Y)
+                            else
+                                objs.Line.Visible = false
+                            end
+
+                            -- Name ESP
+                            if ESPConfig.Names then
+                                objs.Name.Visible = true
+                                objs.Name.Text = player.Name
+                                objs.Name.Position = Vector2.new(vector.X, topScreen.Y - 16)
+                            else
+                                objs.Name.Visible = false
+                            end
+                        else
+                            objs.Box.Visible = false
+                            objs.Line.Visible = false
+                            objs.Name.Visible = false
+                        end
+                    else
+                        objs.Box.Visible = false
+                        objs.Line.Visible = false
+                        objs.Name.Visible = false
+                    end
+                end
+            else
+                removeESP(player)
+            end
+        else
+            removeESP(player)
+        end
+    end
+end)
+
+-- ==========================================
 -- EFEITO: ONDA AO CLICAR (RIPPLE EFFECT)
 -- ==========================================
 local function CreateRipple(parentBtn)
@@ -182,7 +346,7 @@ local function CreateCustomSymbol(parent, pos, size)
 end
 
 -- ==========================================
--- 1. TELA DE CARREGAMENTO LUXUOSA (RENOVADA)
+-- 1. TELA DE CARREGAMENTO LUXUOSA
 -- ==========================================
 local LoadingFrame = Instance.new("Frame")
 LoadingFrame.Size = UDim2.new(0, 350, 0, 135)
@@ -206,7 +370,6 @@ LoadGradient.Color = ColorSequence.new({
 })
 LoadGradient.Rotation = 45
 
--- Logotipo com a ID solicitada
 local LoadLogo = Instance.new("ImageLabel", LoadingFrame)
 LoadLogo.Size = UDim2.new(0, 36, 0, 36)
 LoadLogo.Position = UDim2.new(0, 20, 0, 18)
@@ -268,7 +431,7 @@ ProgressBarFill.ZIndex = 102
 Instance.new("UICorner", ProgressBarFill).CornerRadius = UDim.new(1, 0)
 
 -- ==========================================
--- 2. BOTÃO FLUTUANTE (COM BORDA VERMELHA FINA)
+-- 2. BOTÃO FLUTUANTE
 -- ==========================================
 local FloatingBtn = Instance.new("TextButton")
 FloatingBtn.Name = "FloatingIcon"
@@ -330,7 +493,7 @@ MainGradient.Color = ColorSequence.new({
 MainGradient.Rotation = 45
 
 -- ==========================================
--- PUXADOR DE REDIMENSIONAMENTO MOBILE & PC
+-- PUXADOR DE REDIMENSIONAMENTO
 -- ==========================================
 local ResizeHandle = Instance.new("Frame", MainPanel)
 ResizeHandle.Size = UDim2.new(0, 35, 0, 35)
@@ -510,9 +673,7 @@ BypassLabel.TextSize = 10
 BypassLabel.TextXAlignment = Enum.TextXAlignment.Left
 BypassLabel.ZIndex = 30
 
--- ==========================================
--- BOTÃO RETANGULAR PEQUENO "INFO"
--- ==========================================
+-- BOTÃO RETANGULAR "INFO"
 local InfoBtn = Instance.new("TextButton", TopBar)
 InfoBtn.Name = "InfoBtn"
 InfoBtn.Size = UDim2.new(0, 34, 0, 18)
@@ -537,7 +698,7 @@ InfoBtn.MouseLeave:Connect(function()
     TweenService:Create(InfoBtn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(25, 15, 18), TextColor3 = Color3.fromRGB(220, 220, 220)}):Play()
 end)
 
--- PAINEL POP-UP DE INFORMAÇÕES DO JOGADOR
+-- PAINEL POP-UP INFO DO JOGADOR
 local InfoPopup = Instance.new("Frame", DexyUI)
 InfoPopup.Name = "InfoPopup"
 InfoPopup.Size = UDim2.new(0, 240, 0, 135)
@@ -756,12 +917,33 @@ local function CreateTabSymbol(parent, iconType)
         Body.BackgroundColor3 = Color3.fromRGB(255, 60, 60)
         Body.BorderSizePixel = 0
         Instance.new("UICorner", Body).CornerRadius = UDim.new(0.5, 0.5)
+
+    elseif iconType == "Visual" then
+        local OuterEye = Instance.new("Frame", IconFrame)
+        OuterEye.Size = UDim2.new(0, 14, 0, 10)
+        OuterEye.Position = UDim2.new(0.5, 0, 0.5, 0)
+        OuterEye.AnchorPoint = Vector2.new(0.5, 0.5)
+        OuterEye.BackgroundColor3 = Color3.fromRGB(25, 15, 15)
+        OuterEye.BorderSizePixel = 0
+        Instance.new("UICorner", OuterEye).CornerRadius = UDim.new(1, 0)
+        
+        local OuterStroke = Instance.new("UIStroke", OuterEye)
+        OuterStroke.Color = Color3.fromRGB(255, 60, 60)
+        OuterStroke.Thickness = 1.5
+
+        local Pupil = Instance.new("Frame", OuterEye)
+        Pupil.Size = UDim2.new(0, 5, 0, 5)
+        Pupil.Position = UDim2.new(0.5, 0, 0.5, 0)
+        Pupil.AnchorPoint = Vector2.new(0.5, 0.5)
+        Pupil.BackgroundColor3 = Color3.fromRGB(255, 60, 60)
+        Pupil.BorderSizePixel = 0
+        Instance.new("UICorner", Pupil).CornerRadius = UDim.new(1, 0)
     end
 end
 
 local function CreateTab(name, iconType)
     local TabBtn = Instance.new("TextButton", TabsContainer)
-    TabBtn.Size = UDim2.new(0, 130, 1, 0)
+    TabBtn.Size = UDim2.new(0, 100, 1, 0)
     TabBtn.BackgroundTransparency = 1
     TabBtn.Text = "" 
     TabBtn.AutoButtonColor = false
@@ -776,7 +958,7 @@ local function CreateTab(name, iconType)
     TabText.Text = name
     TabText.TextColor3 = Color3.fromRGB(150, 150, 150)
     TabText.Font = Enum.Font.GothamSemibold
-    TabText.TextSize = 13
+    TabText.TextSize = 12
     TabText.TextXAlignment = Enum.TextXAlignment.Left
     TabText.ZIndex = 30
 
@@ -849,7 +1031,7 @@ local function CreateTab(name, iconType)
 end
 
 -- ==========================================
--- 6. COMPONENTES
+-- 6. COMPONENTES (COM SUPORTE A SUB-OPÇÕES EXPANSÍVEIS)
 -- ==========================================
 
 local function CreateToggle(parentCol, name, callback, hasConfig, minVal, maxVal, defaultVal, speedCallback)
@@ -1009,6 +1191,150 @@ local function CreateToggle(parentCol, name, callback, hasConfig, minVal, maxVal
     end
 end
 
+-- Componente especializado para sub-opções de ESP
+local function CreateToggleWithSubOptions(parentCol, name, callback, subOptions)
+    local baseHeight = 30
+    local expandedHeight = 38 + (#subOptions * 24) + 10
+    
+    local ToggleFrame = Instance.new("Frame", parentCol)
+    ToggleFrame.Size = UDim2.new(1, -4, 0, baseHeight)
+    ToggleFrame.BackgroundColor3 = Color3.fromRGB(25, 18, 20)
+    ToggleFrame.BorderSizePixel = 0
+    ToggleFrame.ClipsDescendants = true
+    ToggleFrame.ZIndex = 30
+    Instance.new("UICorner", ToggleFrame).CornerRadius = UDim.new(0, 6)
+    
+    local ToggleStroke = Instance.new("UIStroke", ToggleFrame)
+    ToggleStroke.Color = Color3.fromRGB(45, 30, 30)
+    ToggleStroke.Thickness = 1
+
+    local TitleLbl = Instance.new("TextLabel", ToggleFrame)
+    TitleLbl.Size = UDim2.new(1, -75, 0, 30)
+    TitleLbl.Position = UDim2.new(0, 8, 0, 0)
+    TitleLbl.BackgroundTransparency = 1
+    TitleLbl.Text = name
+    TitleLbl.TextColor3 = Color3.fromRGB(220, 220, 220)
+    TitleLbl.Font = Enum.Font.GothamSemibold
+    TitleLbl.TextSize = 11
+    TitleLbl.TextXAlignment = Enum.TextXAlignment.Left
+    TitleLbl.ZIndex = 30
+
+    local ToggleBtn = Instance.new("TextButton", ToggleFrame)
+    ToggleBtn.Size = UDim2.new(0, 32, 0, 16)
+    ToggleBtn.Position = UDim2.new(1, -38, 0, 7)
+    ToggleBtn.BackgroundColor3 = Color3.fromRGB(40, 25, 25)
+    ToggleBtn.Text = ""
+    ToggleBtn.AutoButtonColor = false
+    ToggleBtn.ZIndex = 30
+    Instance.new("UICorner", ToggleBtn).CornerRadius = UDim.new(1, 0)
+
+    local Circle = Instance.new("Frame", ToggleBtn)
+    Circle.Size = UDim2.new(0, 12, 0, 12)
+    Circle.Position = UDim2.new(0, 2, 0.5, -6)
+    Circle.BackgroundColor3 = Color3.fromRGB(180, 180, 180)
+    Circle.ZIndex = 31
+    Instance.new("UICorner", Circle).CornerRadius = UDim.new(1, 0)
+
+    local isToggled = false
+    ToggleBtn.MouseButton1Click:Connect(function()
+        CreateRipple(ToggleFrame)
+        isToggled = not isToggled
+        if isToggled then
+            TweenService:Create(ToggleBtn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(255, 40, 40)}):Play()
+            TweenService:Create(Circle, TweenInfo.new(0.2), {Position = UDim2.new(0, 18, 0.5, -6), BackgroundColor3 = Color3.fromRGB(255, 255, 255)}):Play()
+        else
+            TweenService:Create(ToggleBtn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(40, 25, 25)}):Play()
+            TweenService:Create(Circle, TweenInfo.new(0.2), {Position = UDim2.new(0, 2, 0.5, -6), BackgroundColor3 = Color3.fromRGB(180, 180, 180)}):Play()
+        end
+        if callback then callback(isToggled) end
+    end)
+
+    local ConfigBtn = Instance.new("TextButton", ToggleFrame)
+    ConfigBtn.Size = UDim2.new(0, 24, 0, 16)
+    ConfigBtn.Position = UDim2.new(1, -66, 0, 7)
+    ConfigBtn.BackgroundColor3 = Color3.fromRGB(35, 22, 25)
+    ConfigBtn.Text = "⚙"
+    ConfigBtn.TextColor3 = Color3.fromRGB(200, 200, 200)
+    ConfigBtn.Font = Enum.Font.GothamBold
+    ConfigBtn.TextSize = 10
+    ConfigBtn.AutoButtonColor = false
+    ConfigBtn.ZIndex = 30
+    Instance.new("UICorner", ConfigBtn).CornerRadius = UDim.new(0, 4)
+
+    local OptionsContainer = Instance.new("Frame", ToggleFrame)
+    OptionsContainer.Size = UDim2.new(1, -16, 0, #subOptions * 24)
+    OptionsContainer.Position = UDim2.new(0, 8, 0, 32)
+    OptionsContainer.BackgroundTransparency = 1
+    OptionsContainer.Visible = false
+    OptionsContainer.ZIndex = 30
+
+    local yOffset = 0
+    for _, sub in ipairs(subOptions) do
+        local SubRow = Instance.new("Frame", OptionsContainer)
+        SubRow.Size = UDim2.new(1, 0, 0, 22)
+        SubRow.Position = UDim2.new(0, 0, 0, yOffset)
+        SubRow.BackgroundTransparency = 1
+        SubRow.ZIndex = 30
+
+        local SubLbl = Instance.new("TextLabel", SubRow)
+        SubLbl.Size = UDim2.new(1, -40, 1, 0)
+        SubLbl.BackgroundTransparency = 1
+        SubLbl.Text = sub.Name
+        SubLbl.TextColor3 = Color3.fromRGB(170, 170, 170)
+        SubLbl.Font = Enum.Font.GothamSemibold
+        SubLbl.TextSize = 10
+        SubLbl.TextXAlignment = Enum.TextXAlignment.Left
+        SubLbl.ZIndex = 30
+
+        local SubToggleBtn = Instance.new("TextButton", SubRow)
+        SubToggleBtn.Size = UDim2.new(0, 26, 0, 14)
+        SubToggleBtn.Position = UDim2.new(1, -26, 0.5, -7)
+        SubToggleBtn.BackgroundColor3 = Color3.fromRGB(40, 25, 25)
+        SubToggleBtn.Text = ""
+        SubToggleBtn.AutoButtonColor = false
+        SubToggleBtn.ZIndex = 30
+        Instance.new("UICorner", SubToggleBtn).CornerRadius = UDim.new(1, 0)
+
+        local SubCircle = Instance.new("Frame", SubToggleBtn)
+        SubCircle.Size = UDim2.new(0, 10, 0, 10)
+        SubCircle.Position = UDim2.new(0, 2, 0.5, -5)
+        SubCircle.BackgroundColor3 = Color3.fromRGB(180, 180, 180)
+        SubCircle.ZIndex = 31
+        Instance.new("UICorner", SubCircle).CornerRadius = UDim.new(1, 0)
+
+        local subToggled = false
+        SubToggleBtn.MouseButton1Click:Connect(function()
+            subToggled = not subToggled
+            if subToggled then
+                TweenService:Create(SubToggleBtn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(255, 40, 40)}):Play()
+                TweenService:Create(SubCircle, TweenInfo.new(0.2), {Position = UDim2.new(0, 14, 0.5, -5), BackgroundColor3 = Color3.fromRGB(255, 255, 255)}):Play()
+            else
+                TweenService:Create(SubToggleBtn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(40, 25, 25)}):Play()
+                TweenService:Create(SubCircle, TweenInfo.new(0.2), {Position = UDim2.new(0, 2, 0.5, -5), BackgroundColor3 = Color3.fromRGB(180, 180, 180)}):Play()
+            end
+            if sub.Callback then sub.Callback(subToggled) end
+        end)
+
+        yOffset = yOffset + 24
+    end
+
+    local isExpanded = false
+    ConfigBtn.MouseButton1Click:Connect(function()
+        isExpanded = not isExpanded
+        if isExpanded then
+            OptionsContainer.Visible = true
+            TweenService:Create(ToggleFrame, TweenInfo.new(0.3, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {Size = UDim2.new(1, -4, 0, expandedHeight)}):Play()
+            TweenService:Create(ConfigBtn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(255, 40, 40), TextColor3 = Color3.fromRGB(255, 255, 255)}):Play()
+        else
+            TweenService:Create(ToggleFrame, TweenInfo.new(0.3, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {Size = UDim2.new(1, -4, 0, baseHeight)}):Play()
+            TweenService:Create(ConfigBtn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(35, 22, 25), TextColor3 = Color3.fromRGB(200, 200, 200)}):Play()
+            task.delay(0.3, function()
+                if not isExpanded then OptionsContainer.Visible = false end
+            end)
+        end
+    end)
+end
+
 local function CreateSlider(parentCol, name, min, max, default, callback)
     local SliderFrame = Instance.new("Frame", parentCol)
     SliderFrame.Size = UDim2.new(1, -4, 0, 45)
@@ -1146,10 +1472,11 @@ local function CreateDropdown(parentCol, name, options, callback)
 end
 
 -- ==========================================
--- 7. DISTRIBUIR FUNÇÕES VINCULADAS AO CONFIG
+-- 7. DISTRIBUIR FUNÇÕES NAS ABAS
 -- ==========================================
 local TabMain = CreateTab("Principal", "Principal")
 local TabPlayer = CreateTab("Jogador", "Jogador")
+local TabVisual = CreateTab("Visual", "Visual")
 
 CreateToggle(TabMain.Left, "Auto Attack", function(v) 
     Config.AutoAttack = v 
@@ -1191,6 +1518,16 @@ CreateToggle(TabPlayer.Right, "Atravessar Paredes", function(v)
     end
 end, false)
 CreateDropdown(TabPlayer.Right, "Tema de Aura", {"Vermelho Insano", "Azul Divino", "Preto Sombrio"}, function(v) Config.AuraTheme = v end)
+
+-- ABA VISUAL: ESP PLAYERS COM MENU DE CONFIGURAÇÃO (⚙)
+CreateToggleWithSubOptions(TabVisual.Left, "ESP Players", function(v) 
+    ESPConfig.Enabled = v 
+end, {
+    {Name = "ESP Box (Caixa)", Callback = function(v) ESPConfig.Boxes = v end},
+    {Name = "ESP Linhas (Tracers)", Callback = function(v) ESPConfig.Lines = v end},
+    {Name = "ESP Nomes", Callback = function(v) ESPConfig.Names = v end},
+    {Name = "ESP Chams (Highlight)", Callback = function(v) ESPConfig.Chams = v end}
+})
 
 -- ==========================================
 -- 8. SEQUÊNCIA DE CARREGAMENTO & ABERTURA
