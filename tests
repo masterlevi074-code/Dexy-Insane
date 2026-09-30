@@ -727,14 +727,14 @@ FloatingBtn.MouseLeave:Connect(function()
 end)
 
 -- ==========================================
--- 3. PAINEL PRINCIPAL & SISTEMA DE RESIZE/DRAG (WINDUI STYLE)
+-- 3. PAINEL PRINCIPAL COM VISUAL WINDUI / IMAGEM
 -- ==========================================
 local MainPanel = Instance.new("Frame")
 MainPanel.Name = "MainPanel"
-MainPanel.Size = UDim2.new(0, 520, 0, 0) 
+MainPanel.Size = UDim2.new(0, 520, 0, 320)
 MainPanel.Position = UDim2.new(0.5, 0, 0.5, 0)
 MainPanel.AnchorPoint = Vector2.new(0.5, 0.5)
-MainPanel.BackgroundColor3 = Color3.fromRGB(12, 12, 14)
+MainPanel.BackgroundColor3 = Color3.fromRGB(18, 18, 20)
 MainPanel.BorderSizePixel = 0
 MainPanel.Active = true
 MainPanel.ClipsDescendants = false
@@ -742,109 +742,55 @@ MainPanel.Visible = false
 MainPanel.ZIndex = 25
 MainPanel.Parent = DexyUI
 
-Instance.new("UICorner", MainPanel).CornerRadius = UDim.new(0, 12)
+Instance.new("UICorner", MainPanel).CornerRadius = UDim.new(0, 14)
+
 local PanelStroke = Instance.new("UIStroke", MainPanel)
-PanelStroke.Color = Color3.fromRGB(200, 30, 30)
-PanelStroke.Thickness = 2
+PanelStroke.Color = Color3.fromRGB(35, 35, 40)
+PanelStroke.Thickness = 1.5
 
-local MainGradient = Instance.new("UIGradient", MainPanel)
-MainGradient.Color = ColorSequence.new({
-    ColorSequenceKeypoint.new(0, Color3.fromRGB(25, 5, 5)),
-    ColorSequenceKeypoint.new(1, Color3.fromRGB(10, 10, 12))
-})
-MainGradient.Rotation = 45
-
--- BARRA INFERIOR PARA ARRASTO (BOTTOM BAR)
+-- 1. LINHA INFERIOR PARA ARRASTAR (ESTILO DA IMAGEM)
 local BottomBar = Instance.new("Frame", MainPanel)
 BottomBar.Name = "BottomBar"
-BottomBar.Size = UDim2.new(1, -35, 0, 25)
-BottomBar.Position = UDim2.new(0, 0, 1, -25)
+BottomBar.Size = UDim2.new(1, -60, 0, 24)
+BottomBar.Position = UDim2.new(0, 10, 1, 2)
 BottomBar.BackgroundTransparency = 1
-BottomBar.ZIndex = 29
+BottomBar.ZIndex = 200
 BottomBar.Active = true
 
--- PUXADOR DE REDIMENSIONAMENTO (RESIZE HANDLE WINDUI)
+local BottomDragLine = Instance.new("Frame", BottomBar)
+BottomDragLine.Name = "DragLine"
+BottomDragLine.Size = UDim2.new(0.55, 0, 0, 3)
+BottomDragLine.Position = UDim2.new(0.5, 0, 0.5, 0)
+BottomDragLine.AnchorPoint = Vector2.new(0.5, 0.5)
+BottomDragLine.BackgroundColor3 = Color3.fromRGB(140, 140, 145)
+BottomDragLine.BorderSizePixel = 0
+BottomDragLine.ZIndex = 201
+Instance.new("UICorner", BottomDragLine).CornerRadius = UDim.new(1, 0)
+
+-- 2. ÍCONE CURVO NO CANTO DIREITO PARA REDIMENSIONAR (ESTILO DA IMAGEM)
 local ResizeHandle = Instance.new("Frame", MainPanel)
 ResizeHandle.Name = "ResizeHandle"
-ResizeHandle.Size = UDim2.new(0, 35, 0, 35)
+ResizeHandle.Size = UDim2.new(0, 28, 0, 28)
 ResizeHandle.AnchorPoint = Vector2.new(1, 1)
-ResizeHandle.Position = UDim2.new(1, 0, 1, 0) 
+ResizeHandle.Position = UDim2.new(1, 6, 1, 6)
 ResizeHandle.BackgroundTransparency = 1
-ResizeHandle.Active = true 
-ResizeHandle.ZIndex = 35
+ResizeHandle.Active = true
+ResizeHandle.ZIndex = 210
 
-local ArcCircle = Instance.new("Frame", ResizeHandle)
-ArcCircle.Size = UDim2.new(0, 20, 0, 20)
-ArcCircle.AnchorPoint = Vector2.new(1, 1)
-ArcCircle.Position = UDim2.new(1, -5, 1, -5)
-ArcCircle.BackgroundTransparency = 1
-ArcCircle.ZIndex = 35
-Instance.new("UICorner", ArcCircle).CornerRadius = UDim.new(1, 0)
+local CornerArc = Instance.new("Frame", ResizeHandle)
+CornerArc.Name = "CornerArc"
+CornerArc.Size = UDim2.new(0, 16, 0, 16)
+CornerArc.Position = UDim2.new(0.5, 0, 0.5, 0)
+CornerArc.AnchorPoint = Vector2.new(0.5, 0.5)
+CornerArc.BackgroundTransparency = 1
+CornerArc.ZIndex = 211
 
-local ArcStrokeBlack = Instance.new("UIStroke", ArcCircle)
-ArcStrokeBlack.Color = Color3.fromRGB(0, 0, 0)
-ArcStrokeBlack.Thickness = 4
-ArcStrokeBlack.Transparency = 0
+local ArcStroke = Instance.new("UIStroke", CornerArc)
+ArcStroke.Color = Color3.fromRGB(160, 160, 165)
+ArcStroke.Thickness = 2.5
 
-local ArcStrokeRed = Instance.new("UIStroke", ArcCircle)
-ArcStrokeRed.Color = Color3.fromRGB(220, 40, 40)
-ArcStrokeRed.Thickness = 2.5
-ArcStrokeRed.Transparency = 0
-
--- LÓGICA DE UNIFICAÇÃO DE ARRASTO E REDIMENSIONAMENTO
-local resizing = false
-local startSize
-local startInputPos
-
-local draggingPanel = false
-local dragStartPos = nil
-local startPanelPos = nil
-
-ResizeHandle.InputBegan:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-        resizing = true
-        startSize = MainPanel.AbsoluteSize
-        startInputPos = input.Position
-    end
-end)
-
-local function enableDragOnFrame(frame)
-    frame.InputBegan:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-            draggingPanel = true
-            dragStartPos = input.Position
-            startPanelPos = MainPanel.Position
-        end
-    end)
-end
-
-UserInputService.InputChanged:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
-        if draggingPanel and dragStartPos and startPanelPos then
-            local delta = input.Position - dragStartPos
-            MainPanel.Position = UDim2.new(
-                startPanelPos.X.Scale,
-                startPanelPos.X.Offset + delta.X,
-                startPanelPos.Y.Scale,
-                startPanelPos.Y.Offset + delta.Y
-            )
-        end
-
-        if resizing and startInputPos and startSize then
-            local delta = input.Position - startInputPos
-            local newWidth = math.clamp(startSize.X + delta.X, 450, 800)
-            local newHeight = math.clamp(startSize.Y + delta.Y, 280, 650)
-            MainPanel.Size = UDim2.new(0, newWidth, 0, newHeight)
-        end
-    end
-end)
-
-UserInputService.InputEnded:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-        draggingPanel = false
-        resizing = false
-    end
-end)
+local ArcCorner = Instance.new("UICorner", CornerArc)
+ArcCorner.CornerRadius = UDim.new(0, 6)
 
 -- PARTÍCULAS NO PAINEL
 local ParticleContainer = Instance.new("Frame", MainPanel)
@@ -894,9 +840,64 @@ TopBar.BackgroundTransparency = 1
 TopBar.ZIndex = 30
 TopBar.Active = true
 
--- Habilita o arrasto no TopBar e no BottomBar
+-- LÓGICA DE FUNCIONAMENTO DE ARRASTAR E REDIMENSIONAR
+local resizing = false
+local startSize = nil
+local startInputPos = nil
+
+local draggingPanel = false
+local dragStartPos = nil
+local startPanelPos = nil
+
+ResizeHandle.InputBegan:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+		resizing = true
+		startSize = MainPanel.AbsoluteSize
+		startInputPos = input.Position
+	end
+end)
+
+local function enableDragOnFrame(frame)
+	frame.InputBegan:Connect(function(input)
+		if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+			draggingPanel = true
+			dragStartPos = input.Position
+			startPanelPos = MainPanel.Position
+		end
+	end)
+end
+
 enableDragOnFrame(TopBar)
 enableDragOnFrame(BottomBar)
+
+UserInputService.InputChanged:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+		if draggingPanel and dragStartPos and startPanelPos then
+			local delta = input.Position - dragStartPos
+			MainPanel.Position = UDim2.new(
+				startPanelPos.X.Scale,
+				startPanelPos.X.Offset + delta.X,
+				startPanelPos.Y.Scale,
+				startPanelPos.Y.Offset + delta.Y
+			)
+		end
+
+		if resizing and startInputPos and startSize then
+			local delta = input.Position - startInputPos
+			local newWidth = math.clamp(startSize.X + delta.X, 420, 850)
+			local newHeight = math.clamp(startSize.Y + delta.Y, 260, 600)
+
+			MainPanel.Size = UDim2.new(0, newWidth, 0, newHeight)
+		end
+	end
+end)
+
+UserInputService.InputEnded:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+		draggingPanel = false
+		resizing = false
+	end
+end)
 
 CreateCustomSymbol(TopBar, UDim2.new(0, 25, 0.5, 0), UDim2.new(0, 24, 0, 24))
 
