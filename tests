@@ -306,78 +306,96 @@ RunService.RenderStepped:Connect(function()
     end
 end)
 
--- Scanner Dinâmico para ESP DragonBall (Filtro Inteligente Anti-Pedestal Vazio)
+-- Scanner Dinâmico para ESP DragonBall (Filtro Hierárquico Avançado Anti-Pedestal/Balls interna)
 task.spawn(function()
     while task.wait(0.3) do
         pcall(function()
             if ESPConfig.DragonBalls then
-                local mapFolder = workspace:FindFirstChild("Map") or workspace
                 local activeItems = {}
                 local hrp = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
 
-                for _, obj in ipairs(mapFolder:GetDescendants()) do
-                    if obj:IsA("Model") and obj ~= LocalPlayer.Character then
-                        local nameLower = string.lower(obj.Name)
-                        
-                        -- Ignorar nomes genéricos de suportes/pedestais vazios
-                        if not nameLower:find("pedestal") and not nameLower:find("stand") and not nameLower:find("altar") and not nameLower:find("base") then
-                            -- Verifica se o objeto possui propriedades reais de uma Dragon Ball (TouchInterest, Partículas ou Luz)
-                            local hasTouch = obj:FindFirstChildWhichIsA("TouchInterest", true) ~= nil
-                            local hasParticle = obj:FindFirstChildWhichIsA("ParticleEmitter", true) ~= nil
-                            local hasLight = obj:FindFirstChildWhichIsA("PointLight", true) ~= nil
-                            
-                            if hasTouch or hasParticle or hasLight or nameLower:find("dragon") or nameLower:find("ball") then
-                                activeItems[obj] = true
-                                
-                                local dist = 0
-                                local targetPart = obj.PrimaryPart or obj:FindFirstChildWhichIsA("BasePart")
-                                if hrp and targetPart then
-                                    dist = math.floor((hrp.Position - targetPart.Position).Magnitude)
-                                end
+                -- Função que sobe na hierarquia (parents) para bloquear qualquer item preso a pedestais ou pastas Balls de suporte
+                local function shouldIgnore(obj)
+                    local curr = obj
+                    while curr and curr ~= workspace do
+                        local nameLower = string.lower(curr.Name)
+                        if nameLower:find("pedestal") or nameLower:find("stand") or nameLower:find("altar") or nameLower:find("holder") or nameLower:find("base") or nameLower:find("pad") or nameLower:find("spot") or nameLower:find("statue") or nameLower:find("shrine") then
+                            return true
+                        end
+                        curr = curr.Parent
+                    end
+                    return false
+                end
 
-                                if not dbObjects[obj] then
-                                    dbObjects[obj] = {}
-                                    
-                                    -- Highlight Laranja
-                                    local highlight = Instance.new("Highlight")
-                                    highlight.Name = "DexyDBHighlight"
-                                    highlight.Adornee = obj
-                                    highlight.FillColor = Color3.fromRGB(255, 165, 0)
-                                    highlight.FillTransparency = 0.4
-                                    highlight.OutlineColor = Color3.fromRGB(255, 255, 255)
-                                    highlight.OutlineTransparency = 0
-                                    highlight.Parent = obj
-                                    dbObjects[obj].Highlight = highlight
+                -- Alvos de busca
+                local searchTargets = {}
+                local ballsFolder = workspace:FindFirstChild("Balls")
+                if ballsFolder then
+                    table.insert(searchTargets, ballsFolder)
+                end
+                local mapFolder = workspace:FindFirstChild("Map") or workspace
+                table.insert(searchTargets, mapFolder)
 
-                                    -- Billboard com o nome DragonBall e Distância
-                                    local billboard = Instance.new("BillboardGui")
-                                    billboard.Name = "DexyDBText"
-                                    billboard.Size = UDim2.new(0, 120, 0, 50)
-                                    billboard.StudsOffset = Vector3.new(0, 3, 0)
-                                    billboard.AlwaysOnTop = true
-                                    billboard.Adornee = targetPart or obj
+                for _, parentFolder in ipairs(searchTargets) do
+                    for _, obj in ipairs(parentFolder:GetDescendants()) do
+                        if (obj:IsA("Model") or obj:IsA("BasePart")) and obj ~= LocalPlayer.Character then
+                            if not shouldIgnore(obj) then
+                                local nameLower = string.lower(obj.Name)
+                                local isRealBall = (parentFolder == ballsFolder) or nameLower:find("dragon") or nameLower:find("ball") or obj:GetAttribute("realBall")
+
+                                if isRealBall then
+                                    activeItems[obj] = true
                                     
-                                    local textLabel = Instance.new("TextLabel", billboard)
-                                    textLabel.Size = UDim2.new(1, 0, 1, 0)
-                                    textLabel.BackgroundTransparency = 1
-                                    textLabel.TextColor3 = Color3.fromRGB(255, 165, 0) -- Laranja
-                                    textLabel.Font = Enum.Font.GothamBold
-                                    textLabel.TextSize = 12
-                                    textLabel.TextStrokeTransparency = 0
-                                    textLabel.Text = "DragonBall\n[" .. dist .. "m]"
-                                    
-                                    billboard.Parent = obj
-                                    dbObjects[obj].Billboard = billboard
-                                    dbObjects[obj].TextLabel = textLabel
-                                else
-                                    if dbObjects[obj].TextLabel then
-                                        dbObjects[obj].TextLabel.Text = "DragonBall\n[" .. dist .. "m]"
+                                    local dist = 0
+                                    local targetPart = obj:IsA("Model") and (obj.PrimaryPart or obj:FindFirstChildWhichIsA("BasePart")) or obj
+                                    if hrp and targetPart then
+                                        dist = math.floor((hrp.Position - targetPart.Position).Magnitude)
                                     end
-                                    if dbObjects[obj].Highlight then
-                                        dbObjects[obj].Highlight.Enabled = ESPConfig.DBChams
-                                    end
-                                    if dbObjects[obj].Billboard then
-                                        dbObjects[obj].Billboard.Enabled = ESPConfig.DBText
+
+                                    if not dbObjects[obj] then
+                                        dbObjects[obj] = {}
+                                        
+                                        -- Highlight Laranja
+                                        local highlight = Instance.new("Highlight")
+                                        highlight.Name = "DexyDBHighlight"
+                                        highlight.Adornee = obj
+                                        highlight.FillColor = Color3.fromRGB(255, 165, 0)
+                                        highlight.FillTransparency = 0.4
+                                        highlight.OutlineColor = Color3.fromRGB(255, 255, 255)
+                                        highlight.OutlineTransparency = 0
+                                        highlight.Parent = obj
+                                        dbObjects[obj].Highlight = highlight
+
+                                        -- Billboard com o nome DragonBall e Distância
+                                        local billboard = Instance.new("BillboardGui")
+                                        billboard.Name = "DexyDBText"
+                                        billboard.Size = UDim2.new(0, 120, 0, 50)
+                                        billboard.StudsOffset = Vector3.new(0, 3, 0)
+                                        billboard.AlwaysOnTop = true
+                                        billboard.Adornee = targetPart or obj
+                                        
+                                        local textLabel = Instance.new("TextLabel", billboard)
+                                        textLabel.Size = UDim2.new(1, 0, 1, 0)
+                                        textLabel.BackgroundTransparency = 1
+                                        textLabel.TextColor3 = Color3.fromRGB(255, 165, 0)
+                                        textLabel.Font = Enum.Font.GothamBold
+                                        textLabel.TextSize = 12
+                                        textLabel.TextStrokeTransparency = 0
+                                        textLabel.Text = "DragonBall\n[" .. dist .. "m]"
+                                        
+                                        billboard.Parent = obj
+                                        dbObjects[obj].Billboard = billboard
+                                        dbObjects[obj].TextLabel = textLabel
+                                    else
+                                        if dbObjects[obj].TextLabel then
+                                            dbObjects[obj].TextLabel.Text = "DragonBall\n[" .. dist .. "m]"
+                                        end
+                                        if dbObjects[obj].Highlight then
+                                            dbObjects[obj].Highlight.Enabled = ESPConfig.DBChams
+                                        end
+                                        if dbObjects[obj].Billboard then
+                                            dbObjects[obj].Billboard.Enabled = ESPConfig.DBText
+                                        end
                                     end
                                 end
                             end
