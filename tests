@@ -21,7 +21,6 @@ DexyUI.Parent = CoreGui
 
 local UIScale = Instance.new("UIScale", DexyUI)
 
--- Função auxiliar para pausar a rolagem da aba enquanto arrasta o Color Picker
 local function setParentScrolling(obj, enabled)
     local current = obj
     while current and current ~= DexyUI and current ~= workspace do
@@ -55,7 +54,6 @@ local Config = {
     AuraTheme = "Vermelho Insano"
 }
 
--- CONFIGURAÇÕES DE ESP PLAYERS (CORES INDIVIDUAIS)
 local ESPConfig = {
     Enabled = false,
     Boxes = false,
@@ -70,7 +68,6 @@ local ESPConfig = {
     ChamsColor = Color3.fromRGB(255, 40, 40)
 }
 
--- CONFIGURAÇÕES DE ESP DRAGONBALL
 local DBConfig = {
     Enabled = false,
     Highlight = true,
@@ -229,8 +226,7 @@ end)
 task.spawn(function()
     while task.wait(0.2) do
         if Config.AutoCharge then
-            pcall(function()
-            end)
+            pcall(function() end)
         end
     end
 end)
@@ -731,7 +727,7 @@ FloatingBtn.MouseLeave:Connect(function()
 end)
 
 -- ==========================================
--- 3. PAINEL PRINCIPAL
+-- 3. PAINEL PRINCIPAL & SISTEMA DE RESIZE/DRAG (WINDUI STYLE)
 -- ==========================================
 local MainPanel = Instance.new("Frame")
 MainPanel.Name = "MainPanel"
@@ -741,7 +737,6 @@ MainPanel.AnchorPoint = Vector2.new(0.5, 0.5)
 MainPanel.BackgroundColor3 = Color3.fromRGB(12, 12, 14)
 MainPanel.BorderSizePixel = 0
 MainPanel.Active = true
-MainPanel.Draggable = false
 MainPanel.ClipsDescendants = false
 MainPanel.Visible = false
 MainPanel.ZIndex = 25
@@ -759,8 +754,18 @@ MainGradient.Color = ColorSequence.new({
 })
 MainGradient.Rotation = 45
 
--- PUXADOR DE REDIMENSIONAMENTO
+-- BARRA INFERIOR PARA ARRASTO (BOTTOM BAR)
+local BottomBar = Instance.new("Frame", MainPanel)
+BottomBar.Name = "BottomBar"
+BottomBar.Size = UDim2.new(1, -35, 0, 25)
+BottomBar.Position = UDim2.new(0, 0, 1, -25)
+BottomBar.BackgroundTransparency = 1
+BottomBar.ZIndex = 29
+BottomBar.Active = true
+
+-- PUXADOR DE REDIMENSIONAMENTO (RESIZE HANDLE WINDUI)
 local ResizeHandle = Instance.new("Frame", MainPanel)
+ResizeHandle.Name = "ResizeHandle"
 ResizeHandle.Size = UDim2.new(0, 35, 0, 35)
 ResizeHandle.AnchorPoint = Vector2.new(1, 1)
 ResizeHandle.Position = UDim2.new(1, 0, 1, 0) 
@@ -786,9 +791,14 @@ ArcStrokeRed.Color = Color3.fromRGB(220, 40, 40)
 ArcStrokeRed.Thickness = 2.5
 ArcStrokeRed.Transparency = 0
 
+-- LÓGICA DE UNIFICAÇÃO DE ARRASTO E REDIMENSIONAMENTO
 local resizing = false
 local startSize
 local startInputPos
+
+local draggingPanel = false
+local dragStartPos = nil
+local startPanelPos = nil
 
 ResizeHandle.InputBegan:Connect(function(input)
     if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
@@ -798,17 +808,40 @@ ResizeHandle.InputBegan:Connect(function(input)
     end
 end)
 
+local function enableDragOnFrame(frame)
+    frame.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            draggingPanel = true
+            dragStartPos = input.Position
+            startPanelPos = MainPanel.Position
+        end
+    end)
+end
+
 UserInputService.InputChanged:Connect(function(input)
-    if resizing and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
-        local delta = input.Position - startInputPos
-        local newWidth = math.clamp(startSize.X + delta.X, 450, 800)
-        local newHeight = math.clamp(startSize.Y + delta.Y, 280, 650)
-        MainPanel.Size = UDim2.new(0, newWidth, 0, newHeight)
+    if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+        if draggingPanel and dragStartPos and startPanelPos then
+            local delta = input.Position - dragStartPos
+            MainPanel.Position = UDim2.new(
+                startPanelPos.X.Scale,
+                startPanelPos.X.Offset + delta.X,
+                startPanelPos.Y.Scale,
+                startPanelPos.Y.Offset + delta.Y
+            )
+        end
+
+        if resizing and startInputPos and startSize then
+            local delta = input.Position - startInputPos
+            local newWidth = math.clamp(startSize.X + delta.X, 450, 800)
+            local newHeight = math.clamp(startSize.Y + delta.Y, 280, 650)
+            MainPanel.Size = UDim2.new(0, newWidth, 0, newHeight)
+        end
     end
 end)
 
 UserInputService.InputEnded:Connect(function(input)
     if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+        draggingPanel = false
         resizing = false
     end
 end)
@@ -852,43 +885,18 @@ task.spawn(function()
 end)
 
 -- ==========================================
--- 4. BARRA SUPERIOR E SISTEMA DE ARRASTO EXCLUSIVO
+-- 4. BARRA SUPERIOR
 -- ==========================================
 local TopBar = Instance.new("Frame", MainPanel)
+TopBar.Name = "TopBar"
 TopBar.Size = UDim2.new(1, 0, 0, 45)
 TopBar.BackgroundTransparency = 1
 TopBar.ZIndex = 30
 TopBar.Active = true
 
-local draggingPanel = false
-local dragStartPos = nil
-local startPanelPos = nil
-
-TopBar.InputBegan:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-        draggingPanel = true
-        dragStartPos = input.Position
-        startPanelPos = MainPanel.Position
-    end
-end)
-
-UserInputService.InputChanged:Connect(function(input)
-    if draggingPanel and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
-        local delta = input.Position - dragStartPos
-        MainPanel.Position = UDim2.new(
-            startPanelPos.X.Scale,
-            startPanelPos.X.Offset + delta.X,
-            startPanelPos.Y.Scale,
-            startPanelPos.Y.Offset + delta.Y
-        )
-    end
-end)
-
-UserInputService.InputEnded:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-        draggingPanel = false
-    end
-end)
+-- Habilita o arrasto no TopBar e no BottomBar
+enableDragOnFrame(TopBar)
+enableDragOnFrame(BottomBar)
 
 CreateCustomSymbol(TopBar, UDim2.new(0, 25, 0.5, 0), UDim2.new(0, 24, 0, 24))
 
@@ -1102,6 +1110,9 @@ RollUpBtn.MouseButton1Click:Connect(function()
     if ResizeHandle then
         ResizeHandle.Visible = not isRolledUp
     end
+    if BottomBar then
+        BottomBar.Visible = not isRolledUp
+    end
     
     if TabsContainer then TabsContainer.Visible = not isRolledUp end
     for tName, data in pairs(pages) do
@@ -1139,6 +1150,9 @@ FloatingBtn.MouseButton1Click:Connect(function()
         local targetHeight = isRolledUp and 45 or 320
         if ResizeHandle then
             ResizeHandle.Visible = not isRolledUp
+        end
+        if BottomBar then
+            BottomBar.Visible = not isRolledUp
         end
         TweenService:Create(MainPanel, TweenInfo.new(0.5, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {Size = UDim2.new(0, 520, 0, targetHeight)}):Play()
     end)
@@ -1632,7 +1646,6 @@ local function CreateToggle(parentCol, name, callback, hasConfig, minVal, maxVal
         BarFill.ZIndex = 30
         Instance.new("UICorner", BarFill).CornerRadius = UDim.new(1, 0)
 
-        -- DROPDOWN DE MÉTODOS (CLIQUE / SEGURAR)
         local MethodRow
         if hasMethodDropdown then
             MethodRow = Instance.new("Frame", ToggleFrame)
@@ -1724,7 +1737,6 @@ local function CreateToggle(parentCol, name, callback, hasConfig, minVal, maxVal
     end
 end
 
--- ESTRUTURA COM SUPORTE A PALETA DE COR INTERATIVA NO BOTÃO DE CONFIGURACÃO DAS OPÇÕES
 local function CreateToggleWithSubOptions(parentCol, name, callback, subOptions)
     local baseHeight = 30
     local currentHeight = baseHeight
