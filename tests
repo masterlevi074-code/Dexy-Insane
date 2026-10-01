@@ -1042,7 +1042,7 @@ Subtitle.TextSize = 10
 Subtitle.TextXAlignment = Enum.TextXAlignment.Left
 Subtitle.ZIndex = 30
 
-local function CreateTopButton(name, text, posOffset, sizeW, sizeH, hoverColor, textColor, hasBorder, hasRipple)
+local function CreateTopButton(name, text, posOffset, sizeW, sizeH, hoverColor, textColor, hasBorder, hasRipple, customTextSize)
     local Btn = Instance.new("TextButton", TopBar)
     Btn.Name = name
     Btn.Size = UDim2.new(0, sizeW, 0, sizeH)
@@ -1052,7 +1052,7 @@ local function CreateTopButton(name, text, posOffset, sizeW, sizeH, hoverColor, 
     Btn.Text = text
     Btn.TextColor3 = textColor
     Btn.Font = Enum.Font.GothamBold
-    Btn.TextSize = 16
+    Btn.TextSize = customTextSize or 16
     Btn.AutoButtonColor = false
     Btn.ZIndex = 30
     Instance.new("UICorner", Btn).CornerRadius = UDim.new(0, 8)
@@ -1074,14 +1074,14 @@ local function CreateTopButton(name, text, posOffset, sizeW, sizeH, hoverColor, 
     return Btn
 end
 
--- Botões de minimizar e rolar aumentados para 40x40 e com offset ajustado
-local MinimizeIconBtn = CreateTopButton("MinimizeIconBtn", "•", -134, 40, 40, Color3.fromRGB(40, 150, 40), Color3.fromRGB(46, 204, 113), false, false)
-local RollUpBtn = CreateTopButton("RollUpBtn", "•", -88, 40, 40, Color3.fromRGB(150, 150, 40), Color3.fromRGB(255, 220, 40), false, false)
-local CloseBtn = CreateTopButton("CloseBtn", "X", -44, 32, 32, Color3.fromRGB(255, 30, 30), Color3.fromRGB(255, 60, 60), true, true)
+-- Botões de minimizar e rolar com bolinhas bem maiores (TextSize = 28)
+local MinimizeIconBtn = CreateTopButton("MinimizeIconBtn", "•", -104, 40, 40, Color3.fromRGB(40, 150, 40), Color3.fromRGB(46, 204, 113), false, false, 28)
+local RollUpBtn = CreateTopButton("RollUpBtn", "•", -62, 40, 40, Color3.fromRGB(150, 150, 40), Color3.fromRGB(255, 220, 40), false, false, 28)
+local CloseBtn = CreateTopButton("CloseBtn", "X", -20, 24, 24, Color3.fromRGB(255, 30, 30), Color3.fromRGB(255, 60, 60), true, true, 14)
 
 local BypassContainer = Instance.new("Frame", TopBar)
 BypassContainer.Size = UDim2.new(0, 60, 0, 20)
-BypassContainer.Position = UDim2.new(1, -210, 0.5, -10)
+BypassContainer.Position = UDim2.new(1, -175, 0.5, -10)
 BypassContainer.BackgroundTransparency = 1
 BypassContainer.ZIndex = 30
 
@@ -1108,115 +1108,6 @@ BypassLabel.Font = Enum.Font.GothamBold
 BypassLabel.TextSize = 10
 BypassLabel.TextXAlignment = Enum.TextXAlignment.Left
 BypassLabel.ZIndex = 30
-
-local InfoBtn = Instance.new("TextButton", TopBar)
-InfoBtn.Name = "InfoBtn"
-InfoBtn.Size = UDim2.new(0, 34, 0, 18)
-InfoBtn.Position = UDim2.new(1, -250, 0.5, -9)
-InfoBtn.BackgroundColor3 = Color3.fromRGB(10, 10, 10)
-InfoBtn.Text = "INFO"
-InfoBtn.TextColor3 = Color3.fromRGB(220, 220, 220)
-InfoBtn.Font = Enum.Font.GothamBold
-InfoBtn.TextSize = 9
-InfoBtn.AutoButtonColor = false
-InfoBtn.ZIndex = 30
-Instance.new("UICorner", InfoBtn).CornerRadius = UDim.new(0, 4)
-
-local InfoBtnStroke = Instance.new("UIStroke", InfoBtn)
-InfoBtnStroke.Color = Color3.fromRGB(255, 40, 40)
-InfoBtnStroke.Thickness = 1.5
-InfoBtnStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
-
-InfoBtn.MouseEnter:Connect(function()
-    TweenService:Create(InfoBtn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(150, 40, 40), TextColor3 = Color3.fromRGB(255, 255, 255)}):Play()
-end)
-InfoBtn.MouseLeave:Connect(function()
-    TweenService:Create(InfoBtn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(10, 10, 10), TextColor3 = Color3.fromRGB(220, 220, 220)}):Play()
-end)
-
-local InfoPopup = Instance.new("Frame", DexyUI)
-InfoPopup.Name = "InfoPopup"
-InfoPopup.Size = UDim2.new(0, 240, 0, 135)
-InfoPopup.Position = UDim2.new(0.5, 0, 0.5, 0)
-InfoPopup.AnchorPoint = Vector2.new(0.5, 0.5)
-InfoPopup.BackgroundColor3 = Color3.fromRGB(5, 5, 5)
-InfoPopup.BorderSizePixel = 0
-InfoPopup.Visible = false
-InfoPopup.ZIndex = 150
-Instance.new("UICorner", InfoPopup).CornerRadius = UDim.new(0, 10)
-
-local PopupStroke = Instance.new("UIStroke", InfoPopup)
-PopupStroke.Color = Color3.fromRGB(220, 40, 40)
-PopupStroke.Thickness = 1.5
-
-local success, thumbUrl = pcall(function()
-    return Players:GetUserThumbnailAsync(LocalPlayer.UserId, Enum.ThumbnailType.HeadShot, Enum.ThumbnailSize.Size150x150)
-end)
-
-local AvatarImg = Instance.new("ImageLabel", InfoPopup)
-AvatarImg.Size = UDim2.new(0, 48, 0, 48)
-AvatarImg.Position = UDim2.new(0, 12, 0, 15)
-AvatarImg.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
-AvatarImg.BorderSizePixel = 0
-AvatarImg.Image = success and thumbUrl or ""
-AvatarImg.ZIndex = 151
-Instance.new("UICorner", AvatarImg).CornerRadius = UDim.new(1, 0)
-
-local AvatarStroke = Instance.new("UIStroke", AvatarImg)
-AvatarStroke.Color = Color3.fromRGB(220, 40, 40)
-AvatarStroke.Thickness = 1
-
-local NameLbl = Instance.new("TextLabel", InfoPopup)
-NameLbl.Size = UDim2.new(1, -75, 0, 20)
-NameLbl.Position = UDim2.new(0, 70, 0, 15)
-NameLbl.BackgroundTransparency = 1
-NameLbl.Text = LocalPlayer.Name
-NameLbl.TextColor3 = Color3.fromRGB(255, 255, 255)
-NameLbl.Font = Enum.Font.GothamBold
-NameLbl.TextSize = 13
-NameLbl.TextXAlignment = Enum.TextXAlignment.Left
-NameLbl.ZIndex = 151
-
-local DisplayLbl = Instance.new("TextLabel", InfoPopup)
-DisplayLbl.Size = UDim2.new(1, -75, 0, 15)
-DisplayLbl.Position = UDim2.new(0, 70, 0, 35)
-DisplayLbl.BackgroundTransparency = 1
-DisplayLbl.Text = "@" .. LocalPlayer.DisplayName
-DisplayLbl.TextColor3 = Color3.fromRGB(160, 160, 160)
-DisplayLbl.Font = Enum.Font.Gotham
-DisplayLbl.TextSize = 11
-DisplayLbl.TextXAlignment = Enum.TextXAlignment.Left
-DisplayLbl.ZIndex = 151
-
-local DetailsLbl = Instance.new("TextLabel", InfoPopup)
-DetailsLbl.Size = UDim2.new(1, -24, 0, 55)
-DetailsLbl.Position = UDim2.new(0, 12, 0, 72)
-DetailsLbl.BackgroundTransparency = 1
-DetailsLbl.Text = "ID: " .. LocalPlayer.UserId .. "\nIdade da Conta: " .. (LocalPlayer.AccountAge or 0) .. " dias\nPlataforma: " .. (UserInputService.TouchEnabled and "Mobile" or "PC")
-DetailsLbl.TextColor3 = Color3.fromRGB(200, 200, 200)
-DetailsLbl.Font = Enum.Font.GothamSemibold
-DetailsLbl.TextSize = 10
-DetailsLbl.TextXAlignment = Enum.TextXAlignment.Left
-DetailsLbl.ZIndex = 151
-
-local ClosePopupBtn = Instance.new("TextButton", InfoPopup)
-ClosePopupBtn.Size = UDim2.new(0, 20, 0, 20)
-ClosePopupBtn.Position = UDim2.new(1, -24, 0, 6)
-ClosePopupBtn.BackgroundTransparency = 1
-ClosePopupBtn.Text = "X"
-ClosePopupBtn.TextColor3 = Color3.fromRGB(200, 80, 80)
-ClosePopupBtn.Font = Enum.Font.GothamBold
-ClosePopupBtn.TextSize = 12
-ClosePopupBtn.ZIndex = 152
-
-ClosePopupBtn.MouseButton1Click:Connect(function()
-    InfoPopup.Visible = false
-end)
-
-InfoBtn.MouseButton1Click:Connect(function()
-    CreateRipple(InfoBtn)
-    InfoPopup.Visible = not InfoPopup.Visible
-end)
 
 local Divider = Instance.new("Frame", TopBar)
 Divider.Size = UDim2.new(1, 0, 0, 1)
@@ -1251,7 +1142,6 @@ end)
 
 MinimizeIconBtn.MouseButton1Click:Connect(function()
     isPanelOpen = false
-    InfoPopup.Visible = false
     local shrink = TweenService:Create(MainPanel, TweenInfo.new(0.4, Enum.EasingStyle.Back, Enum.EasingDirection.In), {Size = UDim2.new(0, 0, 0, 0)})
     shrink:Play()
     shrink.Completed:Connect(function()
@@ -1312,7 +1202,36 @@ local function CreateTabSymbol(parent, iconType)
     IconFrame.BackgroundTransparency = 1
     IconFrame.ZIndex = 30
 
-    if iconType == "Principal" then
+    if iconType == "Info" then
+        local InfoCircle = Instance.new("Frame", IconFrame)
+        InfoCircle.Size = UDim2.new(0, 14, 0, 14)
+        InfoCircle.Position = UDim2.new(0.5, 0, 0.5, 0)
+        InfoCircle.AnchorPoint = Vector2.new(0.5, 0.5)
+        InfoCircle.BackgroundTransparency = 1
+        InfoCircle.ZIndex = 30
+        
+        local CircleStroke = Instance.new("UIStroke", InfoCircle)
+        CircleStroke.Color = Color3.fromRGB(255, 60, 60)
+        CircleStroke.Thickness = 1.5
+        Instance.new("UICorner", InfoCircle).CornerRadius = UDim.new(1, 0)
+
+        local InfoDot = Instance.new("Frame", InfoCircle)
+        InfoDot.Size = UDim2.new(0, 2, 0, 2)
+        InfoDot.Position = UDim2.new(0.5, 0, 0, 3)
+        InfoDot.AnchorPoint = Vector2.new(0.5, 0)
+        InfoDot.BackgroundColor3 = Color3.fromRGB(255, 60, 60)
+        InfoDot.BorderSizePixel = 0
+        Instance.new("UICorner", InfoDot).CornerRadius = UDim.new(1, 0)
+
+        local InfoBar = Instance.new("Frame", InfoCircle)
+        InfoBar.Size = UDim2.new(0, 2, 0, 6)
+        InfoBar.Position = UDim2.new(0.5, 0, 0, 7)
+        InfoBar.AnchorPoint = Vector2.new(0.5, 0)
+        InfoBar.BackgroundColor3 = Color3.fromRGB(255, 60, 60)
+        InfoBar.BorderSizePixel = 0
+        Instance.new("UICorner", InfoBar).CornerRadius = UDim.new(0, 1)
+
+    elseif iconType == "Principal" then
         local Roof = Instance.new("Frame", IconFrame)
         Roof.Size = UDim2.new(0, 10, 0, 10)
         Roof.Position = UDim2.new(0.5, 0, 0, 2)
@@ -2194,12 +2113,75 @@ local function CreateSlider(parentCol, name, min, max, default, callback)
 end
 
 -- ==========================================
--- 7. DISTRIBUIR FUNÇÕES NAS ABAS
+-- 7. DISTRIBUIR FUNÇÕES NAS ABAS (INFO EM 1º)
 -- ==========================================
+local TabInfo = CreateTab("Info", "Info")
 local TabMain = CreateTab("Principal", "Principal")
 local TabPlayer = CreateTab("Jogador", "Jogador")
 local TabVisual = CreateTab("Visual", "Visual")
 local TabMisc = CreateTab("Misc", "Misc")
+
+-- Conteúdo da Aba Info com a imagem do personagem
+local InfoCard = Instance.new("Frame", TabInfo.Left)
+InfoCard.Size = UDim2.new(1, -4, 0, 135)
+InfoCard.BackgroundColor3 = Color3.fromRGB(12, 12, 12)
+InfoCard.BorderSizePixel = 0
+InfoCard.ZIndex = 30
+Instance.new("UICorner", InfoCard).CornerRadius = UDim.new(0, 6)
+
+local InfoCardStroke = Instance.new("UIStroke", InfoCard)
+InfoCardStroke.Color = Color3.fromRGB(35, 20, 20)
+InfoCardStroke.Thickness = 1
+
+local success, thumbUrl = pcall(function()
+    return Players:GetUserThumbnailAsync(LocalPlayer.UserId, Enum.ThumbnailType.HeadShot, Enum.ThumbnailSize.Size150x150)
+end)
+
+local AvatarImg = Instance.new("ImageLabel", InfoCard)
+AvatarImg.Size = UDim2.new(0, 48, 0, 48)
+AvatarImg.Position = UDim2.new(0, 12, 0, 15)
+AvatarImg.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
+AvatarImg.BorderSizePixel = 0
+AvatarImg.Image = success and thumbUrl or ""
+AvatarImg.ZIndex = 31
+Instance.new("UICorner", AvatarImg).CornerRadius = UDim.new(1, 0)
+
+local AvatarStroke = Instance.new("UIStroke", AvatarImg)
+AvatarStroke.Color = Color3.fromRGB(220, 40, 40)
+AvatarStroke.Thickness = 1
+
+local NameLbl = Instance.new("TextLabel", InfoCard)
+NameLbl.Size = UDim2.new(1, -75, 0, 20)
+NameLbl.Position = UDim2.new(0, 70, 0, 15)
+NameLbl.BackgroundTransparency = 1
+NameLbl.Text = LocalPlayer.Name
+NameLbl.TextColor3 = Color3.fromRGB(255, 255, 255)
+NameLbl.Font = Enum.Font.GothamBold
+NameLbl.TextSize = 13
+NameLbl.TextXAlignment = Enum.TextXAlignment.Left
+NameLbl.ZIndex = 31
+
+local DisplayLbl = Instance.new("TextLabel", InfoCard)
+DisplayLbl.Size = UDim2.new(1, -75, 0, 15)
+DisplayLbl.Position = UDim2.new(0, 70, 0, 35)
+DisplayLbl.BackgroundTransparency = 1
+DisplayLbl.Text = "@" .. LocalPlayer.DisplayName
+DisplayLbl.TextColor3 = Color3.fromRGB(160, 160, 160)
+DisplayLbl.Font = Enum.Font.Gotham
+DisplayLbl.TextSize = 11
+DisplayLbl.TextXAlignment = Enum.TextXAlignment.Left
+DisplayLbl.ZIndex = 31
+
+local DetailsLbl = Instance.new("TextLabel", InfoCard)
+DetailsLbl.Size = UDim2.new(1, -24, 0, 55)
+DetailsLbl.Position = UDim2.new(0, 12, 0, 72)
+DetailsLbl.BackgroundTransparency = 1
+DetailsLbl.Text = "ID: " .. LocalPlayer.UserId .. "\nIdade da Conta: " .. (LocalPlayer.AccountAge or 0) .. " dias\nPlataforma: " .. (UserInputService.TouchEnabled and "Mobile" or "PC")
+DetailsLbl.TextColor3 = Color3.fromRGB(200, 200, 200)
+DetailsLbl.Font = Enum.Font.GothamSemibold
+DetailsLbl.TextSize = 10
+DetailsLbl.TextXAlignment = Enum.TextXAlignment.Left
+DetailsLbl.ZIndex = 31
 
 CreateToggle(TabMain.Left, "Auto Attack", function(v) 
     Config.AutoAttack = v 
