@@ -5,8 +5,17 @@ local RunService = game:GetService("RunService")
 local Players = game:GetService("Players")
 local VirtualInputManager = game:GetService("VirtualInputManager")
 local GuiService = game:GetService("GuiService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local LocalPlayer = Players.LocalPlayer
+
+-- Carregamento seguro dos módulos do jogo para o Zenkai
+local network, statUtils, uiState
+pcall(function()
+    network = require(ReplicatedStorage:WaitForChild("Modules"):WaitForChild("Library"):WaitForChild("Network"))
+    statUtils = require(ReplicatedStorage:WaitForChild("Modules"):WaitForChild("Shared"):WaitForChild("StatUtils"))
+    uiState = require(ReplicatedStorage:WaitForChild("Systems"):WaitForChild("UIState"):WaitForChild("uiState"))
+end)
 
 if CoreGui:FindFirstChild("DexyInsaneUI") then
     CoreGui.DexyInsaneUI:Destroy()
@@ -46,6 +55,7 @@ local Config = {
     AutoKiBlastMethod = "Segurar",
     AutoCharge = false,
     AutoChargeMin = 10,
+    AutoZenkai = false,
     InfJump = false,
     EnableWalkSpeed = false,
     WalkSpeed = 50,
@@ -101,6 +111,24 @@ local MerchantConfig = {
 -- ==========================================
 -- LÓGICA REAL DAS FUNÇÕES DO JOGO
 -- ==========================================
+
+-- AUTO ZENKAI LOOP
+task.spawn(function()
+    while true do
+        if Config.AutoZenkai then
+            pcall(function()
+                if network and statUtils and uiState then
+                    local player = uiState.plr or LocalPlayer
+                    if statUtils:CanPlayerZenkai(player) then
+                        network:InvokeServer("RequestZenkaiBoost")
+                        task.wait(1.5)
+                    end
+                end
+            end)
+        end
+        task.wait(0.5)
+    end
+end)
 
 RunService.RenderStepped:Connect(function()
     pcall(function()
@@ -2548,6 +2576,10 @@ CreateToggle(TabMain.Left, "Auto Charge Ki", function(v)
 end, true, 0, 90, 10, function(v) 
     Config.AutoChargeMin = v 
 end, false, nil, "Segurar", "%", true)
+
+CreateToggle(TabMain.Left, "Auto Zenkai", function(v)
+    Config.AutoZenkai = v
+end, false)
 
 -- Aba Jogador (Lado Esquerdo - Controles de Movimento/Voo)
 CreateToggle(TabPlayer.Left, "Pulo Infinito", function(v) Config.InfJump = v end, false)
