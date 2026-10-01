@@ -45,9 +45,11 @@ local Config = {
     AutoKiBlastSpeed = 0.15,
     AutoKiBlastMethod = "Segurar",
     AutoCharge = false,
+    AutoChargeMin = 10,
     InfJump = false,
     EnableWalkSpeed = false,
     WalkSpeed = 50,
+    AutoTpDB = false,
 }
 
 local ESPConfig = {
@@ -275,8 +277,9 @@ task.spawn(function()
                             local currentEnergy = energyVal.Value
                             local maxEnergy = maxEnergyVal.Value
                             local percentage = (currentEnergy / maxEnergy) * 100
+                            local minTrigger = Config.AutoChargeMin or 10
 
-                            if not chargeHolding and percentage <= 10 then
+                            if not chargeHolding and percentage <= minTrigger then
                                 chargeHolding = true
                                 VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.Q, false, game)
                                 VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.R, false, game)
@@ -1074,9 +1077,9 @@ local function CreateTopButton(name, text, posOffset, sizeW, sizeH, hoverColor, 
     return Btn
 end
 
--- Botões de minimizar e rolar com bolinhas bem maiores (TextSize = 28)
-local MinimizeIconBtn = CreateTopButton("MinimizeIconBtn", "•", -104, 40, 40, Color3.fromRGB(40, 150, 40), Color3.fromRGB(46, 204, 113), false, false, 28)
-local RollUpBtn = CreateTopButton("RollUpBtn", "•", -62, 40, 40, Color3.fromRGB(150, 150, 40), Color3.fromRGB(255, 220, 40), false, false, 28)
+-- Botões de minimizar e rolar com bolinhas aumentadas para TextSize = 60
+local MinimizeIconBtn = CreateTopButton("MinimizeIconBtn", "•", -104, 40, 40, Color3.fromRGB(40, 150, 40), Color3.fromRGB(46, 204, 113), false, false, 60)
+local RollUpBtn = CreateTopButton("RollUpBtn", "•", -62, 40, 40, Color3.fromRGB(150, 150, 40), Color3.fromRGB(255, 220, 40), false, false, 60)
 local CloseBtn = CreateTopButton("CloseBtn", "X", -20, 24, 24, Color3.fromRGB(255, 30, 30), Color3.fromRGB(255, 60, 60), true, true, 14)
 
 local BypassContainer = Instance.new("Frame", TopBar)
@@ -1640,8 +1643,9 @@ local function CreateButton(parentCol, name, callback)
     end)
 end
 
-local function CreateToggle(parentCol, name, callback, hasConfig, minVal, maxVal, defaultVal, speedCallback, hasMethodDropdown, methodCallback, defaultMethod)
+local function CreateToggle(parentCol, name, callback, hasConfig, minVal, maxVal, defaultVal, speedCallback, hasMethodDropdown, methodCallback, defaultMethod, unitSuffix, isInteger)
     defaultMethod = defaultMethod or "Segurar"
+    unitSuffix = unitSuffix or "s"
     local baseHeight = 30
     local expandedHeight = hasMethodDropdown and 102 or 68
     
@@ -1719,10 +1723,10 @@ local function CreateToggle(parentCol, name, callback, hasConfig, minVal, maxVal
         SliderContainer.ZIndex = 30
 
         local SubValLbl = Instance.new("TextLabel", SliderContainer)
-        SubValLbl.Size = UDim2.new(0, 45, 0, 15)
-        SubValLbl.Position = UDim2.new(1, -45, 0, 0)
+        SubValLbl.Size = UDim2.new(0, 55, 0, 15)
+        SubValLbl.Position = UDim2.new(1, -55, 0, 0)
         SubValLbl.BackgroundTransparency = 1
-        SubValLbl.Text = tostring(defaultVal) .. "s"
+        SubValLbl.Text = tostring(defaultVal) .. unitSuffix
         SubValLbl.TextColor3 = Color3.fromRGB(255, 60, 60)
         SubValLbl.Font = Enum.Font.GothamBold
         SubValLbl.TextSize = 10
@@ -1730,10 +1734,10 @@ local function CreateToggle(parentCol, name, callback, hasConfig, minVal, maxVal
         SubValLbl.ZIndex = 30
 
         local SubTitleLbl = Instance.new("TextLabel", SliderContainer)
-        SubTitleLbl.Size = UDim2.new(1, -50, 0, 15)
+        SubTitleLbl.Size = UDim2.new(1, -60, 0, 15)
         SubTitleLbl.Position = UDim2.new(0, 0, 0, 0)
         SubTitleLbl.BackgroundTransparency = 1
-        SubTitleLbl.Text = "Velocidade / Delay"
+        SubTitleLbl.Text = "Configuração / Ajuste"
         SubTitleLbl.TextColor3 = Color3.fromRGB(160, 160, 160)
         SubTitleLbl.Font = Enum.Font.GothamSemibold
         SubTitleLbl.TextSize = 10
@@ -1837,9 +1841,13 @@ local function CreateToggle(parentCol, name, callback, hasConfig, minVal, maxVal
                 local mousePos = UserInputService:GetMouseLocation()
                 local pos = math.clamp((mousePos.X - BarBg.AbsolutePosition.X) / BarBg.AbsoluteSize.X, 0, 1)
                 local val = minVal + ((maxVal - minVal) * pos)
-                val = math.floor(val * 100 + 0.5) / 100
+                if isInteger then
+                    val = math.floor(val + 0.5)
+                else
+                    val = math.floor(val * 100 + 0.5) / 100
+                end
                 BarFill.Size = UDim2.new(pos, 0, 1, 0)
-                SubValLbl.Text = tostring(val) .. "s"
+                SubValLbl.Text = tostring(val) .. unitSuffix
                 if speedCallback then speedCallback(val) end
             end
         end)
@@ -2183,6 +2191,7 @@ DetailsLbl.TextSize = 10
 DetailsLbl.TextXAlignment = Enum.TextXAlignment.Left
 DetailsLbl.ZIndex = 31
 
+-- Aba Principal
 CreateToggle(TabMain.Left, "Auto Attack", function(v) 
     Config.AutoAttack = v 
     UserInputService.MouseIconEnabled = not (v or Config.AutoDefense or Config.AutoKiBlast)
@@ -2198,11 +2207,22 @@ CreateToggle(TabMain.Left, "Auto Ki Blast", function(v)
     UserInputService.MouseIconEnabled = not (Config.AutoAttack or Config.AutoDefense or v)
 end, true, 0.05, 0.5, 0.15, function(v) Config.AutoKiBlastSpeed = v end, true, function(m) Config.AutoKiBlastMethod = m end, "Segurar")
 
-CreateToggle(TabMain.Left, "Auto Charge Ki", function(v) Config.AutoCharge = v end, false)
+-- Auto Charge Ki com configuração de % mínima
+CreateToggle(TabMain.Left, "Auto Charge Ki", function(v) 
+    Config.AutoCharge = v 
+end, true, 0, 90, 10, function(v) 
+    Config.AutoChargeMin = v 
+end, false, nil, "Segurar", "%", true)
 
+-- Aba Jogador
 CreateToggle(TabPlayer.Left, "Pulo Infinito", function(v) Config.InfJump = v end, false)
-CreateToggle(TabPlayer.Left, "Ativar Velocidade", function(v) Config.EnableWalkSpeed = v end, false)
-CreateSlider(TabPlayer.Left, "Velocidade (WalkSpeed)", 16, 300, 50, function(v) Config.WalkSpeed = v end)
+
+-- Ativar Velocidade com configuração integrada (removido o slider solto)
+CreateToggle(TabPlayer.Left, "Ativar Velocidade", function(v) 
+    Config.EnableWalkSpeed = v 
+end, true, 16, 300, 50, function(v) 
+    Config.WalkSpeed = v 
+end, false, nil, "Segurar", "", true)
 
 CreateToggleWithSubOptions(TabVisual.Left, "ESP Players", function(v) 
     ESPConfig.Enabled = v 
@@ -2268,8 +2288,57 @@ end, {
     }
 })
 
-CreateButton(TabMisc.Left, "Teleportar para DragonBall", function()
+-- Aba Misc
+CreateButton(TabMisc.Left, "Teleportar para Dragonball", function()
     TeleportToNearestDragonBall()
+end)
+
+CreateToggle(TabMisc.Left, "Auto tp DragonBall", function(v)
+    Config.AutoTpDB = v
+end, false)
+
+-- Contador de Dragon Balls no Mapa
+local DBCountFrame = Instance.new("Frame", TabMisc.Left)
+DBCountFrame.Size = UDim2.new(1, -4, 0, 32)
+DBCountFrame.BackgroundColor3 = Color3.fromRGB(12, 12, 12)
+DBCountFrame.BorderSizePixel = 0
+DBCountFrame.ZIndex = 30
+Instance.new("UICorner", DBCountFrame).CornerRadius = UDim.new(0, 6)
+
+local DBCountStroke = Instance.new("UIStroke", DBCountFrame)
+DBCountStroke.Color = Color3.fromRGB(35, 20, 20)
+DBCountStroke.Thickness = 1
+
+local DBCountLbl = Instance.new("TextLabel", DBCountFrame)
+DBCountLbl.Size = UDim2.new(1, -16, 1, 0)
+DBCountLbl.Position = UDim2.new(0, 8, 0, 0)
+DBCountLbl.BackgroundTransparency = 1
+DBCountLbl.Text = "Dragonballs no mapa: 0"
+DBCountLbl.TextColor3 = Color3.fromRGB(220, 220, 220)
+DBCountLbl.Font = Enum.Font.GothamSemibold
+DBCountLbl.TextSize = 11
+DBCountLbl.TextXAlignment = Enum.TextXAlignment.Left
+DBCountLbl.ZIndex = 30
+
+-- Loop para atualizar o contador e gerenciar Auto TP de DB
+task.spawn(function()
+    while task.wait(0.5) do
+        pcall(function()
+            local count = 0
+            for obj, _ in pairs(dbObjects) do
+                if obj and obj.Parent then
+                    count = count + 1
+                end
+            end
+            if DBCountLbl then
+                DBCountLbl.Text = "Dragonballs no mapa: " .. count
+            end
+            
+            if Config.AutoTpDB and count > 0 then
+                TeleportToNearestDragonBall()
+            end
+        end)
+    end
 end)
 
 -- ==========================================
