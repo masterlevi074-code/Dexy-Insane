@@ -51,12 +51,11 @@ local Config = {
     WalkSpeed = 50,
     AutoTpDB = false,
     AutoTpMerchant = false,
-    -- Configurações de Voo (Valores em multiplicador)
-    Flight = false,
-    FlightSpeed = 1, -- 1x
-    FastFlight = false,
-    FastFlightSpeed = 5, -- 5x
-    FlightMode = "Câmera",
+    -- Configurações de Voo Integradas
+    FlightEnabled = false,
+    FlightMode = "Both", -- "Both", "FastOnly", "NormalOnly"
+    NormalMultiplier = 1.5,
+    FastMultiplier = 3.0
 }
 
 local dbAutoTpTriggered = false
@@ -121,71 +120,62 @@ RunService.RenderStepped:Connect(function()
     end)
 end)
 
--- SISTEMA DE VOO (FLIGHT & FASTFLIGHT)
+-- APLICAÇÃO INTELIGENTE DA FÍSICA DE VOO
 RunService.RenderStepped:Connect(function()
+    if not Config.FlightEnabled then return end
+
     pcall(function()
         local char = LocalPlayer.Character
-        local hrp = char and char:FindFirstChild("HumanoidRootPart")
-        local humanoid = char and char:FindFirstChildOfClass("Humanoid")
-        
-        if Config.Flight and hrp and humanoid then
-            humanoid.PlatformStand = true
-            
-            local bv = hrp:FindFirstChild("DexyFlightVelocity")
-            local bg = hrp:FindFirstChild("DexyFlightGyro")
-            
-            if not bv then
-                bv = Instance.new("BodyVelocity")
-                bv.Name = "DexyFlightVelocity"
-                bv.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
-                bv.Parent = hrp
-            end
-            
-            if not bg then
-                bg = Instance.new("BodyGyro")
-                bg.Name = "DexyFlightGyro"
-                bg.MaxTorque = Vector3.new(math.huge, math.huge, math.huge)
-                bg.P = 9000
-                bg.Parent = hrp
-            end
-            
-            local baseSpeed = 50
-            local mult = Config.FastFlight and Config.FastFlightSpeed or Config.FlightSpeed
-            local speed = baseSpeed * mult
-            
-            local camera = workspace.CurrentCamera
-            local camCF = camera.CFrame
-            
-            local forward, backward, left, right, up, down = 0, 0, 0, 0, 0, 0
-            if UserInputService:IsKeyDown(Enum.KeyCode.W) then forward = 1 end
-            if UserInputService:IsKeyDown(Enum.KeyCode.S) then backward = 1 end
-            if UserInputService:IsKeyDown(Enum.KeyCode.A) then left = 1 end
-            if UserInputService:IsKeyDown(Enum.KeyCode.D) then right = 1 end
-            if UserInputService:IsKeyDown(Enum.KeyCode.Space) then up = 1 end
-            if UserInputService:IsKeyDown(Enum.KeyCode.LeftShift) then down = 1 end
-            
-            local direction = (camCF.LookVector * (forward - backward) + camCF.RightVector * (right - left) + Vector3.new(0, up - down, 0))
-            
-            if Config.FlightMode == "Livre" then
-                bv.Velocity = direction * speed
-            else
-                if direction.Magnitude > 0 then
-                    bv.Velocity = direction.Unit * speed
-                else
-                    bv.Velocity = Vector3.new(0, 0.1, 0)
+        if char then
+            local root = char:FindFirstChild("HumanoidRootPart")
+            if root then
+                for _, obj in ipairs(root:GetChildren()) do
+                    if obj:IsA("BodyVelocity") then
+                        local currentVel = obj.Velocity
+                        local mag = currentVel.Magnitude
+                        
+                        if mag > 2 then
+                            local isFastFlight = mag > 85
+                            local applyMult = 1.0
+
+                            if Config.FlightMode == "Both" then
+                                applyMult = isFastFlight and Config.FastMultiplier or Config.NormalMultiplier
+                            elseif Config.FlightMode == "FastOnly" then
+                                if isFastFlight then
+                                    applyMult = Config.FastMultiplier
+                                end
+                            elseif Config.FlightMode == "NormalOnly" then
+                                if not isFastFlight then
+                                    applyMult = Config.NormalMultiplier
+                                end
+                            end
+
+                            obj.Velocity = currentVel * applyMult
+                        end
+                    elseif obj:IsA("LinearVelocity") then
+                        local currentVel = obj.VectorVelocity
+                        local mag = currentVel.Magnitude
+                        
+                        if mag > 2 then
+                            local isFastFlight = mag > 85
+                            local applyMult = 1.0
+
+                            if Config.FlightMode == "Both" then
+                                applyMult = isFastFlight and Config.FastMultiplier or Config.NormalMultiplier
+                            elseif Config.FlightMode == "FastOnly" then
+                                if isFastFlight then
+                                    applyMult = Config.FastMultiplier
+                                end
+                            elseif Config.FlightMode == "NormalOnly" then
+                                if not isFastFlight then
+                                    applyMult = Config.NormalMultiplier
+                                end
+                            end
+
+                            obj.VectorVelocity = currentVel * applyMult
+                        end
+                    end
                 end
-            end
-            
-            bg.CFrame = camCF
-        else
-            if hrp then
-                local bv = hrp:FindFirstChild("DexyFlightVelocity")
-                if bv then bv:Destroy() end
-                local bg = hrp:FindFirstChild("DexyFlightGyro")
-                if bg then bg:Destroy() end
-            end
-            if humanoid and humanoid.PlatformStand then
-                humanoid.PlatformStand = false
             end
         end
     end)
@@ -2491,10 +2481,10 @@ end, true, 16, 300, 50, function(v)
     Config.WalkSpeed = v 
 end, false, nil, "Segurar", "", true)
 
--- SISTEMA DE VOO COMPLETO NA ABA JOGADOR (FLIGHT SPEED)
+-- SISTEMA DE VOO CONTROLLER INTEGRADO (FLIGHT SPEED CONTROLLER)
 do
     local baseHeight = 30
-    local expandedHeight = 165
+    local expandedHeight = 150
     
     local ToggleFrame = Instance.new("Frame", TabPlayer.Left)
     ToggleFrame.Size = UDim2.new(1, -4, 0, baseHeight)
@@ -2509,19 +2499,46 @@ do
     ToggleStroke.Thickness = 1
 
     local TitleLbl = Instance.new("TextLabel", ToggleFrame)
-    TitleLbl.Size = UDim2.new(1, -45, 0, 30)
+    TitleLbl.Size = UDim2.new(1, -75, 0, 30)
     TitleLbl.Position = UDim2.new(0, 8, 0, 0)
     TitleLbl.BackgroundTransparency = 1
-    TitleLbl.Text = "Flight Speed"
+    TitleLbl.Text = "Flight Speed Controller"
     TitleLbl.TextColor3 = Color3.fromRGB(220, 220, 220)
     TitleLbl.Font = Enum.Font.GothamSemibold
     TitleLbl.TextSize = 11
     TitleLbl.TextXAlignment = Enum.TextXAlignment.Left
     TitleLbl.ZIndex = 30
 
+    local MainToggleBtn = Instance.new("TextButton", ToggleFrame)
+    MainToggleBtn.Size = UDim2.new(0, 32, 0, 16)
+    MainToggleBtn.Position = UDim2.new(1, -38, 0, 7)
+    MainToggleBtn.BackgroundColor3 = Color3.fromRGB(25, 15, 15)
+    MainToggleBtn.Text = ""
+    MainToggleBtn.AutoButtonColor = false
+    MainToggleBtn.ZIndex = 30
+    Instance.new("UICorner", MainToggleBtn).CornerRadius = UDim.new(1, 0)
+
+    local MainCircle = Instance.new("Frame", MainToggleBtn)
+    MainCircle.Size = UDim2.new(0, 12, 0, 12)
+    MainCircle.Position = UDim2.new(0, 2, 0.5, -6)
+    MainCircle.BackgroundColor3 = Color3.fromRGB(180, 180, 180)
+    MainCircle.ZIndex = 31
+    Instance.new("UICorner", MainCircle).CornerRadius = UDim.new(1, 0)
+
+    MainToggleBtn.MouseButton1Click:Connect(function()
+        Config.FlightEnabled = not Config.FlightEnabled
+        if Config.FlightEnabled then
+            TweenService:Create(MainToggleBtn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(255, 40, 40)}):Play()
+            TweenService:Create(MainCircle, TweenInfo.new(0.2), {Position = UDim2.new(0, 18, 0.5, -6), BackgroundColor3 = Color3.fromRGB(255, 255, 255)}):Play()
+        else
+            TweenService:Create(MainToggleBtn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(25, 15, 15)}):Play()
+            TweenService:Create(MainCircle, TweenInfo.new(0.2), {Position = UDim2.new(0, 2, 0.5, -6), BackgroundColor3 = Color3.fromRGB(180, 180, 180)}):Play()
+        end
+    end)
+
     local ConfigBtn = Instance.new("TextButton", ToggleFrame)
     ConfigBtn.Size = UDim2.new(0, 24, 0, 16)
-    ConfigBtn.Position = UDim2.new(1, -30, 0, 7)
+    ConfigBtn.Position = UDim2.new(1, -66, 0, 7)
     ConfigBtn.BackgroundColor3 = Color3.fromRGB(20, 12, 12)
     ConfigBtn.Text = "⚙"
     ConfigBtn.TextColor3 = Color3.fromRGB(200, 200, 200)
@@ -2532,195 +2549,107 @@ do
     Instance.new("UICorner", ConfigBtn).CornerRadius = UDim.new(0, 4)
 
     local ContentContainer = Instance.new("Frame", ToggleFrame)
-    ContentContainer.Size = UDim2.new(1, -16, 0, 130)
+    ContentContainer.Size = UDim2.new(1, -16, 0, 110)
     ContentContainer.Position = UDim2.new(0, 8, 0, 32)
     ContentContainer.BackgroundTransparency = 1
     ContentContainer.Visible = false
     ContentContainer.ZIndex = 30
 
-    -- 1. Toggle: Flight (Normal)
-    local normRow = Instance.new("Frame", ContentContainer)
-    normRow.Size = UDim2.new(1, 0, 0, 22)
-    normRow.Position = UDim2.new(0, 0, 0, 0)
-    normRow.BackgroundTransparency = 1
+    -- Botão de Seleção de Modo
+    local ModeBtn = Instance.new("TextButton", ContentContainer)
+    ModeBtn.Size = UDim2.new(1, 0, 0, 22)
+    ModeBtn.Position = UDim2.new(0, 0, 0, 0)
+    ModeBtn.BackgroundColor3 = Color3.fromRGB(20, 12, 12)
+    ModeBtn.Text = "Modo: Ambos (Normal + Fast) ▼"
+    ModeBtn.TextColor3 = Color3.fromRGB(200, 200, 200)
+    ModeBtn.Font = Enum.Font.GothamBold
+    ModeBtn.TextSize = 10
+    ModeBtn.AutoButtonColor = false
+    Instance.new("UICorner", ModeBtn).CornerRadius = UDim.new(0, 4)
 
-    local normLbl = Instance.new("TextLabel", normRow)
-    normLbl.Size = UDim2.new(1, -35, 1, 0)
-    normLbl.BackgroundTransparency = 1
-    normLbl.Text = "Flight (Normal)"
-    normLbl.TextColor3 = Color3.fromRGB(200, 200, 200)
-    normLbl.Font = Enum.Font.GothamSemibold
-    normLbl.TextSize = 10
-    normLbl.TextXAlignment = Enum.TextXAlignment.Left
-
-    local normToggleBtn = Instance.new("TextButton", normRow)
-    normToggleBtn.Size = UDim2.new(0, 26, 0, 14)
-    normToggleBtn.Position = UDim2.new(1, -26, 0, 4)
-    normToggleBtn.BackgroundColor3 = Color3.fromRGB(25, 15, 15)
-    normToggleBtn.Text = ""
-    normToggleBtn.AutoButtonColor = false
-    Instance.new("UICorner", normToggleBtn).CornerRadius = UDim.new(1, 0)
-
-    local normCircle = Instance.new("Frame", normToggleBtn)
-    normCircle.Size = UDim2.new(0, 10, 0, 10)
-    normCircle.Position = UDim2.new(0, 2, 0.5, -5)
-    normCircle.BackgroundColor3 = Color3.fromRGB(180, 180, 180)
-    Instance.new("UICorner", normCircle).CornerRadius = UDim.new(1, 0)
-
-    normToggleBtn.MouseButton1Click:Connect(function()
-        Config.Flight = not Config.Flight
-        if Config.Flight then
-            TweenService:Create(normToggleBtn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(255, 40, 40)}):Play()
-            TweenService:Create(normCircle, TweenInfo.new(0.2), {Position = UDim2.new(0, 14, 0.5, -5), BackgroundColor3 = Color3.fromRGB(255, 255, 255)}):Play()
+    ModeBtn.MouseButton1Click:Connect(function()
+        if Config.FlightMode == "Both" then
+            Config.FlightMode = "FastOnly"
+            ModeBtn.Text = "Modo: Apenas Fast Flight ▼"
+            ModeBtn.TextColor3 = Color3.fromRGB(255, 100, 100)
+        elseif Config.FlightMode == "FastOnly" then
+            Config.FlightMode = "NormalOnly"
+            ModeBtn.Text = "Modo: Apenas Voo Normal ▼"
+            ModeBtn.TextColor3 = Color3.fromRGB(100, 200, 255)
         else
-            TweenService:Create(normToggleBtn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(25, 15, 15)}):Play()
-            TweenService:Create(normCircle, TweenInfo.new(0.2), {Position = UDim2.new(0, 2, 0.5, -5), BackgroundColor3 = Color3.fromRGB(180, 180, 180)}):Play()
+            Config.FlightMode = "Both"
+            ModeBtn.Text = "Modo: Ambos (Normal + Fast) ▼"
+            ModeBtn.TextColor3 = Color3.fromRGB(200, 200, 200)
         end
     end)
 
-    -- Slider Velocidade Normal (Multiplicação)
-    local speedLbl = Instance.new("TextLabel", ContentContainer)
-    speedLbl.Size = UDim2.new(1, -50, 0, 14)
-    speedLbl.Position = UDim2.new(0, 0, 0, 24)
-    speedLbl.BackgroundTransparency = 1
-    speedLbl.Text = "Velocidade Normal"
-    speedLbl.TextColor3 = Color3.fromRGB(150, 150, 150)
-    speedLbl.Font = Enum.Font.GothamSemibold
-    speedLbl.TextSize = 10
-    speedLbl.TextXAlignment = Enum.TextXAlignment.Left
+    -- Slider: Velocidade Normal (1.0x - 15.0x)
+    local speedLbl1 = Instance.new("TextLabel", ContentContainer)
+    speedLbl1.Size = UDim2.new(1, -50, 0, 14)
+    speedLbl1.Position = UDim2.new(0, 0, 0, 28)
+    speedLbl1.BackgroundTransparency = 1
+    speedLbl1.Text = "Velocidade Normal"
+    speedLbl1.TextColor3 = Color3.fromRGB(150, 150, 150)
+    speedLbl1.Font = Enum.Font.GothamSemibold
+    speedLbl1.TextSize = 10
+    speedLbl1.TextXAlignment = Enum.TextXAlignment.Left
 
-    local speedValLbl = Instance.new("TextLabel", ContentContainer)
-    speedValLbl.Size = UDim2.new(0, 50, 0, 14)
-    speedValLbl.Position = UDim2.new(1, -50, 0, 24)
-    speedValLbl.BackgroundTransparency = 1
-    speedValLbl.Text = tostring(Config.FlightSpeed) .. "x"
-    speedValLbl.TextColor3 = Color3.fromRGB(255, 60, 60)
-    speedValLbl.Font = Enum.Font.GothamBold
-    speedValLbl.TextSize = 10
-    speedValLbl.TextXAlignment = Enum.TextXAlignment.Right
+    local speedValLbl1 = Instance.new("TextLabel", ContentContainer)
+    speedValLbl1.Size = UDim2.new(0, 50, 0, 14)
+    speedValLbl1.Position = UDim2.new(1, -50, 0, 28)
+    speedValLbl1.BackgroundTransparency = 1
+    speedValLbl1.Text = tostring(Config.NormalMultiplier) .. "x"
+    speedValLbl1.TextColor3 = Color3.fromRGB(255, 60, 60)
+    speedValLbl1.Font = Enum.Font.GothamBold
+    speedValLbl1.TextSize = 10
+    speedValLbl1.TextXAlignment = Enum.TextXAlignment.Right
 
     local barBg1 = Instance.new("Frame", ContentContainer)
     barBg1.Size = UDim2.new(1, 0, 0, 5)
-    barBg1.Position = UDim2.new(0, 0, 0, 40)
+    barBg1.Position = UDim2.new(0, 0, 0, 44)
     barBg1.BackgroundColor3 = Color3.fromRGB(20, 12, 12)
     barBg1.BorderSizePixel = 0
     Instance.new("UICorner", barBg1).CornerRadius = UDim.new(1, 0)
 
     local barFill1 = Instance.new("Frame", barBg1)
-    barFill1.Size = UDim2.new((Config.FlightSpeed - 1)/9, 0, 1, 0)
+    barFill1.Size = UDim2.new((Config.NormalMultiplier - 1)/14, 0, 1, 0)
     barFill1.BackgroundColor3 = Color3.fromRGB(255, 40, 40)
     barFill1.BorderSizePixel = 0
     Instance.new("UICorner", barFill1).CornerRadius = UDim.new(1, 0)
 
-    -- 2. Toggle: FastFlight
-    local ffRow = Instance.new("Frame", ContentContainer)
-    ffRow.Size = UDim2.new(1, 0, 0, 22)
-    ffRow.Position = UDim2.new(0, 0, 0, 52)
-    ffRow.BackgroundTransparency = 1
+    -- Slider: Velocidade Fast Flight (1.0x - 15.0x)
+    local speedLbl2 = Instance.new("TextLabel", ContentContainer)
+    speedLbl2.Size = UDim2.new(1, -50, 0, 14)
+    speedLbl2.Position = UDim2.new(0, 0, 0, 56)
+    speedLbl2.BackgroundTransparency = 1
+    speedLbl2.Text = "Velocidade Fast Flight"
+    speedLbl2.TextColor3 = Color3.fromRGB(150, 150, 150)
+    speedLbl2.Font = Enum.Font.GothamSemibold
+    speedLbl2.TextSize = 10
+    speedLbl2.TextXAlignment = Enum.TextXAlignment.Left
 
-    local ffLbl = Instance.new("TextLabel", ffRow)
-    ffLbl.Size = UDim2.new(1, -35, 1, 0)
-    ffLbl.BackgroundTransparency = 1
-    ffLbl.Text = "FastFlight"
-    ffLbl.TextColor3 = Color3.fromRGB(200, 200, 200)
-    ffLbl.Font = Enum.Font.GothamSemibold
-    ffLbl.TextSize = 10
-    ffLbl.TextXAlignment = Enum.TextXAlignment.Left
-
-    local ffToggleBtn = Instance.new("TextButton", ffRow)
-    ffToggleBtn.Size = UDim2.new(0, 26, 0, 14)
-    ffToggleBtn.Position = UDim2.new(1, -26, 0, 4)
-    ffToggleBtn.BackgroundColor3 = Color3.fromRGB(25, 15, 15)
-    ffToggleBtn.Text = ""
-    ffToggleBtn.AutoButtonColor = false
-    Instance.new("UICorner", ffToggleBtn).CornerRadius = UDim.new(1, 0)
-
-    local ffCircle = Instance.new("Frame", ffToggleBtn)
-    ffCircle.Size = UDim2.new(0, 10, 0, 10)
-    ffCircle.Position = UDim2.new(0, 2, 0.5, -5)
-    ffCircle.BackgroundColor3 = Color3.fromRGB(180, 180, 180)
-    Instance.new("UICorner", ffCircle).CornerRadius = UDim.new(1, 0)
-
-    ffToggleBtn.MouseButton1Click:Connect(function()
-        Config.FastFlight = not Config.FastFlight
-        if Config.FastFlight then
-            TweenService:Create(ffToggleBtn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(255, 40, 40)}):Play()
-            TweenService:Create(ffCircle, TweenInfo.new(0.2), {Position = UDim2.new(0, 14, 0.5, -5), BackgroundColor3 = Color3.fromRGB(255, 255, 255)}):Play()
-        else
-            TweenService:Create(ffToggleBtn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(25, 15, 15)}):Play()
-            TweenService:Create(ffCircle, TweenInfo.new(0.2), {Position = UDim2.new(0, 2, 0.5, -5), BackgroundColor3 = Color3.fromRGB(180, 180, 180)}):Play()
-        end
-    end)
-
-    -- Slider Velocidade FastFlight (Multiplicação)
-    local ffSpeedLbl = Instance.new("TextLabel", ContentContainer)
-    ffSpeedLbl.Size = UDim2.new(1, -50, 0, 14)
-    ffSpeedLbl.Position = UDim2.new(0, 0, 0, 76)
-    ffSpeedLbl.BackgroundTransparency = 1
-    ffSpeedLbl.Text = "Velocidade FastFlight"
-    ffSpeedLbl.TextColor3 = Color3.fromRGB(150, 150, 150)
-    ffSpeedLbl.Font = Enum.Font.GothamSemibold
-    ffSpeedLbl.TextSize = 10
-    ffSpeedLbl.TextXAlignment = Enum.TextXAlignment.Left
-
-    local ffSpeedValLbl = Instance.new("TextLabel", ContentContainer)
-    ffSpeedValLbl.Size = UDim2.new(0, 50, 0, 14)
-    ffSpeedValLbl.Position = UDim2.new(1, -50, 0, 76)
-    ffSpeedValLbl.BackgroundTransparency = 1
-    ffSpeedValLbl.Text = tostring(Config.FastFlightSpeed) .. "x"
-    ffSpeedValLbl.TextColor3 = Color3.fromRGB(255, 60, 60)
-    ffSpeedValLbl.Font = Enum.Font.GothamBold
-    ffSpeedValLbl.TextSize = 10
-    ffSpeedValLbl.TextXAlignment = Enum.TextXAlignment.Right
+    local speedValLbl2 = Instance.new("TextLabel", ContentContainer)
+    speedValLbl2.Size = UDim2.new(0, 50, 0, 14)
+    speedValLbl2.Position = UDim2.new(1, -50, 0, 56)
+    speedValLbl2.BackgroundTransparency = 1
+    speedValLbl2.Text = tostring(Config.FastMultiplier) .. "x"
+    speedValLbl2.TextColor3 = Color3.fromRGB(255, 60, 60)
+    speedValLbl2.Font = Enum.Font.GothamBold
+    speedValLbl2.TextSize = 10
+    speedValLbl2.TextXAlignment = Enum.TextXAlignment.Right
 
     local barBg2 = Instance.new("Frame", ContentContainer)
     barBg2.Size = UDim2.new(1, 0, 0, 5)
-    barBg2.Position = UDim2.new(0, 0, 0, 92)
+    barBg2.Position = UDim2.new(0, 0, 0, 72)
     barBg2.BackgroundColor3 = Color3.fromRGB(20, 12, 12)
     barBg2.BorderSizePixel = 0
     Instance.new("UICorner", barBg2).CornerRadius = UDim.new(1, 0)
 
     local barFill2 = Instance.new("Frame", barBg2)
-    barFill2.Size = UDim2.new((Config.FastFlightSpeed - 1)/49, 0, 1, 0)
+    barFill2.Size = UDim2.new((Config.FastMultiplier - 1)/14, 0, 1, 0)
     barFill2.BackgroundColor3 = Color3.fromRGB(255, 40, 40)
     barFill2.BorderSizePixel = 0
     Instance.new("UICorner", barFill2).CornerRadius = UDim.new(1, 0)
-
-    -- Dropdown Modo de Voo
-    local modeRow = Instance.new("Frame", ContentContainer)
-    modeRow.Size = UDim2.new(1, 0, 0, 22)
-    modeRow.Position = UDim2.new(0, 0, 0, 104)
-    modeRow.BackgroundTransparency = 1
-
-    local modeLbl = Instance.new("TextLabel", modeRow)
-    modeLbl.Size = UDim2.new(0, 80, 1, 0)
-    modeLbl.BackgroundTransparency = 1
-    modeLbl.Text = "Modo de Voo:"
-    modeLbl.TextColor3 = Color3.fromRGB(150, 150, 150)
-    modeLbl.Font = Enum.Font.GothamSemibold
-    modeLbl.TextSize = 10
-    modeLbl.TextXAlignment = Enum.TextXAlignment.Left
-
-    local modeBtn = Instance.new("TextButton", modeRow)
-    modeBtn.Size = UDim2.new(0, 80, 0, 18)
-    modeBtn.Position = UDim2.new(1, -80, 0, 2)
-    modeBtn.BackgroundColor3 = Color3.fromRGB(20, 12, 12)
-    modeBtn.Text = Config.FlightMode .. " ▼"
-    modeBtn.TextColor3 = Color3.fromRGB(220, 220, 220)
-    modeBtn.Font = Enum.Font.GothamBold
-    modeBtn.TextSize = 10
-    modeBtn.AutoButtonColor = false
-    Instance.new("UICorner", modeBtn).CornerRadius = UDim.new(0, 4)
-
-    modeBtn.MouseButton1Click:Connect(function()
-        if Config.FlightMode == "Câmera" then
-            Config.FlightMode = "Livre"
-            modeBtn.Text = "Livre ▼"
-        else
-            Config.FlightMode = "Câmera"
-            modeBtn.Text = "Câmera ▼"
-        end
-    end)
 
     local isExpanded = false
     ConfigBtn.MouseButton1Click:Connect(function()
@@ -2768,19 +2697,19 @@ do
         if dragging1 and isExpanded then
             local mousePos = UserInputService:GetMouseLocation()
             local pos = math.clamp((mousePos.X - barBg1.AbsolutePosition.X) / barBg1.AbsoluteSize.X, 0, 1)
-            local val = math.floor((1 + (9 * pos)) * 10 + 0.5) / 10
+            local val = math.floor((1 + (14 * pos)) * 10 + 0.5) / 10
             barFill1.Size = UDim2.new(pos, 0, 1, 0)
-            speedValLbl.Text = tostring(val) .. "x"
-            Config.FlightSpeed = val
+            speedValLbl1.Text = tostring(val) .. "x"
+            Config.NormalMultiplier = val
         end
 
         if dragging2 and isExpanded then
             local mousePos = UserInputService:GetMouseLocation()
             local pos = math.clamp((mousePos.X - barBg2.AbsolutePosition.X) / barBg2.AbsoluteSize.X, 0, 1)
-            local val = math.floor((1 + (49 * pos)) * 10 + 0.5) / 10
+            local val = math.floor((1 + (14 * pos)) * 10 + 0.5) / 10
             barFill2.Size = UDim2.new(pos, 0, 1, 0)
-            ffSpeedValLbl.Text = tostring(val) .. "x"
-            Config.FastFlightSpeed = val
+            speedValLbl2.Text = tostring(val) .. "x"
+            Config.FastMultiplier = val
         end
     end)
 end
@@ -2810,8 +2739,7 @@ end, {
     {
         Name = "Distância em Metros", 
         GetColor = function() return ESPConfig.DistanceColor end,
-        SetColor = function(c) ESPConfig.DistanceColor = c end,
-        Callback = function(v) ESPConfig.Distance = v end
+        SetColor = function(c) ESPConfig.Distance = v end
     },
     {
         Name = "Chams (Highlight)", 
