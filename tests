@@ -157,7 +157,7 @@ task.spawn(function()
     end
 end)
 
--- AUTO DEFENSE LOOP (Com 100% energia -> pausa 3s e segura de novo)
+-- AUTO DEFENSE LOOP (Max -> espera 2s -> 1 clique -> espera 0.5s -> segura de novo)
 local defenseHolding = false
 local defenseEnergyCooldown = false
 task.spawn(function()
@@ -191,7 +191,17 @@ task.spawn(function()
                                 defenseHolding = false
                                 pcall(function() VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.R, false, game) end)
                                 defenseEnergyCooldown = true
-                                task.delay(3.0, function()
+                                
+                                task.delay(2.0, function()
+                                    -- Dá um clique
+                                    pcall(function()
+                                        VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.R, false, game)
+                                        task.wait(0.02)
+                                        VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.R, false, game)
+                                    end)
+                                    
+                                    -- Espera 0.5s e libera para voltar a segurar
+                                    task.wait(0.5)
                                     defenseEnergyCooldown = false
                                 end)
                             end
@@ -210,7 +220,7 @@ task.spawn(function()
     end
 end)
 
--- AUTO KI BLAST LOOP (Com 100% energia -> pausa 3s e segura de novo)
+-- AUTO KI BLAST LOOP (Max -> espera 2s -> 1 clique -> espera 0.5s -> segura de novo)
 local kiBlastHolding = false
 local kiBlastEnergyCooldown = false
 task.spawn(function()
@@ -244,7 +254,17 @@ task.spawn(function()
                                 kiBlastHolding = false
                                 pcall(function() VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.Q, false, game) end)
                                 kiBlastEnergyCooldown = true
-                                task.delay(3.0, function()
+                                
+                                task.delay(2.0, function()
+                                    -- Dá um clique
+                                    pcall(function()
+                                        VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.Q, false, game)
+                                        task.wait(0.02)
+                                        VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.Q, false, game)
+                                    end)
+                                    
+                                    -- Espera 0.5s e libera para voltar a segurar
+                                    task.wait(0.5)
                                     kiBlastEnergyCooldown = false
                                 end)
                             end
@@ -1047,7 +1067,6 @@ Subtitle.TextSize = 10
 Subtitle.TextXAlignment = Enum.TextXAlignment.Left
 Subtitle.ZIndex = 30
 
--- FUNÇÃO PARA CRIAR BOTÕES DO TOPO (COM TAMANHO E RIPPLE OPCIONAL)
 local function CreateTopButton(name, text, posOffset, sizeW, sizeH, hoverColor, textColor, hasBorder, hasRipple)
     local Btn = Instance.new("TextButton", TopBar)
     Btn.Name = name
@@ -1080,12 +1099,10 @@ local function CreateTopButton(name, text, posOffset, sizeW, sizeH, hoverColor, 
     return Btn
 end
 
--- Botões de minimizar maiores e sem efeito de clique
 local MinimizeIconBtn = CreateTopButton("MinimizeIconBtn", "•", -122, 36, 36, Color3.fromRGB(40, 150, 40), Color3.fromRGB(46, 204, 113), false, false)
 local RollUpBtn = CreateTopButton("RollUpBtn", "•", -80, 36, 36, Color3.fromRGB(150, 150, 40), Color3.fromRGB(255, 220, 40), false, false)
 local CloseBtn = CreateTopButton("CloseBtn", "X", -40, 30, 30, Color3.fromRGB(255, 30, 30), Color3.fromRGB(255, 60, 60), true, true)
 
--- INDICADOR DE BYPASS
 local BypassContainer = Instance.new("Frame", TopBar)
 BypassContainer.Size = UDim2.new(0, 60, 0, 20)
 BypassContainer.Position = UDim2.new(1, -190, 0.5, -10)
@@ -1116,7 +1133,6 @@ BypassLabel.TextSize = 10
 BypassLabel.TextXAlignment = Enum.TextXAlignment.Left
 BypassLabel.ZIndex = 30
 
--- BOTÃO "INFO"
 local InfoBtn = Instance.new("TextButton", TopBar)
 InfoBtn.Name = "InfoBtn"
 InfoBtn.Size = UDim2.new(0, 34, 0, 18)
@@ -1142,7 +1158,6 @@ InfoBtn.MouseLeave:Connect(function()
     TweenService:Create(InfoBtn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(10, 10, 10), TextColor3 = Color3.fromRGB(220, 220, 220)}):Play()
 end)
 
--- POP-UP INFO
 local InfoPopup = Instance.new("Frame", DexyUI)
 InfoPopup.Name = "InfoPopup"
 InfoPopup.Size = UDim2.new(0, 240, 0, 135)
@@ -1237,7 +1252,6 @@ Divider.BackgroundTransparency = 0.5
 local TabsContainer, PagesContainer
 local pages = {}
 local currentTab = nil
-
 local isRolledUp = false
 
 RollUpBtn.MouseButton1Click:Connect(function()
@@ -1247,21 +1261,14 @@ RollUpBtn.MouseButton1Click:Connect(function()
     
     TweenService:Create(MainPanel, TweenInfo.new(0.5, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {Size = size}):Play()
     
-    if ResizeHandle then
-        ResizeHandle.Visible = not isRolledUp
-    end
-    if BottomBar then
-        BottomBar.Visible = not isRolledUp
-    end
-    
+    if ResizeHandle then ResizeHandle.Visible = not isRolledUp end
+    if BottomBar then BottomBar.Visible = not isRolledUp end
     if TabsContainer then TabsContainer.Visible = not isRolledUp end
     for tName, data in pairs(pages) do
         if isRolledUp then
             data.Page.Visible = false
         else
-            if tName == currentTab then
-                data.Page.Visible = true
-            end
+            if tName == currentTab then data.Page.Visible = true end
         end
     end
 end)
@@ -1288,12 +1295,8 @@ FloatingBtn.MouseButton1Click:Connect(function()
         MainPanel.Visible = true
         isPanelOpen = true
         local targetHeight = isRolledUp and 45 or lastPanelSize.Y
-        if ResizeHandle then
-            ResizeHandle.Visible = not isRolledUp
-        end
-        if BottomBar then
-            BottomBar.Visible = not isRolledUp
-        end
+        if ResizeHandle then ResizeHandle.Visible = not isRolledUp end
+        if BottomBar then BottomBar.Visible = not isRolledUp end
         TweenService:Create(MainPanel, TweenInfo.new(0.5, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {Size = UDim2.new(0, lastPanelSize.X, 0, targetHeight)}):Play()
     end)
 end)
@@ -2324,7 +2327,6 @@ CreateToggle(TabPlayer.Right, "Atravessar Paredes", function(v)
 end, false)
 CreateDropdown(TabPlayer.Right, "Tema de Aura", {"Vermelho Insano", "Azul Divino", "Preto Sombrio"}, function(v) Config.AuraTheme = v end)
 
--- ABA VISUAL: ESP PLAYERS
 CreateToggleWithSubOptions(TabVisual.Left, "ESP Players", function(v) 
     ESPConfig.Enabled = v 
 end, {
@@ -2360,7 +2362,6 @@ end, {
     }
 })
 
--- ABA VISUAL: ESP DRAGONBALL
 CreateToggleWithSubOptions(TabVisual.Right, "ESP DragonBall", function(v) 
     DBConfig.Enabled = v 
 end, {
@@ -2390,7 +2391,6 @@ end, {
     }
 })
 
--- ABA MISC: TELEPORT DRAGONBALL
 CreateButton(TabMisc.Left, "Teleportar para DragonBall", function()
     TeleportToNearestDragonBall()
 end)
