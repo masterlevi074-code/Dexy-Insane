@@ -21,7 +21,6 @@ DexyUI.Parent = CoreGui
 
 local UIScale = Instance.new("UIScale", DexyUI)
 
--- Função auxiliar para pausar a rolagem da aba enquanto arrasta o Color Picker
 local function setParentScrolling(obj, enabled)
     local current = obj
     while current and current ~= DexyUI and current ~= workspace do
@@ -38,10 +37,13 @@ end
 local Config = {
     AutoAttack = false,
     AutoAttackSpeed = 0.1,
+    AutoAttackMethod = "Segurar",
     AutoDefense = false,
     AutoDefenseSpeed = 0.15,
+    AutoDefenseMethod = "Segurar",
     AutoKiBlast = false,
     AutoKiBlastSpeed = 0.15,
+    AutoKiBlastMethod = "Segurar",
     AutoCharge = false,
     AutoQuest = false,
     AutoRebirth = false,
@@ -52,7 +54,6 @@ local Config = {
     AuraTheme = "Vermelho Insano"
 }
 
--- CONFIGURAÇÕES DE ESP PLAYERS (CORES INDIVIDUAIS)
 local ESPConfig = {
     Enabled = false,
     Boxes = false,
@@ -67,12 +68,11 @@ local ESPConfig = {
     ChamsColor = Color3.fromRGB(255, 40, 40)
 }
 
--- CONFIGURAÇÕES DE ESP DRAGONBALL
 local DBConfig = {
     Enabled = false,
-    Highlight = true,
-    Names = true,
-    Distance = true,
+    Highlight = false,
+    Names = false,
+    Distance = false,
     Lines = false,
     Color = Color3.fromRGB(255, 165, 0)
 }
@@ -124,62 +124,213 @@ RunService.Stepped:Connect(function()
     end
 end)
 
+-- AUTO ATTACK LOOP
+local attackHolding = false
 task.spawn(function()
     while true do
         if Config.AutoAttack then
-            pcall(function()
-                VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.E, false, game)
-                task.wait(0.02)
-                VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.E, false, game)
-            end)
-            task.wait(Config.AutoAttackSpeed or 0.1)
+            if Config.AutoAttackMethod == "Clique" then
+                if attackHolding then
+                    attackHolding = false
+                    pcall(function() VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.E, false, game) end)
+                end
+                pcall(function()
+                    VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.E, false, game)
+                    task.wait(0.02)
+                    VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.E, false, game)
+                end)
+                task.wait(Config.AutoAttackSpeed or 0.1)
+            elseif Config.AutoAttackMethod == "Segurar" then
+                if not attackHolding then
+                    attackHolding = true
+                    pcall(function() VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.E, false, game) end)
+                end
+                task.wait(0.1)
+            end
         else
+            if attackHolding then
+                attackHolding = false
+                pcall(function() VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.E, false, game) end)
+            end
             task.wait(0.1)
         end
     end
 end)
 
+-- AUTO DEFENSE LOOP (Max -> espera 0.5s -> 1 clique -> espera 0.5s -> segura de novo)
+local defenseHolding = false
+local defenseEnergyCooldown = false
 task.spawn(function()
     while true do
-        if Config.AutoDefense then
-            pcall(function()
-                VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.R, false, game)
-                task.wait(0.02)
-                VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.R, false, game)
-            end)
-            task.wait(Config.AutoDefenseSpeed or 0.15)
+        if Config.AutoDefense and not defenseEnergyCooldown then
+            if Config.AutoDefenseMethod == "Clique" then
+                if defenseHolding then
+                    defenseHolding = false
+                    pcall(function() VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.R, false, game) end)
+                end
+                pcall(function()
+                    VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.R, false, game)
+                    task.wait(0.02)
+                    VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.R, false, game)
+                end)
+                task.wait(Config.AutoDefenseSpeed or 0.15)
+            elseif Config.AutoDefenseMethod == "Segurar" then
+                if not defenseHolding then
+                    defenseHolding = true
+                    pcall(function() VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.R, false, game) end)
+                end
+                
+                pcall(function()
+                    local char = workspace:FindFirstChild(LocalPlayer.Name) or LocalPlayer.Character
+                    if char then
+                        local state = char:FindFirstChild("State")
+                        if state then
+                            local energyVal = state:FindFirstChild("Energy")
+                            local maxEnergyVal = state:FindFirstChild("MaxEnergy")
+                            if energyVal and maxEnergyVal and energyVal.Value >= maxEnergyVal.Value then
+                                defenseHolding = false
+                                pcall(function() VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.R, false, game) end)
+                                defenseEnergyCooldown = true
+                                
+                                task.delay(0.5, function()
+                                    -- Dá um clique
+                                    pcall(function()
+                                        VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.R, false, game)
+                                        task.wait(0.02)
+                                        VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.R, false, game)
+                                    end)
+                                    
+                                    -- Espera 0.5s e libera para voltar a segurar
+                                    task.wait(0.5)
+                                    defenseEnergyCooldown = false
+                                end)
+                            end
+                        end
+                    end
+                end)
+                task.wait(0.1)
+            end
         else
+            if defenseHolding then
+                defenseHolding = false
+                pcall(function() VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.R, false, game) end)
+            end
             task.wait(0.1)
         end
     end
 end)
 
+-- AUTO KI BLAST LOOP (Max -> espera 0.5s -> 1 clique -> espera 0.5s -> segura de novo)
+local kiBlastHolding = false
+local kiBlastEnergyCooldown = false
 task.spawn(function()
     while true do
-        if Config.AutoKiBlast then
-            pcall(function()
-                VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.Q, false, game)
-                task.wait(0.02)
-                VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.Q, false, game)
-            end)
-            task.wait(Config.AutoKiBlastSpeed or 0.15)
+        if Config.AutoKiBlast and not kiBlastEnergyCooldown then
+            if Config.AutoKiBlastMethod == "Clique" then
+                if kiBlastHolding then
+                    kiBlastHolding = false
+                    pcall(function() VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.Q, false, game) end)
+                end
+                pcall(function()
+                    VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.Q, false, game)
+                    task.wait(0.02)
+                    VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.Q, false, game)
+                end)
+                task.wait(Config.AutoKiBlastSpeed or 0.15)
+            elseif Config.AutoKiBlastMethod == "Segurar" then
+                if not kiBlastHolding then
+                    kiBlastHolding = true
+                    pcall(function() VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.Q, false, game) end)
+                end
+                
+                pcall(function()
+                    local char = workspace:FindFirstChild(LocalPlayer.Name) or LocalPlayer.Character
+                    if char then
+                        local state = char:FindFirstChild("State")
+                        if state then
+                            local energyVal = state:FindFirstChild("Energy")
+                            local maxEnergyVal = state:FindFirstChild("MaxEnergy")
+                            if energyVal and maxEnergyVal and energyVal.Value >= maxEnergyVal.Value then
+                                kiBlastHolding = false
+                                pcall(function() VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.Q, false, game) end)
+                                kiBlastEnergyCooldown = true
+                                
+                                task.delay(0.5, function()
+                                    -- Dá um clique
+                                    pcall(function()
+                                        VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.Q, false, game)
+                                        task.wait(0.02)
+                                        VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.Q, false, game)
+                                    end)
+                                    
+                                    -- Espera 0.5s e libera para voltar a segurar
+                                    task.wait(0.5)
+                                    kiBlastEnergyCooldown = false
+                                end)
+                            end
+                        end
+                    end
+                end)
+                task.wait(0.1)
+            end
         else
+            if kiBlastHolding then
+                kiBlastHolding = false
+                pcall(function() VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.Q, false, game) end)
+            end
             task.wait(0.1)
         end
     end
 end)
 
+-- AUTO CHARGE KI LOOP (Comportamento original)
+local chargeHolding = false
 task.spawn(function()
-    while task.wait(0.2) do
+    while true do
         if Config.AutoCharge then
             pcall(function()
+                local char = workspace:FindFirstChild(LocalPlayer.Name) or LocalPlayer.Character
+                if char then
+                    local state = char:FindFirstChild("State")
+                    if state then
+                        local energyVal = state:FindFirstChild("Energy")
+                        local maxEnergyVal = state:FindFirstChild("MaxEnergy")
+                        
+                        if energyVal and maxEnergyVal and maxEnergyVal.Value > 0 then
+                            local currentEnergy = energyVal.Value
+                            local maxEnergy = maxEnergyVal.Value
+                            local percentage = (currentEnergy / maxEnergy) * 100
+
+                            if not chargeHolding and percentage <= 10 then
+                                chargeHolding = true
+                                VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.Q, false, game)
+                                VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.R, false, game)
+                                task.wait(0.03)
+                                VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.Q, false, game)
+                                VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.R, false, game)
+                                task.wait(0.40)
+                                VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.C, false, game)
+                            elseif chargeHolding and currentEnergy >= maxEnergy then
+                                chargeHolding = false
+                                VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.C, false, game)
+                            end
+                        end
+                    end
+                end
             end)
+            task.wait(0.1)
+        else
+            if chargeHolding then
+                chargeHolding = false
+                pcall(function() VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.C, false, game) end)
+            end
+            task.wait(0.2)
         end
     end
 end)
 
 -- ==========================================
--- SISTEMA DE ESP PLAYERS (CORES INDEPENDENTES)
+-- SISTEMA DE ESP PLAYERS
 -- ==========================================
 local espObjects = {}
 local chamsObjects = {}
@@ -200,7 +351,6 @@ end
 Players.PlayerRemoving:Connect(removeESP)
 
 RunService.RenderStepped:Connect(function()
-    -- Gestão de Chams (Highlight)
     if ESPConfig.Enabled and ESPConfig.Chams then
         for _, player in ipairs(Players:GetPlayers()) do
             if player ~= LocalPlayer and player.Character then
@@ -229,7 +379,6 @@ RunService.RenderStepped:Connect(function()
         end
     end
 
-    -- Gestão de Drawing (Box, Lines, Names, Distance)
     if not ESPConfig.Enabled or not Drawing then
         for player, _ in pairs(espObjects) do
             removeESP(player)
@@ -295,7 +444,6 @@ RunService.RenderStepped:Connect(function()
                             local height = math.abs(topScreen.Y - bottomScreen.Y)
                             local width = height / 2
 
-                            -- Box ESP
                             if ESPConfig.Boxes then
                                 objs.Box.Visible = true
                                 objs.Box.Size = Vector2.new(width, height)
@@ -305,7 +453,6 @@ RunService.RenderStepped:Connect(function()
                                 objs.Box.Visible = false
                             end
 
-                            -- Line / Tracer ESP
                             if ESPConfig.Lines then
                                 objs.Line.Visible = true
                                 objs.Line.From = Vector2.new(camera.ViewportSize.X / 2, camera.ViewportSize.Y)
@@ -315,7 +462,6 @@ RunService.RenderStepped:Connect(function()
                                 objs.Line.Visible = false
                             end
 
-                            -- Name ESP
                             if ESPConfig.Names then
                                 objs.Name.Visible = true
                                 objs.Name.Text = player.Name
@@ -325,7 +471,6 @@ RunService.RenderStepped:Connect(function()
                                 objs.Name.Visible = false
                             end
 
-                            -- Distance ESP
                             if ESPConfig.Distance then
                                 objs.Distance.Visible = true
                                 local dist = math.floor((hrp.Position - camera.CFrame.Position).Magnitude)
@@ -358,7 +503,7 @@ RunService.RenderStepped:Connect(function()
 end)
 
 -- ==========================================
--- SISTEMA DE ESP DRAGONBALL
+-- SISTEMA DE ESP DRAGONBALL E TELEPORT
 -- ==========================================
 local dbObjects = {}
 
@@ -382,12 +527,6 @@ local function RemoveDBESP(obj)
             pcall(function() dbObjects[obj].Tracer:Remove() end)
         end
         dbObjects[obj] = nil
-    end
-end
-
-local function ClearAllDBESP()
-    for obj, _ in pairs(dbObjects) do
-        RemoveDBESP(obj)
     end
 end
 
@@ -419,11 +558,6 @@ local function UpdateDBTracer(objData, targetPos)
 end
 
 local function ScanDragonBalls()
-    if not DBConfig.Enabled then
-        ClearAllDBESP()
-        return
-    end
-
     local activeItems = {}
     local hrp = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
     local mapFolder = workspace:FindFirstChild("Map") or workspace
@@ -475,12 +609,12 @@ local function ScanDragonBalls()
                         local data = dbObjects[obj]
                         
                         if data.Highlight then
-                            data.Highlight.Enabled = DBConfig.Highlight
+                            data.Highlight.Enabled = DBConfig.Enabled and DBConfig.Highlight
                             data.Highlight.FillColor = DBConfig.Color
                         end
 
                         if data.Billboard and data.TextLabel then
-                            data.Billboard.Enabled = DBConfig.Names or DBConfig.Distance
+                            data.Billboard.Enabled = DBConfig.Enabled and (DBConfig.Names or DBConfig.Distance)
                             data.TextLabel.TextColor3 = DBConfig.Color
                             
                             local textComponents = {}
@@ -490,14 +624,18 @@ local function ScanDragonBalls()
                             data.TextLabel.Text = table.concat(textComponents, "\n")
                         end
 
-                        UpdateDBTracer(data, targetPart.Position)
+                        if DBConfig.Enabled then
+                            UpdateDBTracer(data, targetPart.Position)
+                        else
+                            if data.Tracer then data.Tracer.Visible = false end
+                        end
                     end
                 end
             end
         end
     end
 
-    for obj, _ in pairs(dbObjects) do
+    for obj, data in pairs(dbObjects) do
         if not activeItems[obj] or not obj.Parent then
             RemoveDBESP(obj)
         end
@@ -520,6 +658,33 @@ RunService.RenderStepped:Connect(function()
         end
     end
 end)
+
+local function TeleportToNearestDragonBall()
+    pcall(function()
+        local hrp = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+        if not hrp then return end
+
+        local nearestObj = nil
+        local shortestDist = math.huge
+
+        for obj, _ in pairs(dbObjects) do
+            if obj and obj.Parent then
+                local targetPart = obj.PrimaryPart or obj:FindFirstChildWhichIsA("BasePart") or obj:FindFirstChild("Main")
+                if targetPart then
+                    local dist = (hrp.Position - targetPart.Position).Magnitude
+                    if dist < shortestDist then
+                        shortestDist = dist
+                        nearestObj = targetPart
+                    end
+                end
+            end
+        end
+
+        if nearestObj then
+            hrp.CFrame = nearestObj.CFrame + Vector3.new(0, 3, 0)
+        end
+    end)
+end
 
 -- ==========================================
 -- EFEITO: ONDA AO CLICAR (RIPPLE EFFECT)
@@ -547,28 +712,44 @@ local function CreateRipple(parentBtn)
 end
 
 -- ==========================================
--- SÍMBOLO CUSTOMIZADO (IMAGEM)
+-- SÍMBOLO CUSTOMIZADO
 -- ==========================================
-local function CreateCustomSymbol(parent, pos, size)
-    local SymbolImage = Instance.new("ImageLabel", parent)
-    SymbolImage.Size = size
-    SymbolImage.Position = pos
+local function CreateCustomSymbol(parent, pos, size, hasBorder)
+    local SymbolFrame = Instance.new("Frame", parent)
+    SymbolFrame.Size = size
+    SymbolFrame.Position = pos
+    SymbolFrame.AnchorPoint = Vector2.new(0.5, 0.5)
+    SymbolFrame.BackgroundColor3 = Color3.fromRGB(10, 10, 10)
+    SymbolFrame.BorderSizePixel = 0
+    SymbolFrame.ZIndex = 50
+    Instance.new("UICorner", SymbolFrame).CornerRadius = UDim.new(0, 6)
+
+    if hasBorder then
+        local SymbolStroke = Instance.new("UIStroke", SymbolFrame)
+        SymbolStroke.Color = Color3.fromRGB(255, 40, 40)
+        SymbolStroke.Thickness = 1.5
+        SymbolStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+    end
+
+    local SymbolImage = Instance.new("ImageLabel", SymbolFrame)
+    SymbolImage.Size = UDim2.new(1, -6, 1, -6)
+    SymbolImage.Position = UDim2.new(0.5, 0, 0.5, 0)
     SymbolImage.AnchorPoint = Vector2.new(0.5, 0.5)
     SymbolImage.BackgroundTransparency = 1
     SymbolImage.Image = "rbxassetid://80863202828912"
-    SymbolImage.ZIndex = 50
+    SymbolImage.ZIndex = 51
     
-    return SymbolImage
+    return SymbolFrame
 end
 
 -- ==========================================
--- 1. TELA DE CARREGAMENTO LUXUOSA
+-- 1. TELA DE CARREGAMENTO
 -- ==========================================
 local LoadingFrame = Instance.new("Frame")
 LoadingFrame.Size = UDim2.new(0, 350, 0, 135)
 LoadingFrame.Position = UDim2.new(0.5, 0, 0.5, 0)
 LoadingFrame.AnchorPoint = Vector2.new(0.5, 0.5)
-LoadingFrame.BackgroundColor3 = Color3.fromRGB(12, 12, 14)
+LoadingFrame.BackgroundColor3 = Color3.fromRGB(5, 5, 5)
 LoadingFrame.BorderSizePixel = 0
 LoadingFrame.ZIndex = 100
 LoadingFrame.Parent = DexyUI
@@ -581,8 +762,8 @@ LoadStroke.Transparency = 1
 
 local LoadGradient = Instance.new("UIGradient", LoadingFrame)
 LoadGradient.Color = ColorSequence.new({
-    ColorSequenceKeypoint.new(0, Color3.fromRGB(28, 8, 8)),
-    ColorSequenceKeypoint.new(1, Color3.fromRGB(10, 10, 14))
+    ColorSequenceKeypoint.new(0, Color3.fromRGB(20, 0, 0)),
+    ColorSequenceKeypoint.new(1, Color3.fromRGB(5, 5, 5))
 })
 LoadGradient.Rotation = 45
 
@@ -633,7 +814,7 @@ LoadStatus.ZIndex = 101
 local ProgressBarBg = Instance.new("Frame", LoadingFrame)
 ProgressBarBg.Size = UDim2.new(1, -40, 0, 6)
 ProgressBarBg.Position = UDim2.new(0, 20, 0, 78)
-ProgressBarBg.BackgroundColor3 = Color3.fromRGB(25, 15, 15)
+ProgressBarBg.BackgroundColor3 = Color3.fromRGB(20, 10, 10)
 ProgressBarBg.BorderSizePixel = 0
 ProgressBarBg.BackgroundTransparency = 1
 ProgressBarBg.ZIndex = 101
@@ -654,7 +835,7 @@ FloatingBtn.Name = "FloatingIcon"
 FloatingBtn.Size = UDim2.new(0, 0, 0, 0)
 FloatingBtn.Position = UDim2.new(0.5, 0, 0.1, 0)
 FloatingBtn.AnchorPoint = Vector2.new(0.5, 0.5)
-FloatingBtn.BackgroundColor3 = Color3.fromRGB(15, 5, 5)
+FloatingBtn.BackgroundColor3 = Color3.fromRGB(5, 5, 5)
 FloatingBtn.Text = ""
 FloatingBtn.AutoButtonColor = false
 FloatingBtn.Draggable = true
@@ -670,7 +851,7 @@ FloatStroke.Color = Color3.fromRGB(255, 0, 0)
 FloatStroke.Thickness = 1.5
 FloatStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
 
-CreateCustomSymbol(FloatingBtn, UDim2.new(0.5, 0, 0.5, 0), UDim2.new(0, 30, 0, 30))
+CreateCustomSymbol(FloatingBtn, UDim2.new(0.5, 0, 0.5, 0), UDim2.new(0, 34, 0, 34), false)
 
 FloatingBtn.MouseEnter:Connect(function()
     TweenService:Create(FloatingBtn, TweenInfo.new(0.3), {Size = UDim2.new(0, 55, 0, 55)}):Play()
@@ -684,85 +865,76 @@ end)
 -- ==========================================
 local MainPanel = Instance.new("Frame")
 MainPanel.Name = "MainPanel"
-MainPanel.Size = UDim2.new(0, 520, 0, 0) 
+MainPanel.Size = UDim2.new(0, 520, 0, 320)
 MainPanel.Position = UDim2.new(0.5, 0, 0.5, 0)
 MainPanel.AnchorPoint = Vector2.new(0.5, 0.5)
-MainPanel.BackgroundColor3 = Color3.fromRGB(12, 12, 14)
+MainPanel.BackgroundColor3 = Color3.fromRGB(5, 5, 5)
 MainPanel.BorderSizePixel = 0
 MainPanel.Active = true
-MainPanel.Draggable = false
 MainPanel.ClipsDescendants = false
 MainPanel.Visible = false
 MainPanel.ZIndex = 25
 MainPanel.Parent = DexyUI
 
-Instance.new("UICorner", MainPanel).CornerRadius = UDim.new(0, 12)
+Instance.new("UICorner", MainPanel).CornerRadius = UDim.new(0, 14)
+
 local PanelStroke = Instance.new("UIStroke", MainPanel)
-PanelStroke.Color = Color3.fromRGB(200, 30, 30)
-PanelStroke.Thickness = 2
+PanelStroke.Color = Color3.fromRGB(50, 20, 20)
+PanelStroke.Thickness = 1.5
 
-local MainGradient = Instance.new("UIGradient", MainPanel)
-MainGradient.Color = ColorSequence.new({
-    ColorSequenceKeypoint.new(0, Color3.fromRGB(25, 5, 5)),
-    ColorSequenceKeypoint.new(1, Color3.fromRGB(10, 10, 12))
-})
-MainGradient.Rotation = 45
+local BottomBar = Instance.new("Frame", MainPanel)
+BottomBar.Name = "BottomBar"
+BottomBar.Size = UDim2.new(1, -60, 0, 24)
+BottomBar.Position = UDim2.new(0, 10, 1, 2)
+BottomBar.BackgroundTransparency = 1
+BottomBar.ZIndex = 200
+BottomBar.Active = true
 
--- PUXADOR DE REDIMENSIONAMENTO
+local BottomDragLine = Instance.new("Frame", BottomBar)
+BottomDragLine.Name = "DragLine"
+BottomDragLine.Size = UDim2.new(0.4, 0, 0, 6) 
+BottomDragLine.Position = UDim2.new(0.5, 0, 0.5, 0)
+BottomDragLine.AnchorPoint = Vector2.new(0.5, 0.5)
+BottomDragLine.BackgroundColor3 = Color3.fromRGB(220, 40, 40) 
+BottomDragLine.BackgroundTransparency = 0.6 
+BottomDragLine.BorderSizePixel = 0
+BottomDragLine.ZIndex = 201
+Instance.new("UICorner", BottomDragLine).CornerRadius = UDim.new(1, 0)
+
+local DragLineStroke = Instance.new("UIStroke", BottomDragLine)
+DragLineStroke.Color = Color3.fromRGB(255, 60, 60)
+DragLineStroke.Thickness = 1.5 
+DragLineStroke.Transparency = 0.1
+
 local ResizeHandle = Instance.new("Frame", MainPanel)
-ResizeHandle.Size = UDim2.new(0, 35, 0, 35)
+ResizeHandle.Name = "ResizeHandle"
+ResizeHandle.Size = UDim2.new(0, 28, 0, 28)
 ResizeHandle.AnchorPoint = Vector2.new(1, 1)
-ResizeHandle.Position = UDim2.new(1, 0, 1, 0) 
+ResizeHandle.Position = UDim2.new(1, 0, 1, 0)
 ResizeHandle.BackgroundTransparency = 1
-ResizeHandle.Active = true 
-ResizeHandle.ZIndex = 35
+ResizeHandle.Active = true
+ResizeHandle.ZIndex = 210
 
-local ArcCircle = Instance.new("Frame", ResizeHandle)
-ArcCircle.Size = UDim2.new(0, 20, 0, 20)
-ArcCircle.AnchorPoint = Vector2.new(1, 1)
-ArcCircle.Position = UDim2.new(1, -5, 1, -5)
-ArcCircle.BackgroundTransparency = 1
-ArcCircle.ZIndex = 35
-Instance.new("UICorner", ArcCircle).CornerRadius = UDim.new(1, 0)
+local ResizeBar1 = Instance.new("Frame", ResizeHandle)
+ResizeBar1.Size = UDim2.new(0, 14, 0, 3)
+ResizeBar1.Position = UDim2.new(0.6, 0, 0.6, 0)
+ResizeBar1.AnchorPoint = Vector2.new(0.5, 0.5)
+ResizeBar1.BackgroundColor3 = Color3.fromRGB(255, 60, 60)
+ResizeBar1.Rotation = -45 
+ResizeBar1.BorderSizePixel = 0
+ResizeBar1.ZIndex = 211
+Instance.new("UICorner", ResizeBar1).CornerRadius = UDim.new(1, 0)
 
-local ArcStrokeBlack = Instance.new("UIStroke", ArcCircle)
-ArcStrokeBlack.Color = Color3.fromRGB(0, 0, 0)
-ArcStrokeBlack.Thickness = 4
-ArcStrokeBlack.Transparency = 0
+local ResizeBar2 = Instance.new("Frame", ResizeHandle)
+ResizeBar2.Size = UDim2.new(0, 6, 0, 3)
+ResizeBar2.Position = UDim2.new(0.8, 0, 0.8, 0)
+ResizeBar2.AnchorPoint = Vector2.new(0.5, 0.5)
+ResizeBar2.BackgroundColor3 = Color3.fromRGB(255, 60, 60)
+ResizeBar2.Rotation = -45
+ResizeBar2.BorderSizePixel = 0
+ResizeBar2.ZIndex = 211
+Instance.new("UICorner", ResizeBar2).CornerRadius = UDim.new(1, 0)
 
-local ArcStrokeRed = Instance.new("UIStroke", ArcCircle)
-ArcStrokeRed.Color = Color3.fromRGB(220, 40, 40)
-ArcStrokeRed.Thickness = 2.5
-ArcStrokeRed.Transparency = 0
-
-local resizing = false
-local startSize
-local startInputPos
-
-ResizeHandle.InputBegan:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-        resizing = true
-        startSize = MainPanel.AbsoluteSize
-        startInputPos = input.Position
-    end
-end)
-
-UserInputService.InputChanged:Connect(function(input)
-    if resizing and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
-        local delta = input.Position - startInputPos
-        local newWidth = math.clamp(startSize.X + delta.X, 450, 800)
-        local newHeight = math.clamp(startSize.Y + delta.Y, 280, 650)
-        MainPanel.Size = UDim2.new(0, newWidth, 0, newHeight)
-    end
-end)
-
-UserInputService.InputEnded:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-        resizing = false
-    end
-end)
-
--- PARTÍCULAS NO PAINEL
 local ParticleContainer = Instance.new("Frame", MainPanel)
 ParticleContainer.Size = UDim2.new(1, 0, 1, 0)
 ParticleContainer.BackgroundTransparency = 1
@@ -801,49 +973,81 @@ task.spawn(function()
 end)
 
 -- ==========================================
--- 4. BARRA SUPERIOR E SISTEMA DE ARRASTO EXCLUSIVO
+-- 4. BARRA SUPERIOR
 -- ==========================================
 local TopBar = Instance.new("Frame", MainPanel)
+TopBar.Name = "TopBar"
 TopBar.Size = UDim2.new(1, 0, 0, 45)
 TopBar.BackgroundTransparency = 1
 TopBar.ZIndex = 30
 TopBar.Active = true
 
+local resizing = false
+local startSize = nil
+local startInputPos = nil
+
 local draggingPanel = false
 local dragStartPos = nil
 local startPanelPos = nil
 
-TopBar.InputBegan:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-        draggingPanel = true
-        dragStartPos = input.Position
-        startPanelPos = MainPanel.Position
-    end
+local lastPanelSize = Vector2.new(520, 320)
+
+ResizeHandle.InputBegan:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+		resizing = true
+		startSize = MainPanel.AbsoluteSize
+		startInputPos = input.Position
+	end
 end)
 
+local function enableDragOnFrame(frame)
+	frame.InputBegan:Connect(function(input)
+		if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+			draggingPanel = true
+			dragStartPos = input.Position
+			startPanelPos = MainPanel.Position
+		end
+	end)
+end
+
+enableDragOnFrame(TopBar)
+enableDragOnFrame(BottomBar)
+
 UserInputService.InputChanged:Connect(function(input)
-    if draggingPanel and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
-        local delta = input.Position - dragStartPos
-        MainPanel.Position = UDim2.new(
-            startPanelPos.X.Scale,
-            startPanelPos.X.Offset + delta.X,
-            startPanelPos.Y.Scale,
-            startPanelPos.Y.Offset + delta.Y
-        )
-    end
+	if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+		if draggingPanel and dragStartPos and startPanelPos then
+			local delta = input.Position - dragStartPos
+			MainPanel.Position = UDim2.new(
+				startPanelPos.X.Scale,
+				startPanelPos.X.Offset + delta.X,
+				startPanelPos.Y.Scale,
+				startPanelPos.Y.Offset + delta.Y
+			)
+		end
+
+		if resizing and startInputPos and startSize then
+			local delta = input.Position - startInputPos
+			local newWidth = math.clamp(startSize.X + delta.X, 420, 850)
+			local newHeight = math.clamp(startSize.Y + delta.Y, 260, 600)
+
+			MainPanel.Size = UDim2.new(0, newWidth, 0, newHeight)
+			lastPanelSize = Vector2.new(newWidth, newHeight)
+		end
+	end
 end)
 
 UserInputService.InputEnded:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-        draggingPanel = false
-    end
+	if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+		draggingPanel = false
+		resizing = false
+	end
 end)
 
-CreateCustomSymbol(TopBar, UDim2.new(0, 25, 0.5, 0), UDim2.new(0, 24, 0, 24))
+CreateCustomSymbol(TopBar, UDim2.new(0, 25, 0.5, 0), UDim2.new(0, 28, 0, 28), true)
 
 local Title = Instance.new("TextLabel", TopBar)
-Title.Size = UDim2.new(1, -150, 0, 20)
-Title.Position = UDim2.new(0, 45, 0, 5)
+Title.Size = UDim2.new(1, -165, 0, 20)
+Title.Position = UDim2.new(0, 48, 0, 5)
 Title.BackgroundTransparency = 1
 Title.Text = "DEXY INSANE"
 Title.TextColor3 = Color3.fromRGB(255, 60, 60)
@@ -853,8 +1057,8 @@ Title.TextXAlignment = Enum.TextXAlignment.Left
 Title.ZIndex = 30
 
 local Subtitle = Instance.new("TextLabel", TopBar)
-Subtitle.Size = UDim2.new(1, -150, 0, 15)
-Subtitle.Position = UDim2.new(0, 45, 0, 23)
+Subtitle.Size = UDim2.new(1, -165, 0, 15)
+Subtitle.Position = UDim2.new(0, 48, 0, 23)
 Subtitle.BackgroundTransparency = 1
 Subtitle.Text = "Dragon Ball Rage"
 Subtitle.TextColor3 = Color3.fromRGB(150, 150, 150)
@@ -863,34 +1067,45 @@ Subtitle.TextSize = 10
 Subtitle.TextXAlignment = Enum.TextXAlignment.Left
 Subtitle.ZIndex = 30
 
-local function CreateTopButton(name, text, posOffset, hoverColor)
+local function CreateTopButton(name, text, posOffset, sizeW, sizeH, hoverColor, textColor, hasBorder, hasRipple)
     local Btn = Instance.new("TextButton", TopBar)
     Btn.Name = name
-    Btn.Size = UDim2.new(0, 30, 0, 30)
-    Btn.Position = UDim2.new(1, posOffset, 0.5, -15)
-    Btn.BackgroundColor3 = Color3.fromRGB(25, 15, 15)
+    Btn.Size = UDim2.new(0, sizeW, 0, sizeH)
+    Btn.Position = UDim2.new(1, posOffset, 0.5, -sizeH/2)
+    Btn.BackgroundColor3 = Color3.fromRGB(10, 10, 10)
+    Btn.BackgroundTransparency = hasBorder and 0 or 1
     Btn.Text = text
-    Btn.TextColor3 = Color3.fromRGB(200, 200, 200)
+    Btn.TextColor3 = textColor
     Btn.Font = Enum.Font.GothamBold
-    Btn.TextSize = 14
+    Btn.TextSize = 16
     Btn.AutoButtonColor = false
     Btn.ZIndex = 30
     Instance.new("UICorner", Btn).CornerRadius = UDim.new(0, 8)
 
+    if hasBorder then
+        local BtnStroke = Instance.new("UIStroke", Btn)
+        BtnStroke.Color = Color3.fromRGB(255, 40, 40)
+        BtnStroke.Thickness = 1.5
+        BtnStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+    end
+
     Btn.MouseEnter:Connect(function() TweenService:Create(Btn, TweenInfo.new(0.2), {BackgroundColor3 = hoverColor}):Play() end)
-    Btn.MouseLeave:Connect(function() TweenService:Create(Btn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(25, 15, 15)}):Play() end)
-    Btn.MouseButton1Click:Connect(function() CreateRipple(Btn) end)
+    Btn.MouseLeave:Connect(function() TweenService:Create(Btn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(10, 10, 10)}):Play() end)
+    
+    if hasRipple then
+        Btn.MouseButton1Click:Connect(function() CreateRipple(Btn) end)
+    end
+    
     return Btn
 end
 
-local MinimizeIconBtn = CreateTopButton("MinimizeIconBtn", "_", -110, Color3.fromRGB(150, 40, 40))
-local RollUpBtn = CreateTopButton("RollUpBtn", "-", -75, Color3.fromRGB(150, 40, 40))
-local CloseBtn = CreateTopButton("CloseBtn", "X", -40, Color3.fromRGB(255, 30, 30))
+local MinimizeIconBtn = CreateTopButton("MinimizeIconBtn", "•", -122, 36, 36, Color3.fromRGB(40, 150, 40), Color3.fromRGB(46, 204, 113), false, false)
+local RollUpBtn = CreateTopButton("RollUpBtn", "•", -80, 36, 36, Color3.fromRGB(150, 150, 40), Color3.fromRGB(255, 220, 40), false, false)
+local CloseBtn = CreateTopButton("CloseBtn", "X", -40, 30, 30, Color3.fromRGB(255, 30, 30), Color3.fromRGB(255, 60, 60), true, true)
 
--- INDICADOR DE BYPASS
 local BypassContainer = Instance.new("Frame", TopBar)
 BypassContainer.Size = UDim2.new(0, 60, 0, 20)
-BypassContainer.Position = UDim2.new(1, -176, 0.5, -10)
+BypassContainer.Position = UDim2.new(1, -190, 0.5, -10)
 BypassContainer.BackgroundTransparency = 1
 BypassContainer.ZIndex = 30
 
@@ -918,13 +1133,12 @@ BypassLabel.TextSize = 10
 BypassLabel.TextXAlignment = Enum.TextXAlignment.Left
 BypassLabel.ZIndex = 30
 
--- BOTÃO "INFO"
 local InfoBtn = Instance.new("TextButton", TopBar)
 InfoBtn.Name = "InfoBtn"
 InfoBtn.Size = UDim2.new(0, 34, 0, 18)
-InfoBtn.Position = UDim2.new(1, -216, 0.5, -9)
-InfoBtn.BackgroundColor3 = Color3.fromRGB(25, 15, 18)
-InfoBtn.Text = "info"
+InfoBtn.Position = UDim2.new(1, -230, 0.5, -9)
+InfoBtn.BackgroundColor3 = Color3.fromRGB(10, 10, 10)
+InfoBtn.Text = "INFO"
 InfoBtn.TextColor3 = Color3.fromRGB(220, 220, 220)
 InfoBtn.Font = Enum.Font.GothamBold
 InfoBtn.TextSize = 9
@@ -933,23 +1147,23 @@ InfoBtn.ZIndex = 30
 Instance.new("UICorner", InfoBtn).CornerRadius = UDim.new(0, 4)
 
 local InfoBtnStroke = Instance.new("UIStroke", InfoBtn)
-InfoBtnStroke.Color = Color3.fromRGB(200, 40, 40)
-InfoBtnStroke.Thickness = 1
+InfoBtnStroke.Color = Color3.fromRGB(255, 40, 40)
+InfoBtnStroke.Thickness = 1.5
+InfoBtnStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
 
 InfoBtn.MouseEnter:Connect(function()
     TweenService:Create(InfoBtn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(150, 40, 40), TextColor3 = Color3.fromRGB(255, 255, 255)}):Play()
 end)
 InfoBtn.MouseLeave:Connect(function()
-    TweenService:Create(InfoBtn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(25, 15, 18), TextColor3 = Color3.fromRGB(220, 220, 220)}):Play()
+    TweenService:Create(InfoBtn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(10, 10, 10), TextColor3 = Color3.fromRGB(220, 220, 220)}):Play()
 end)
 
--- POP-UP INFO
 local InfoPopup = Instance.new("Frame", DexyUI)
 InfoPopup.Name = "InfoPopup"
 InfoPopup.Size = UDim2.new(0, 240, 0, 135)
 InfoPopup.Position = UDim2.new(0.5, 0, 0.5, 0)
 InfoPopup.AnchorPoint = Vector2.new(0.5, 0.5)
-InfoPopup.BackgroundColor3 = Color3.fromRGB(14, 12, 16)
+InfoPopup.BackgroundColor3 = Color3.fromRGB(5, 5, 5)
 InfoPopup.BorderSizePixel = 0
 InfoPopup.Visible = false
 InfoPopup.ZIndex = 150
@@ -966,7 +1180,7 @@ end)
 local AvatarImg = Instance.new("ImageLabel", InfoPopup)
 AvatarImg.Size = UDim2.new(0, 48, 0, 48)
 AvatarImg.Position = UDim2.new(0, 12, 0, 15)
-AvatarImg.BackgroundColor3 = Color3.fromRGB(25, 20, 25)
+AvatarImg.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
 AvatarImg.BorderSizePixel = 0
 AvatarImg.Image = success and thumbUrl or ""
 AvatarImg.ZIndex = 151
@@ -1038,23 +1252,23 @@ Divider.BackgroundTransparency = 0.5
 local TabsContainer, PagesContainer
 local pages = {}
 local currentTab = nil
-
 local isRolledUp = false
+
 RollUpBtn.MouseButton1Click:Connect(function()
     isRolledUp = not isRolledUp
-    local targetHeight = isRolledUp and 45 or 320
+    local targetHeight = isRolledUp and 45 or lastPanelSize.Y
     local size = UDim2.new(0, MainPanel.AbsoluteSize.X, 0, targetHeight)
     
     TweenService:Create(MainPanel, TweenInfo.new(0.5, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {Size = size}):Play()
     
+    if ResizeHandle then ResizeHandle.Visible = not isRolledUp end
+    if BottomBar then BottomBar.Visible = not isRolledUp end
     if TabsContainer then TabsContainer.Visible = not isRolledUp end
     for tName, data in pairs(pages) do
         if isRolledUp then
             data.Page.Visible = false
         else
-            if tName == currentTab then
-                data.Page.Visible = true
-            end
+            if tName == currentTab then data.Page.Visible = true end
         end
     end
 end)
@@ -1080,8 +1294,10 @@ FloatingBtn.MouseButton1Click:Connect(function()
         FloatingBtn.Visible = false
         MainPanel.Visible = true
         isPanelOpen = true
-        local targetHeight = isRolledUp and 45 or 320
-        TweenService:Create(MainPanel, TweenInfo.new(0.5, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {Size = UDim2.new(0, 520, 0, targetHeight)}):Play()
+        local targetHeight = isRolledUp and 45 or lastPanelSize.Y
+        if ResizeHandle then ResizeHandle.Visible = not isRolledUp end
+        if BottomBar then BottomBar.Visible = not isRolledUp end
+        TweenService:Create(MainPanel, TweenInfo.new(0.5, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {Size = UDim2.new(0, lastPanelSize.X, 0, targetHeight)}):Play()
     end)
 end)
 
@@ -1098,7 +1314,7 @@ end)
 TabsContainer = Instance.new("Frame", MainPanel)
 TabsContainer.Size = UDim2.new(1, -20, 0, 35)
 TabsContainer.Position = UDim2.new(0, 10, 0, 55)
-TabsContainer.BackgroundColor3 = Color3.fromRGB(20, 15, 15)
+TabsContainer.BackgroundColor3 = Color3.fromRGB(10, 10, 10)
 TabsContainer.BorderSizePixel = 0
 TabsContainer.ZIndex = 30
 Instance.new("UICorner", TabsContainer).CornerRadius = UDim.new(0, 8)
@@ -1142,7 +1358,7 @@ local function CreateTabSymbol(parent, iconType)
         Door.Size = UDim2.new(0, 4, 0, 5)
         Door.Position = UDim2.new(0.5, 0, 1, 0)
         Door.AnchorPoint = Vector2.new(0.5, 1)
-        Door.BackgroundColor3 = Color3.fromRGB(20, 15, 15)
+        Door.BackgroundColor3 = Color3.fromRGB(10, 10, 10)
         Door.BorderSizePixel = 0
         Instance.new("UICorner", Door).CornerRadius = UDim.new(0, 1)
 
@@ -1168,7 +1384,7 @@ local function CreateTabSymbol(parent, iconType)
         OuterEye.Size = UDim2.new(0, 14, 0, 10)
         OuterEye.Position = UDim2.new(0.5, 0, 0.5, 0)
         OuterEye.AnchorPoint = Vector2.new(0.5, 0.5)
-        OuterEye.BackgroundColor3 = Color3.fromRGB(25, 15, 15)
+        OuterEye.BackgroundColor3 = Color3.fromRGB(10, 10, 10)
         OuterEye.BorderSizePixel = 0
         Instance.new("UICorner", OuterEye).CornerRadius = UDim.new(1, 0)
         
@@ -1183,12 +1399,54 @@ local function CreateTabSymbol(parent, iconType)
         Pupil.BackgroundColor3 = Color3.fromRGB(255, 60, 60)
         Pupil.BorderSizePixel = 0
         Instance.new("UICorner", Pupil).CornerRadius = UDim.new(1, 0)
+
+    elseif iconType == "Misc" then
+        local WrenchHandle = Instance.new("Frame", IconFrame)
+        WrenchHandle.Size = UDim2.new(0, 3, 0, 13)
+        WrenchHandle.Position = UDim2.new(0.5, 0, 0.5, 0)
+        WrenchHandle.AnchorPoint = Vector2.new(0.5, 0.5)
+        WrenchHandle.Rotation = 45
+        WrenchHandle.BackgroundColor3 = Color3.fromRGB(255, 60, 60)
+        WrenchHandle.BorderSizePixel = 0
+        Instance.new("UICorner", WrenchHandle).CornerRadius = UDim.new(0, 1)
+
+        local WrenchHead = Instance.new("Frame", IconFrame)
+        WrenchHead.Size = UDim2.new(0, 9, 0, 8)
+        WrenchHead.Position = UDim2.new(0.5, 4, 0.5, -4)
+        WrenchHead.AnchorPoint = Vector2.new(0.5, 0.5)
+        WrenchHead.BackgroundColor3 = Color3.fromRGB(255, 60, 60)
+        WrenchHead.BorderSizePixel = 0
+        Instance.new("UICorner", WrenchHead).CornerRadius = UDim.new(0, 2)
+
+        local JawCutout = Instance.new("Frame", WrenchHead)
+        JawCutout.Size = UDim2.new(0, 4, 0, 4)
+        JawCutout.Position = UDim2.new(1, -2, 0.5, 0)
+        JawCutout.AnchorPoint = Vector2.new(1, 0.5)
+        JawCutout.BackgroundColor3 = Color3.fromRGB(10, 10, 10)
+        JawCutout.BorderSizePixel = 0
+        Instance.new("UICorner", JawCutout).CornerRadius = UDim.new(0, 1)
+
+        local WrenchRing = Instance.new("Frame", IconFrame)
+        WrenchRing.Size = UDim2.new(0, 7, 0, 7)
+        WrenchRing.Position = UDim2.new(0.5, -4, 0.5, 4)
+        WrenchRing.AnchorPoint = Vector2.new(0.5, 0.5)
+        WrenchRing.BackgroundColor3 = Color3.fromRGB(255, 60, 60)
+        WrenchRing.BorderSizePixel = 0
+        Instance.new("UICorner", WrenchRing).CornerRadius = UDim.new(1, 0)
+
+        local RingHole = Instance.new("Frame", WrenchRing)
+        RingHole.Size = UDim2.new(0, 3, 0, 3)
+        RingHole.Position = UDim2.new(0.5, 0, 0.5, 0)
+        RingHole.AnchorPoint = Vector2.new(0.5, 0.5)
+        RingHole.BackgroundColor3 = Color3.fromRGB(10, 10, 10)
+        RingHole.BorderSizePixel = 0
+        Instance.new("UICorner", RingHole).CornerRadius = UDim.new(1, 0)
     end
 end
 
 local function CreateTab(name, iconType)
     local TabBtn = Instance.new("TextButton", TabsContainer)
-    TabBtn.Size = UDim2.new(0, 100, 1, 0)
+    TabBtn.Size = UDim2.new(0, 85, 1, 0)
     TabBtn.BackgroundTransparency = 1
     TabBtn.Text = "" 
     TabBtn.AutoButtonColor = false
@@ -1276,7 +1534,7 @@ local function CreateTab(name, iconType)
 end
 
 -- ==========================================
--- COLOR PICKER CANVAS 2D INTERATIVO (CORRIGIDO PARA MOBILE/TOUCH)
+-- COLOR PICKER CANVAS 2D INTERATIVO
 -- ==========================================
 local function BuildWindColorPicker(parentFrame, initialColor, onColorChanged)
     local h, s, v = initialColor:ToHSV()
@@ -1287,7 +1545,6 @@ local function BuildWindColorPicker(parentFrame, initialColor, onColorChanged)
     pickerContainer.BackgroundTransparency = 1
     pickerContainer.ZIndex = 30
 
-    -- 1. CANVAS 2D DE SATURAÇÃO E BRILHO
     local satValBox = Instance.new("Frame", pickerContainer)
     satValBox.Size = UDim2.new(1, -28, 0, 85)
     satValBox.Position = UDim2.new(0, 0, 0, 0)
@@ -1296,7 +1553,6 @@ local function BuildWindColorPicker(parentFrame, initialColor, onColorChanged)
     satValBox.ZIndex = 30
     Instance.new("UICorner", satValBox).CornerRadius = UDim.new(0, 6)
 
-    -- Overlay Branco -> Transparente (Saturação X)
     local satOverlay = Instance.new("Frame", satValBox)
     satOverlay.Size = UDim2.new(1, 0, 1, 0)
     satOverlay.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
@@ -1311,7 +1567,6 @@ local function BuildWindColorPicker(parentFrame, initialColor, onColorChanged)
         NumberSequenceKeypoint.new(1, 1)
     })
 
-    -- Overlay Transparente -> Preto (Brilho Y)
     local valOverlay = Instance.new("Frame", satValBox)
     valOverlay.Size = UDim2.new(1, 0, 1, 0)
     valOverlay.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
@@ -1327,7 +1582,6 @@ local function BuildWindColorPicker(parentFrame, initialColor, onColorChanged)
         NumberSequenceKeypoint.new(1, 0)
     })
 
-    -- Cursor da Paleta
     local cursor = Instance.new("Frame", satValBox)
     cursor.Size = UDim2.new(0, 10, 0, 10)
     cursor.AnchorPoint = Vector2.new(0.5, 0.5)
@@ -1340,7 +1594,6 @@ local function BuildWindColorPicker(parentFrame, initialColor, onColorChanged)
     cursorStroke.Color = Color3.fromRGB(255, 255, 255)
     cursorStroke.Thickness = 1.5
 
-    -- 2. BARRA DE MATIZ (HUE SLIDER RAINBOW)
     local hueBar = Instance.new("Frame", pickerContainer)
     hueBar.Size = UDim2.new(0, 16, 0, 85)
     hueBar.Position = UDim2.new(1, -16, 0, 0)
@@ -1369,7 +1622,6 @@ local function BuildWindColorPicker(parentFrame, initialColor, onColorChanged)
     hueCursor.ZIndex = 35
     Instance.new("UICorner", hueCursor).CornerRadius = UDim.new(0, 2)
 
-    -- 3. PRESETS RÁPIDOS & INDICADOR
     local bottomRow = Instance.new("Frame", pickerContainer)
     bottomRow.Size = UDim2.new(1, 0, 0, 30)
     bottomRow.Position = UDim2.new(0, 0, 0, 95)
@@ -1387,7 +1639,6 @@ local function BuildWindColorPicker(parentFrame, initialColor, onColorChanged)
         if onColorChanged then onColorChanged(newC) end
     end
 
-    -- Eventos da Paleta 2D
     local draggingBox = false
     satValBox.InputBegan:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
@@ -1396,7 +1647,6 @@ local function BuildWindColorPicker(parentFrame, initialColor, onColorChanged)
         end
     end)
 
-    -- Eventos do Hue Slider
     local draggingHue = false
     hueBar.InputBegan:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
@@ -1464,23 +1714,52 @@ local function BuildWindColorPicker(parentFrame, initialColor, onColorChanged)
 end
 
 -- ==========================================
--- COMPONENTES COM COLOR PICKER NO BOTÃO DE CONFIG (⚙)
+-- COMPONENTES DA UI
 -- ==========================================
 
-local function CreateToggle(parentCol, name, callback, hasConfig, minVal, maxVal, defaultVal, speedCallback)
+local function CreateButton(parentCol, name, callback)
+    local BtnFrame = Instance.new("Frame", parentCol)
+    BtnFrame.Size = UDim2.new(1, -4, 0, 32)
+    BtnFrame.BackgroundColor3 = Color3.fromRGB(12, 12, 12)
+    BtnFrame.BorderSizePixel = 0
+    BtnFrame.ZIndex = 30
+    Instance.new("UICorner", BtnFrame).CornerRadius = UDim.new(0, 6)
+    
+    local Stroke = Instance.new("UIStroke", BtnFrame)
+    Stroke.Color = Color3.fromRGB(35, 20, 20)
+    Stroke.Thickness = 1
+
+    local Button = Instance.new("TextButton", BtnFrame)
+    Button.Size = UDim2.new(1, 0, 1, 0)
+    Button.BackgroundTransparency = 1
+    Button.Text = "  " .. name
+    Button.TextColor3 = Color3.fromRGB(220, 220, 220)
+    Button.Font = Enum.Font.GothamSemibold
+    Button.TextSize = 11
+    Button.TextXAlignment = Enum.TextXAlignment.Left
+    Button.ZIndex = 30
+
+    Button.MouseButton1Click:Connect(function()
+        CreateRipple(BtnFrame)
+        if callback then callback() end
+    end)
+end
+
+local function CreateToggle(parentCol, name, callback, hasConfig, minVal, maxVal, defaultVal, speedCallback, hasMethodDropdown, methodCallback, defaultMethod)
+    defaultMethod = defaultMethod or "Segurar"
     local baseHeight = 30
-    local expandedHeight = 68
+    local expandedHeight = hasMethodDropdown and 102 or 68
     
     local ToggleFrame = Instance.new("Frame", parentCol)
     ToggleFrame.Size = UDim2.new(1, -4, 0, baseHeight)
-    ToggleFrame.BackgroundColor3 = Color3.fromRGB(25, 18, 20)
+    ToggleFrame.BackgroundColor3 = Color3.fromRGB(12, 12, 12)
     ToggleFrame.BorderSizePixel = 0
     ToggleFrame.ClipsDescendants = true
     ToggleFrame.ZIndex = 30
     Instance.new("UICorner", ToggleFrame).CornerRadius = UDim.new(0, 6)
     
     local ToggleStroke = Instance.new("UIStroke", ToggleFrame)
-    ToggleStroke.Color = Color3.fromRGB(45, 30, 30)
+    ToggleStroke.Color = Color3.fromRGB(35, 20, 20)
     ToggleStroke.Thickness = 1
 
     local TitleLbl = Instance.new("TextLabel", ToggleFrame)
@@ -1497,7 +1776,7 @@ local function CreateToggle(parentCol, name, callback, hasConfig, minVal, maxVal
     local ToggleBtn = Instance.new("TextButton", ToggleFrame)
     ToggleBtn.Size = UDim2.new(0, 32, 0, 16)
     ToggleBtn.Position = UDim2.new(1, -38, 0, 7)
-    ToggleBtn.BackgroundColor3 = Color3.fromRGB(40, 25, 25)
+    ToggleBtn.BackgroundColor3 = Color3.fromRGB(25, 15, 15)
     ToggleBtn.Text = ""
     ToggleBtn.AutoButtonColor = false
     ToggleBtn.ZIndex = 30
@@ -1518,7 +1797,7 @@ local function CreateToggle(parentCol, name, callback, hasConfig, minVal, maxVal
             TweenService:Create(ToggleBtn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(255, 40, 40)}):Play()
             TweenService:Create(Circle, TweenInfo.new(0.2), {Position = UDim2.new(0, 18, 0.5, -6), BackgroundColor3 = Color3.fromRGB(255, 255, 255)}):Play()
         else
-            TweenService:Create(ToggleBtn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(40, 25, 25)}):Play()
+            TweenService:Create(ToggleBtn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(25, 15, 15)}):Play()
             TweenService:Create(Circle, TweenInfo.new(0.2), {Position = UDim2.new(0, 2, 0.5, -6), BackgroundColor3 = Color3.fromRGB(180, 180, 180)}):Play()
         end
         if callback then callback(isToggled) end
@@ -1528,7 +1807,7 @@ local function CreateToggle(parentCol, name, callback, hasConfig, minVal, maxVal
         local ConfigBtn = Instance.new("TextButton", ToggleFrame)
         ConfigBtn.Size = UDim2.new(0, 24, 0, 16)
         ConfigBtn.Position = UDim2.new(1, -66, 0, 7)
-        ConfigBtn.BackgroundColor3 = Color3.fromRGB(35, 22, 25)
+        ConfigBtn.BackgroundColor3 = Color3.fromRGB(20, 12, 12)
         ConfigBtn.Text = "⚙"
         ConfigBtn.TextColor3 = Color3.fromRGB(200, 200, 200)
         ConfigBtn.Font = Enum.Font.GothamBold
@@ -1569,7 +1848,7 @@ local function CreateToggle(parentCol, name, callback, hasConfig, minVal, maxVal
         local BarBg = Instance.new("Frame", SliderContainer)
         BarBg.Size = UDim2.new(1, 0, 0, 5)
         BarBg.Position = UDim2.new(0, 0, 0, 18)
-        BarBg.BackgroundColor3 = Color3.fromRGB(40, 25, 25)
+        BarBg.BackgroundColor3 = Color3.fromRGB(20, 12, 12)
         BarBg.BorderSizePixel = 0
         BarBg.ZIndex = 30
         Instance.new("UICorner", BarBg).CornerRadius = UDim.new(1, 0)
@@ -1581,18 +1860,66 @@ local function CreateToggle(parentCol, name, callback, hasConfig, minVal, maxVal
         BarFill.ZIndex = 30
         Instance.new("UICorner", BarFill).CornerRadius = UDim.new(1, 0)
 
+        local MethodRow
+        if hasMethodDropdown then
+            MethodRow = Instance.new("Frame", ToggleFrame)
+            MethodRow.Size = UDim2.new(1, -16, 0, 24)
+            MethodRow.Position = UDim2.new(0, 8, 0, 68)
+            MethodRow.BackgroundTransparency = 1
+            MethodRow.Visible = false
+            MethodRow.ZIndex = 30
+
+            local MethodLbl = Instance.new("TextLabel", MethodRow)
+            MethodLbl.Size = UDim2.new(0, 70, 1, 0)
+            MethodLbl.Position = UDim2.new(0, 0, 0, 0)
+            MethodLbl.BackgroundTransparency = 1
+            MethodLbl.Text = "Modo Ação:"
+            MethodLbl.TextColor3 = Color3.fromRGB(160, 160, 160)
+            MethodLbl.Font = Enum.Font.GothamSemibold
+            MethodLbl.TextSize = 10
+            MethodLbl.TextXAlignment = Enum.TextXAlignment.Left
+            MethodLbl.ZIndex = 30
+
+            local DropBtn = Instance.new("TextButton", MethodRow)
+            DropBtn.Size = UDim2.new(0, 85, 0, 20)
+            DropBtn.Position = UDim2.new(1, -85, 0, 2)
+            DropBtn.BackgroundColor3 = Color3.fromRGB(20, 12, 12)
+            local currentMethod = defaultMethod
+            DropBtn.Text = currentMethod .. " ▼"
+            DropBtn.TextColor3 = Color3.fromRGB(220, 220, 220)
+            DropBtn.Font = Enum.Font.GothamBold
+            DropBtn.TextSize = 10
+            DropBtn.AutoButtonColor = false
+            DropBtn.ZIndex = 30
+            Instance.new("UICorner", DropBtn).CornerRadius = UDim.new(0, 4)
+
+            DropBtn.MouseButton1Click:Connect(function()
+                if currentMethod == "Clique" then
+                    currentMethod = "Segurar"
+                else
+                    currentMethod = "Clique"
+                end
+                DropBtn.Text = currentMethod .. " ▼"
+                if methodCallback then methodCallback(currentMethod) end
+            end)
+        end
+
         local isExpanded = false
         ConfigBtn.MouseButton1Click:Connect(function()
             isExpanded = not isExpanded
             if isExpanded then
                 SliderContainer.Visible = true
+                if MethodRow then MethodRow.Visible = true end
                 TweenService:Create(ToggleFrame, TweenInfo.new(0.3, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {Size = UDim2.new(1, -4, 0, expandedHeight)}):Play()
                 TweenService:Create(ConfigBtn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(255, 40, 40), TextColor3 = Color3.fromRGB(255, 255, 255)}):Play()
             else
                 TweenService:Create(ToggleFrame, TweenInfo.new(0.3, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {Size = UDim2.new(1, -4, 0, baseHeight)}):Play()
-                TweenService:Create(ConfigBtn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(35, 22, 25), TextColor3 = Color3.fromRGB(200, 200, 200)}):Play()
+                TweenService:Create(ConfigBtn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(20, 12, 12), TextColor3 = Color3.fromRGB(200, 200, 200)}):Play()
                 task.delay(0.3, function()
-                    if not isExpanded then SliderContainer.Visible = false end
+                    if not isExpanded then 
+                        SliderContainer.Visible = false 
+                        if MethodRow then MethodRow.Visible = false end
+                    end
                 end)
             end
         end)
@@ -1624,21 +1951,20 @@ local function CreateToggle(parentCol, name, callback, hasConfig, minVal, maxVal
     end
 end
 
--- ESTRUTURA COM SUPORTE A PALETA DE COR INTERATIVA NO BOTÃO DE CONFIGURACÃO DAS OPÇÕES
 local function CreateToggleWithSubOptions(parentCol, name, callback, subOptions)
     local baseHeight = 30
     local currentHeight = baseHeight
     
     local ToggleFrame = Instance.new("Frame", parentCol)
     ToggleFrame.Size = UDim2.new(1, -4, 0, baseHeight)
-    ToggleFrame.BackgroundColor3 = Color3.fromRGB(25, 18, 20)
+    ToggleFrame.BackgroundColor3 = Color3.fromRGB(12, 12, 12)
     ToggleFrame.BorderSizePixel = 0
     ToggleFrame.ClipsDescendants = true
     ToggleFrame.ZIndex = 30
     Instance.new("UICorner", ToggleFrame).CornerRadius = UDim.new(0, 6)
     
     local ToggleStroke = Instance.new("UIStroke", ToggleFrame)
-    ToggleStroke.Color = Color3.fromRGB(45, 30, 30)
+    ToggleStroke.Color = Color3.fromRGB(35, 20, 20)
     ToggleStroke.Thickness = 1
 
     local TitleLbl = Instance.new("TextLabel", ToggleFrame)
@@ -1655,7 +1981,7 @@ local function CreateToggleWithSubOptions(parentCol, name, callback, subOptions)
     local ToggleBtn = Instance.new("TextButton", ToggleFrame)
     ToggleBtn.Size = UDim2.new(0, 32, 0, 16)
     ToggleBtn.Position = UDim2.new(1, -38, 0, 7)
-    ToggleBtn.BackgroundColor3 = Color3.fromRGB(40, 25, 25)
+    ToggleBtn.BackgroundColor3 = Color3.fromRGB(25, 15, 15)
     ToggleBtn.Text = ""
     ToggleBtn.AutoButtonColor = false
     ToggleBtn.ZIndex = 30
@@ -1676,7 +2002,7 @@ local function CreateToggleWithSubOptions(parentCol, name, callback, subOptions)
             TweenService:Create(ToggleBtn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(255, 40, 40)}):Play()
             TweenService:Create(Circle, TweenInfo.new(0.2), {Position = UDim2.new(0, 18, 0.5, -6), BackgroundColor3 = Color3.fromRGB(255, 255, 255)}):Play()
         else
-            TweenService:Create(ToggleBtn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(40, 25, 25)}):Play()
+            TweenService:Create(ToggleBtn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(25, 15, 15)}):Play()
             TweenService:Create(Circle, TweenInfo.new(0.2), {Position = UDim2.new(0, 2, 0.5, -6), BackgroundColor3 = Color3.fromRGB(180, 180, 180)}):Play()
         end
         if callback then callback(isToggled) end
@@ -1685,7 +2011,7 @@ local function CreateToggleWithSubOptions(parentCol, name, callback, subOptions)
     local ConfigBtn = Instance.new("TextButton", ToggleFrame)
     ConfigBtn.Size = UDim2.new(0, 24, 0, 16)
     ConfigBtn.Position = UDim2.new(1, -66, 0, 7)
-    ConfigBtn.BackgroundColor3 = Color3.fromRGB(35, 22, 25)
+    ConfigBtn.BackgroundColor3 = Color3.fromRGB(20, 12, 12)
     ConfigBtn.Text = "⚙"
     ConfigBtn.TextColor3 = Color3.fromRGB(200, 200, 200)
     ConfigBtn.Font = Enum.Font.GothamBold
@@ -1734,7 +2060,7 @@ local function CreateToggleWithSubOptions(parentCol, name, callback, subOptions)
         local SubToggleBtn = Instance.new("TextButton", SubRow)
         SubToggleBtn.Size = UDim2.new(0, 26, 0, 14)
         SubToggleBtn.Position = UDim2.new(1, -26, 0, 4)
-        SubToggleBtn.BackgroundColor3 = Color3.fromRGB(40, 25, 25)
+        SubToggleBtn.BackgroundColor3 = Color3.fromRGB(25, 15, 15)
         SubToggleBtn.Text = ""
         SubToggleBtn.AutoButtonColor = false
         SubToggleBtn.ZIndex = 30
@@ -1754,13 +2080,12 @@ local function CreateToggleWithSubOptions(parentCol, name, callback, subOptions)
                 TweenService:Create(SubToggleBtn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(255, 40, 40)}):Play()
                 TweenService:Create(SubCircle, TweenInfo.new(0.2), {Position = UDim2.new(0, 14, 0.5, -5), BackgroundColor3 = Color3.fromRGB(255, 255, 255)}):Play()
             else
-                TweenService:Create(SubToggleBtn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(40, 25, 25)}):Play()
+                TweenService:Create(SubToggleBtn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(25, 15, 15)}):Play()
                 TweenService:Create(SubCircle, TweenInfo.new(0.2), {Position = UDim2.new(0, 2, 0.5, -5), BackgroundColor3 = Color3.fromRGB(180, 180, 180)}):Play()
             end
             if sub.Callback then sub.Callback(subToggled) end
         end)
 
-        -- BOTÃO/PREVIEW DE COR DENTRO DO SUB-ITEM (SEM EMOJI, MAIOR E RETANGULAR)
         if sub.GetColor and sub.SetColor then
             local SubColorPreview = Instance.new("TextButton", SubRow)
             SubColorPreview.Size = UDim2.new(0, 28, 0, 16)
@@ -1772,7 +2097,7 @@ local function CreateToggleWithSubOptions(parentCol, name, callback, subOptions)
             Instance.new("UICorner", SubColorPreview).CornerRadius = UDim.new(0, 4)
 
             local SubColorStroke = Instance.new("UIStroke", SubColorPreview)
-            SubColorStroke.Color = Color3.fromRGB(80, 50, 50)
+            SubColorStroke.Color = Color3.fromRGB(50, 30, 30)
             SubColorStroke.Thickness = 1
 
             local pickerOpen = false
@@ -1809,7 +2134,7 @@ local function CreateToggleWithSubOptions(parentCol, name, callback, subOptions)
             TweenService:Create(ConfigBtn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(255, 40, 40), TextColor3 = Color3.fromRGB(255, 255, 255)}):Play()
         else
             TweenService:Create(ToggleFrame, TweenInfo.new(0.3, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {Size = UDim2.new(1, -4, 0, baseHeight)}):Play()
-            TweenService:Create(ConfigBtn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(35, 22, 25), TextColor3 = Color3.fromRGB(200, 200, 200)}):Play()
+            TweenService:Create(ConfigBtn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(20, 12, 12), TextColor3 = Color3.fromRGB(200, 200, 200)}):Play()
             task.delay(0.3, function()
                 if not isExpanded then OptionsContainer.Visible = false end
             end)
@@ -1820,13 +2145,13 @@ end
 local function CreateSlider(parentCol, name, min, max, default, callback)
     local SliderFrame = Instance.new("Frame", parentCol)
     SliderFrame.Size = UDim2.new(1, -4, 0, 45)
-    SliderFrame.BackgroundColor3 = Color3.fromRGB(25, 18, 20)
+    SliderFrame.BackgroundColor3 = Color3.fromRGB(12, 12, 12)
     SliderFrame.BorderSizePixel = 0
     SliderFrame.ZIndex = 30
     Instance.new("UICorner", SliderFrame).CornerRadius = UDim.new(0, 6)
     
     local Stroke = Instance.new("UIStroke", SliderFrame)
-    Stroke.Color = Color3.fromRGB(45, 30, 30)
+    Stroke.Color = Color3.fromRGB(35, 20, 20)
     Stroke.Thickness = 1
 
     local TitleLbl = Instance.new("TextLabel", SliderFrame)
@@ -1854,7 +2179,7 @@ local function CreateSlider(parentCol, name, min, max, default, callback)
     local BarBg = Instance.new("Frame", SliderFrame)
     BarBg.Size = UDim2.new(1, -16, 0, 6)
     BarBg.Position = UDim2.new(0, 8, 0, 28)
-    BarBg.BackgroundColor3 = Color3.fromRGB(40, 25, 25)
+    BarBg.BackgroundColor3 = Color3.fromRGB(20, 12, 12)
     BarBg.BorderSizePixel = 0
     BarBg.ZIndex = 30
     Instance.new("UICorner", BarBg).CornerRadius = UDim.new(1, 0)
@@ -1895,14 +2220,14 @@ end
 local function CreateDropdown(parentCol, name, options, callback)
     local DropFrame = Instance.new("Frame", parentCol)
     DropFrame.Size = UDim2.new(1, -4, 0, 32)
-    DropFrame.BackgroundColor3 = Color3.fromRGB(25, 18, 20)
+    DropFrame.BackgroundColor3 = Color3.fromRGB(12, 12, 12)
     DropFrame.BorderSizePixel = 0
     DropFrame.ClipsDescendants = true
     DropFrame.ZIndex = 30
     Instance.new("UICorner", DropFrame).CornerRadius = UDim.new(0, 6)
     
     local Stroke = Instance.new("UIStroke", DropFrame)
-    Stroke.Color = Color3.fromRGB(45, 30, 30)
+    Stroke.Color = Color3.fromRGB(35, 20, 20)
     Stroke.Thickness = 1
 
     local MainBtn = Instance.new("TextButton", DropFrame)
@@ -1959,21 +2284,22 @@ end
 local TabMain = CreateTab("Principal", "Principal")
 local TabPlayer = CreateTab("Jogador", "Jogador")
 local TabVisual = CreateTab("Visual", "Visual")
+local TabMisc = CreateTab("Misc", "Misc")
 
 CreateToggle(TabMain.Left, "Auto Attack", function(v) 
     Config.AutoAttack = v 
     UserInputService.MouseIconEnabled = not (v or Config.AutoDefense or Config.AutoKiBlast)
-end, true, 0.02, 0.5, 0.1, function(v) Config.AutoAttackSpeed = v end)
+end, true, 0.02, 0.5, 0.1, function(v) Config.AutoAttackSpeed = v end, true, function(m) Config.AutoAttackMethod = m end, "Segurar")
 
 CreateToggle(TabMain.Left, "Auto Defense", function(v) 
     Config.AutoDefense = v 
     UserInputService.MouseIconEnabled = not (Config.AutoAttack or v or Config.AutoKiBlast)
-end, true, 0.05, 0.5, 0.15, function(v) Config.AutoDefenseSpeed = v end)
+end, true, 0.05, 0.5, 0.15, function(v) Config.AutoDefenseSpeed = v end, true, function(m) Config.AutoDefenseMethod = m end, "Segurar")
 
 CreateToggle(TabMain.Left, "Auto Ki Blast", function(v) 
     Config.AutoKiBlast = v 
     UserInputService.MouseIconEnabled = not (Config.AutoAttack or Config.AutoDefense or v)
-end, true, 0.05, 0.5, 0.15, function(v) Config.AutoKiBlastSpeed = v end)
+end, true, 0.05, 0.5, 0.15, function(v) Config.AutoKiBlastSpeed = v end, true, function(m) Config.AutoKiBlastMethod = m end, "Segurar")
 
 CreateToggle(TabMain.Left, "Auto Charge Ki", function(v) Config.AutoCharge = v end, false)
 
@@ -2001,7 +2327,6 @@ CreateToggle(TabPlayer.Right, "Atravessar Paredes", function(v)
 end, false)
 CreateDropdown(TabPlayer.Right, "Tema de Aura", {"Vermelho Insano", "Azul Divino", "Preto Sombrio"}, function(v) Config.AuraTheme = v end)
 
--- ABA VISUAL: ESP PLAYERS COM CONFIGURAÇÃO DE COR INTEGRADA NO BOTÃO DE ENGRENAGEM (⚙)
 CreateToggleWithSubOptions(TabVisual.Left, "ESP Players", function(v) 
     ESPConfig.Enabled = v 
 end, {
@@ -2037,7 +2362,6 @@ end, {
     }
 })
 
--- ABA VISUAL: ESP DRAGONBALL COM SELETOR DE COR DENTRO DO ⚙
 CreateToggleWithSubOptions(TabVisual.Right, "ESP DragonBall", function(v) 
     DBConfig.Enabled = v 
 end, {
@@ -2066,6 +2390,10 @@ end, {
         Callback = function(v) DBConfig.Lines = v end
     }
 })
+
+CreateButton(TabMisc.Left, "Teleportar para DragonBall", function()
+    TeleportToNearestDragonBall()
+end)
 
 -- ==========================================
 -- 8. SEQUÊNCIA DE CARREGAMENTO & ABERTURA
