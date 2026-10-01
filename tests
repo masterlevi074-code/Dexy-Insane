@@ -2790,7 +2790,7 @@ end
 
 -- Aba Jogador (Lado Direito - Cartão Compacto de Estatísticas do Player)
 local StatsCard = Instance.new("Frame", TabPlayer.Right)
-StatsCard.Size = UDim2.new(1, -4, 0, 115)
+StatsCard.Size = UDim2.new(1, -4, 0, 100)
 StatsCard.BackgroundColor3 = Color3.fromRGB(12, 12, 12)
 StatsCard.BorderSizePixel = 0
 StatsCard.ZIndex = 30
@@ -2823,7 +2823,7 @@ StatsGridLayout.CellPadding = UDim2.new(0, 4, 0, 2)
 StatsGridLayout.SortOrder = Enum.SortOrder.LayoutOrder
 
 local statLabels = {}
-local statNames = {"Agility", "Attack", "Defense", "Ki", "ZenkaiBoost", "Zeni", "SelectedMode", "Kills", "DragonBalls"}
+local statNames = {"Agility", "Attack", "Defense", "Ki", "ZenkaiBoost", "Zeni", "SelectedMode", "DragonBalls"}
 
 for _, statName in ipairs(statNames) do
     local ItemFrame = Instance.new("Frame", StatsContainer)
