@@ -1023,8 +1023,9 @@ UserInputService.InputChanged:Connect(function(input)
 
 		if resizing and startInputPos and startSize then
 			local delta = input.Position - startInputPos
-			local newWidth = math.clamp(startSize.X + delta.X, 420, 850)
-			local newHeight = math.clamp(startSize.Y + delta.Y, 280, 600)
+			-- Limites amplificados (300 a 1000) para você testar livremente o tamanho mínimo
+			local newWidth = math.clamp(startSize.X + delta.X, 300, 1000)
+			local newHeight = math.clamp(startSize.Y + delta.Y, 200, 800)
 
 			MainPanel.Size = UDim2.new(0, newWidth, 0, newHeight)
 			lastPanelSize = Vector2.new(newWidth, newHeight)
@@ -1064,6 +1065,34 @@ Subtitle.TextSize = 10
 Subtitle.TextXAlignment = Enum.TextXAlignment.Left
 Subtitle.TextTruncate = Enum.TextTruncate.AtEnd
 Subtitle.ZIndex = 30
+
+-- ==========================================
+-- MEDIDOR DE TAMANHO (TAMANHO EM TEMPO REAL)
+-- ==========================================
+local SizeMeterLbl = Instance.new("TextLabel", TopBar)
+SizeMeterLbl.Size = UDim2.new(0, 75, 0, 18)
+SizeMeterLbl.Position = UDim2.new(1, -305, 0.5, -9)
+SizeMeterLbl.BackgroundColor3 = Color3.fromRGB(12, 12, 12)
+SizeMeterLbl.BackgroundTransparency = 0.2
+SizeMeterLbl.Text = "540 x 340"
+SizeMeterLbl.TextColor3 = Color3.fromRGB(255, 220, 40)
+SizeMeterLbl.Font = Enum.Font.GothamBold
+SizeMeterLbl.TextSize = 10
+SizeMeterLbl.TextXAlignment = Enum.TextXAlignment.Center
+SizeMeterLbl.ZIndex = 30
+Instance.new("UICorner", SizeMeterLbl).CornerRadius = UDim.new(0, 4)
+
+local SizeMeterStroke = Instance.new("UIStroke", SizeMeterLbl)
+SizeMeterStroke.Color = Color3.fromRGB(255, 180, 40)
+SizeMeterStroke.Thickness = 1
+SizeMeterStroke.Transparency = 0.5
+
+RunService.RenderStepped:Connect(function()
+    if MainPanel and MainPanel.Visible then
+        local abs = MainPanel.AbsoluteSize
+        SizeMeterLbl.Text = math.floor(abs.X) .. " x " .. math.floor(abs.Y)
+    end
+end)
 
 local function CreateTopButton(name, text, posOffset, sizeW, sizeH, hoverColor, textColor, hasBorder, hasRipple)
     local Btn = Instance.new("TextButton", TopBar)
@@ -2169,7 +2198,7 @@ local function CreateSlider(parentCol, name, min, max, default, callback)
     Stroke.Thickness = 1
 
     local TitleLbl = Instance.new("TextLabel", SliderFrame)
-    TitleLbl.Size = UDim2.new(1, -65, 0, 20) -- Corrigido para não sobrepor o ValLbl
+    TitleLbl.Size = UDim2.new(1, -65, 0, 20)
     TitleLbl.Position = UDim2.new(0, 8, 0, 4)
     TitleLbl.BackgroundTransparency = 1
     TitleLbl.Text = name
