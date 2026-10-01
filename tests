@@ -45,13 +45,9 @@ local Config = {
     AutoKiBlastSpeed = 0.15,
     AutoKiBlastMethod = "Segurar",
     AutoCharge = false,
-    AutoQuest = false,
-    AutoRebirth = false,
-    InfJump = false,
     EnableWalkSpeed = false,
     WalkSpeed = 50,
-    Noclip = false,
-    AuraTheme = "Vermelho Insano"
+    Noclip = false
 }
 
 local ESPConfig = {
@@ -96,17 +92,6 @@ RunService.RenderStepped:Connect(function()
             end
         end
     end)
-end)
-
-UserInputService.JumpRequest:Connect(function()
-    if Config.InfJump then
-        pcall(function()
-            local humanoid = LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
-            if humanoid then
-                humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
-            end
-        end)
-    end
 end)
 
 RunService.Stepped:Connect(function()
@@ -157,7 +142,7 @@ task.spawn(function()
     end
 end)
 
--- AUTO DEFENSE LOOP (Max -> espera 0.5s -> 1 clique -> espera 0.5s -> segura de novo)
+-- AUTO DEFENSE LOOP
 local defenseHolding = false
 local defenseEnergyCooldown = false
 task.spawn(function()
@@ -218,7 +203,7 @@ task.spawn(function()
     end
 end)
 
--- AUTO KI BLAST LOOP (Max -> espera 0.5s -> 1 clique -> espera 0.5s -> segura de novo)
+-- AUTO KI BLAST LOOP
 local kiBlastHolding = false
 local kiBlastEnergyCooldown = false
 task.spawn(function()
@@ -1073,7 +1058,7 @@ local function CreateTopButton(name, text, posOffset, sizeW, sizeH, hoverColor, 
     Btn.Text = text
     Btn.TextColor3 = textColor
     Btn.Font = Enum.Font.GothamBold
-    Btn.TextSize = 16
+    Btn.TextSize = 22 -- Aumentado o tamanho da bolinha/texto
     Btn.AutoButtonColor = false
     Btn.ZIndex = 30
     Instance.new("UICorner", Btn).CornerRadius = UDim.new(0, 8)
@@ -1098,6 +1083,7 @@ end
 local MinimizeIconBtn = CreateTopButton("MinimizeIconBtn", "•", -122, 36, 36, Color3.fromRGB(40, 150, 40), Color3.fromRGB(46, 204, 113), false, false)
 local RollUpBtn = CreateTopButton("RollUpBtn", "•", -80, 36, 36, Color3.fromRGB(150, 150, 40), Color3.fromRGB(255, 220, 40), false, false)
 local CloseBtn = CreateTopButton("CloseBtn", "X", -40, 30, 30, Color3.fromRGB(255, 30, 30), Color3.fromRGB(255, 60, 60), true, true)
+CloseBtn.TextSize = 16 -- Mantém tamanho adequado para o "X"
 
 local BypassContainer = Instance.new("Frame", TopBar)
 BypassContainer.Size = UDim2.new(0, 60, 0, 20)
@@ -1128,115 +1114,6 @@ BypassLabel.Font = Enum.Font.GothamBold
 BypassLabel.TextSize = 10
 BypassLabel.TextXAlignment = Enum.TextXAlignment.Left
 BypassLabel.ZIndex = 30
-
-local InfoBtn = Instance.new("TextButton", TopBar)
-InfoBtn.Name = "InfoBtn"
-InfoBtn.Size = UDim2.new(0, 34, 0, 18)
-InfoBtn.Position = UDim2.new(1, -230, 0.5, -9)
-InfoBtn.BackgroundColor3 = Color3.fromRGB(10, 10, 10)
-InfoBtn.Text = "INFO"
-InfoBtn.TextColor3 = Color3.fromRGB(220, 220, 220)
-InfoBtn.Font = Enum.Font.GothamBold
-InfoBtn.TextSize = 9
-InfoBtn.AutoButtonColor = false
-InfoBtn.ZIndex = 30
-Instance.new("UICorner", InfoBtn).CornerRadius = UDim.new(0, 4)
-
-local InfoBtnStroke = Instance.new("UIStroke", InfoBtn)
-InfoBtnStroke.Color = Color3.fromRGB(255, 40, 40)
-InfoBtnStroke.Thickness = 1.5
-InfoBtnStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
-
-InfoBtn.MouseEnter:Connect(function()
-    TweenService:Create(InfoBtn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(150, 40, 40), TextColor3 = Color3.fromRGB(255, 255, 255)}):Play()
-end)
-InfoBtn.MouseLeave:Connect(function()
-    TweenService:Create(InfoBtn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(10, 10, 10), TextColor3 = Color3.fromRGB(220, 220, 220)}):Play()
-end)
-
-local InfoPopup = Instance.new("Frame", DexyUI)
-InfoPopup.Name = "InfoPopup"
-InfoPopup.Size = UDim2.new(0, 240, 0, 135)
-InfoPopup.Position = UDim2.new(0.5, 0, 0.5, 0)
-InfoPopup.AnchorPoint = Vector2.new(0.5, 0.5)
-InfoPopup.BackgroundColor3 = Color3.fromRGB(5, 5, 5)
-InfoPopup.BorderSizePixel = 0
-InfoPopup.Visible = false
-InfoPopup.ZIndex = 150
-Instance.new("UICorner", InfoPopup).CornerRadius = UDim.new(0, 10)
-
-local PopupStroke = Instance.new("UIStroke", InfoPopup)
-PopupStroke.Color = Color3.fromRGB(220, 40, 40)
-PopupStroke.Thickness = 1.5
-
-local success, thumbUrl = pcall(function()
-    return Players:GetUserThumbnailAsync(LocalPlayer.UserId, Enum.ThumbnailType.HeadShot, Enum.ThumbnailSize.Size150x150)
-end)
-
-local AvatarImg = Instance.new("ImageLabel", InfoPopup)
-AvatarImg.Size = UDim2.new(0, 48, 0, 48)
-AvatarImg.Position = UDim2.new(0, 12, 0, 15)
-AvatarImg.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
-AvatarImg.BorderSizePixel = 0
-AvatarImg.Image = success and thumbUrl or ""
-AvatarImg.ZIndex = 151
-Instance.new("UICorner", AvatarImg).CornerRadius = UDim.new(1, 0)
-
-local AvatarStroke = Instance.new("UIStroke", AvatarImg)
-AvatarStroke.Color = Color3.fromRGB(220, 40, 40)
-AvatarStroke.Thickness = 1
-
-local NameLbl = Instance.new("TextLabel", InfoPopup)
-NameLbl.Size = UDim2.new(1, -75, 0, 20)
-NameLbl.Position = UDim2.new(0, 70, 0, 15)
-NameLbl.BackgroundTransparency = 1
-NameLbl.Text = LocalPlayer.Name
-NameLbl.TextColor3 = Color3.fromRGB(255, 255, 255)
-NameLbl.Font = Enum.Font.GothamBold
-NameLbl.TextSize = 13
-NameLbl.TextXAlignment = Enum.TextXAlignment.Left
-NameLbl.ZIndex = 151
-
-local DisplayLbl = Instance.new("TextLabel", InfoPopup)
-DisplayLbl.Size = UDim2.new(1, -75, 0, 15)
-DisplayLbl.Position = UDim2.new(0, 70, 0, 35)
-DisplayLbl.BackgroundTransparency = 1
-DisplayLbl.Text = "@" .. LocalPlayer.DisplayName
-DisplayLbl.TextColor3 = Color3.fromRGB(160, 160, 160)
-DisplayLbl.Font = Enum.Font.Gotham
-DisplayLbl.TextSize = 11
-DisplayLbl.TextXAlignment = Enum.TextXAlignment.Left
-DisplayLbl.ZIndex = 151
-
-local DetailsLbl = Instance.new("TextLabel", InfoPopup)
-DetailsLbl.Size = UDim2.new(1, -24, 0, 55)
-DetailsLbl.Position = UDim2.new(0, 12, 0, 72)
-DetailsLbl.BackgroundTransparency = 1
-DetailsLbl.Text = "ID: " .. LocalPlayer.UserId .. "\nIdade da Conta: " .. (LocalPlayer.AccountAge or 0) .. " dias\nPlataforma: " .. (UserInputService.TouchEnabled and "Mobile" or "PC")
-DetailsLbl.TextColor3 = Color3.fromRGB(200, 200, 200)
-DetailsLbl.Font = Enum.Font.GothamSemibold
-DetailsLbl.TextSize = 10
-DetailsLbl.TextXAlignment = Enum.TextXAlignment.Left
-DetailsLbl.ZIndex = 151
-
-local ClosePopupBtn = Instance.new("TextButton", InfoPopup)
-ClosePopupBtn.Size = UDim2.new(0, 20, 0, 20)
-ClosePopupBtn.Position = UDim2.new(1, -24, 0, 6)
-ClosePopupBtn.BackgroundTransparency = 1
-ClosePopupBtn.Text = "X"
-ClosePopupBtn.TextColor3 = Color3.fromRGB(200, 80, 80)
-ClosePopupBtn.Font = Enum.Font.GothamBold
-ClosePopupBtn.TextSize = 12
-ClosePopupBtn.ZIndex = 152
-
-ClosePopupBtn.MouseButton1Click:Connect(function()
-    InfoPopup.Visible = false
-end)
-
-InfoBtn.MouseButton1Click:Connect(function()
-    CreateRipple(InfoBtn)
-    InfoPopup.Visible = not InfoPopup.Visible
-end)
 
 local Divider = Instance.new("Frame", TopBar)
 Divider.Size = UDim2.new(1, 0, 0, 1)
@@ -1271,7 +1148,6 @@ end)
 
 MinimizeIconBtn.MouseButton1Click:Connect(function()
     isPanelOpen = false
-    InfoPopup.Visible = false
     local shrink = TweenService:Create(MainPanel, TweenInfo.new(0.4, Enum.EasingStyle.Back, Enum.EasingDirection.In), {Size = UDim2.new(0, 0, 0, 0)})
     shrink:Play()
     shrink.Completed:Connect(function()
@@ -1305,11 +1181,11 @@ CloseBtn.MouseButton1Click:Connect(function()
 end)
 
 -- ==========================================
--- 5. ABAS E SÍMBOLOS (VERTICAL SIDEBAR - COMPACTO)
+-- 5. ABAS E SÍMBOLOS (VERTICAL SIDEBAR)
 -- ==========================================
 TabsContainer = Instance.new("Frame", MainPanel)
 TabsContainer.Name = "TabsContainer"
-TabsContainer.Size = UDim2.new(0, 100, 1, -55) -- Largura reduzida (Compacto)
+TabsContainer.Size = UDim2.new(0, 100, 1, -55)
 TabsContainer.Position = UDim2.new(0, 10, 0, 50)
 TabsContainer.BackgroundColor3 = Color3.fromRGB(10, 10, 10)
 TabsContainer.BorderSizePixel = 0
@@ -1323,8 +1199,8 @@ TabsLayout.Padding = UDim.new(0, 4)
 
 PagesContainer = Instance.new("Frame", MainPanel)
 PagesContainer.Name = "PagesContainer"
-PagesContainer.Size = UDim2.new(1, -120, 1, -55) -- Ajustado proporcionalmente
-PagesContainer.Position = UDim2.new(0, 115, 0, 50) -- Ajustado proporcionalmente
+PagesContainer.Size = UDim2.new(1, -120, 1, -55)
+PagesContainer.Position = UDim2.new(0, 115, 0, 50)
 PagesContainer.BackgroundTransparency = 1
 PagesContainer.ZIndex = 30
 
@@ -1335,7 +1211,36 @@ local function CreateTabSymbol(parent, iconType)
     IconFrame.BackgroundTransparency = 1
     IconFrame.ZIndex = 30
 
-    if iconType == "Principal" then
+    if iconType == "Info" then
+        local CircleBase = Instance.new("Frame", IconFrame)
+        CircleBase.Size = UDim2.new(0, 12, 0, 12)
+        CircleBase.Position = UDim2.new(0.5, 0, 0.5, 0)
+        CircleBase.AnchorPoint = Vector2.new(0.5, 0.5)
+        CircleBase.BackgroundColor3 = Color3.fromRGB(10, 10, 10)
+        CircleBase.BorderSizePixel = 0
+        Instance.new("UICorner", CircleBase).CornerRadius = UDim.new(1, 0)
+        
+        local Stroke = Instance.new("UIStroke", CircleBase)
+        Stroke.Color = Color3.fromRGB(255, 60, 60)
+        Stroke.Thickness = 1.5
+
+        local Dot = Instance.new("Frame", CircleBase)
+        Dot.Size = UDim2.new(0, 2, 0, 2)
+        Dot.Position = UDim2.new(0.5, 0, 0, 3)
+        Dot.AnchorPoint = Vector2.new(0.5, 0)
+        Dot.BackgroundColor3 = Color3.fromRGB(255, 60, 60)
+        Dot.BorderSizePixel = 0
+        Instance.new("UICorner", Dot).CornerRadius = UDim.new(1, 0)
+
+        local Line = Instance.new("Frame", CircleBase)
+        Line.Size = UDim2.new(0, 2, 0, 5)
+        Line.Position = UDim2.new(0.5, 0, 0, 6)
+        Line.AnchorPoint = Vector2.new(0.5, 0)
+        Line.BackgroundColor3 = Color3.fromRGB(255, 60, 60)
+        Line.BorderSizePixel = 0
+        Instance.new("UICorner", Line).CornerRadius = UDim.new(0, 1)
+
+    elseif iconType == "Principal" then
         local Roof = Instance.new("Frame", IconFrame)
         Roof.Size = UDim2.new(0, 9, 0, 9)
         Roof.Position = UDim2.new(0.5, 0, 0, 2)
@@ -1445,7 +1350,7 @@ end
 
 local function CreateTab(name, iconType)
     local TabBtn = Instance.new("TextButton", TabsContainer)
-    TabBtn.Size = UDim2.new(1, 0, 0, 32) -- Altura menor para ficar mais compacto (de 38 para 32)
+    TabBtn.Size = UDim2.new(1, 0, 0, 32)
     TabBtn.BackgroundTransparency = 1
     TabBtn.Text = "" 
     TabBtn.AutoButtonColor = false
@@ -1460,7 +1365,7 @@ local function CreateTab(name, iconType)
     TabText.Text = name
     TabText.TextColor3 = Color3.fromRGB(150, 150, 150)
     TabText.Font = Enum.Font.GothamSemibold
-    TabText.TextSize = 11 -- Fonte ligeiramente menor para encaixar perfeitamente
+    TabText.TextSize = 11
     TabText.TextXAlignment = Enum.TextXAlignment.Left
     TabText.ZIndex = 30
 
@@ -1826,7 +1731,7 @@ local function CreateToggle(parentCol, name, callback, hasConfig, minVal, maxVal
         SubValLbl.Size = UDim2.new(0, 45, 0, 15)
         SubValLbl.Position = UDim2.new(1, -45, 0, 0)
         SubValLbl.BackgroundTransparency = 1
-        SubValLbl.Text = tostring(defaultVal) .. "s"
+        SubValLbl.Text = tostring(defaultVal)
         SubValLbl.TextColor3 = Color3.fromRGB(255, 60, 60)
         SubValLbl.Font = Enum.Font.GothamBold
         SubValLbl.TextSize = 10
@@ -1837,7 +1742,7 @@ local function CreateToggle(parentCol, name, callback, hasConfig, minVal, maxVal
         SubTitleLbl.Size = UDim2.new(1, -50, 0, 15)
         SubTitleLbl.Position = UDim2.new(0, 0, 0, 0)
         SubTitleLbl.BackgroundTransparency = 1
-        SubTitleLbl.Text = "Velocidade / Delay"
+        SubTitleLbl.Text = "Configuração"
         SubTitleLbl.TextColor3 = Color3.fromRGB(160, 160, 160)
         SubTitleLbl.Font = Enum.Font.GothamSemibold
         SubTitleLbl.TextSize = 10
@@ -1940,10 +1845,9 @@ local function CreateToggle(parentCol, name, callback, hasConfig, minVal, maxVal
             if dragging and isExpanded then
                 local mousePos = UserInputService:GetMouseLocation()
                 local pos = math.clamp((mousePos.X - BarBg.AbsolutePosition.X) / BarBg.AbsoluteSize.X, 0, 1)
-                local val = minVal + ((maxVal - minVal) * pos)
-                val = math.floor(val * 100 + 0.5) / 100
+                local val = math.floor(minVal + ((maxVal - minVal) * pos) + 0.5)
                 BarFill.Size = UDim2.new(pos, 0, 1, 0)
-                SubValLbl.Text = tostring(val) .. "s"
+                SubValLbl.Text = tostring(val)
                 if speedCallback then speedCallback(val) end
             end
         end)
@@ -2141,150 +2045,87 @@ local function CreateToggleWithSubOptions(parentCol, name, callback, subOptions)
     end)
 end
 
-local function CreateSlider(parentCol, name, min, max, default, callback)
-    local SliderFrame = Instance.new("Frame", parentCol)
-    SliderFrame.Size = UDim2.new(1, -4, 0, 45)
-    SliderFrame.BackgroundColor3 = Color3.fromRGB(12, 12, 12)
-    SliderFrame.BorderSizePixel = 0
-    SliderFrame.ZIndex = 30
-    Instance.new("UICorner", SliderFrame).CornerRadius = UDim.new(0, 6)
+local function CreateButtonInfo(parentCol, title, value)
+    local Frame = Instance.new("Frame", parentCol)
+    Frame.Size = UDim2.new(1, -4, 0, 32)
+    Frame.BackgroundColor3 = Color3.fromRGB(12, 12, 12)
+    Frame.BorderSizePixel = 0
+    Frame.ZIndex = 30
+    Instance.new("UICorner", Frame).CornerRadius = UDim.new(0, 6)
     
-    local Stroke = Instance.new("UIStroke", SliderFrame)
+    local Stroke = Instance.new("UIStroke", Frame)
     Stroke.Color = Color3.fromRGB(35, 20, 20)
     Stroke.Thickness = 1
 
-    local TitleLbl = Instance.new("TextLabel", SliderFrame)
-    TitleLbl.Size = UDim2.new(1, -15, 0, 20)
-    TitleLbl.Position = UDim2.new(0, 8, 0, 4)
+    local TitleLbl = Instance.new("TextLabel", Frame)
+    TitleLbl.Size = UDim2.new(0.4, 0, 1, 0)
+    TitleLbl.Position = UDim2.new(0, 10, 0, 0)
     TitleLbl.BackgroundTransparency = 1
-    TitleLbl.Text = name
-    TitleLbl.TextColor3 = Color3.fromRGB(220, 220, 220)
+    TitleLbl.Text = title
+    TitleLbl.TextColor3 = Color3.fromRGB(160, 160, 160)
     TitleLbl.Font = Enum.Font.GothamSemibold
     TitleLbl.TextSize = 11
     TitleLbl.TextXAlignment = Enum.TextXAlignment.Left
     TitleLbl.ZIndex = 30
 
-    local ValLbl = Instance.new("TextLabel", SliderFrame)
-    ValLbl.Size = UDim2.new(0, 50, 0, 20)
-    ValLbl.Position = UDim2.new(1, -55, 0, 4)
+    local ValLbl = Instance.new("TextLabel", Frame)
+    ValLbl.Size = UDim2.new(0.6, -15, 1, 0)
+    ValLbl.Position = UDim2.new(0.4, 0, 0, 0)
     ValLbl.BackgroundTransparency = 1
-    ValLbl.Text = tostring(default)
-    ValLbl.TextColor3 = Color3.fromRGB(255, 60, 60)
+    ValLbl.Text = value
+    ValLbl.TextColor3 = Color3.fromRGB(255, 255, 255)
     ValLbl.Font = Enum.Font.GothamBold
     ValLbl.TextSize = 11
     ValLbl.TextXAlignment = Enum.TextXAlignment.Right
     ValLbl.ZIndex = 30
-
-    local BarBg = Instance.new("Frame", SliderFrame)
-    BarBg.Size = UDim2.new(1, -16, 0, 6)
-    BarBg.Position = UDim2.new(0, 8, 0, 28)
-    BarBg.BackgroundColor3 = Color3.fromRGB(20, 12, 12)
-    BarBg.BorderSizePixel = 0
-    BarBg.ZIndex = 30
-    Instance.new("UICorner", BarBg).CornerRadius = UDim.new(1, 0)
-
-    local BarFill = Instance.new("Frame", BarBg)
-    BarFill.Size = UDim2.new((default - min)/(max - min), 0, 1, 0)
-    BarFill.BackgroundColor3 = Color3.fromRGB(255, 40, 40)
-    BarFill.BorderSizePixel = 0
-    BarFill.ZIndex = 30
-    Instance.new("UICorner", BarFill).CornerRadius = UDim.new(1, 0)
-
-    local dragging = false
-
-    BarBg.InputBegan:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-            dragging = true
-        end
-    end)
-
-    UserInputService.InputEnded:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-            dragging = false
-        end
-    end)
-
-    RunService.RenderStepped:Connect(function()
-        if dragging then
-            local mousePos = UserInputService:GetMouseLocation()
-            local pos = math.clamp((mousePos.X - BarBg.AbsolutePosition.X) / BarBg.AbsoluteSize.X, 0, 1)
-            local val = math.floor(min + ((max - min) * pos) + 0.5)
-            BarFill.Size = UDim2.new(pos, 0, 1, 0)
-            ValLbl.Text = tostring(val)
-            if callback then callback(val) end
-        end
-    end)
 end
 
-local function CreateDropdown(parentCol, name, options, callback)
-    local DropFrame = Instance.new("Frame", parentCol)
-    DropFrame.Size = UDim2.new(1, -4, 0, 32)
-    DropFrame.BackgroundColor3 = Color3.fromRGB(12, 12, 12)
-    DropFrame.BorderSizePixel = 0
-    DropFrame.ClipsDescendants = true
-    DropFrame.ZIndex = 30
-    Instance.new("UICorner", DropFrame).CornerRadius = UDim.new(0, 6)
+local function CreateButtonAction(parentCol, name, callback)
+    local BtnFrame = Instance.new("Frame", parentCol)
+    BtnFrame.Size = UDim2.new(1, -4, 0, 32)
+    BtnFrame.BackgroundColor3 = Color3.fromRGB(12, 12, 12)
+    BtnFrame.BorderSizePixel = 0
+    BtnFrame.ZIndex = 30
+    Instance.new("UICorner", BtnFrame).CornerRadius = UDim.new(0, 6)
     
-    local Stroke = Instance.new("UIStroke", DropFrame)
+    local Stroke = Instance.new("UIStroke", BtnFrame)
     Stroke.Color = Color3.fromRGB(35, 20, 20)
     Stroke.Thickness = 1
 
-    local MainBtn = Instance.new("TextButton", DropFrame)
-    MainBtn.Size = UDim2.new(1, 0, 0, 32)
-    MainBtn.BackgroundTransparency = 1
-    MainBtn.Text = "  " .. name .. ": [ " .. options[1] .. " ]"
-    MainBtn.TextColor3 = Color3.fromRGB(220, 220, 220)
-    MainBtn.Font = Enum.Font.GothamSemibold
-    MainBtn.TextSize = 11
-    MainBtn.TextXAlignment = Enum.TextXAlignment.Left
-    MainBtn.ZIndex = 30
+    local Button = Instance.new("TextButton", BtnFrame)
+    Button.Size = UDim2.new(1, 0, 1, 0)
+    Button.BackgroundTransparency = 1
+    Button.Text = "  " .. name
+    Button.TextColor3 = Color3.fromRGB(220, 220, 220)
+    Button.Font = Enum.Font.GothamSemibold
+    Button.TextSize = 11
+    Button.TextXAlignment = Enum.TextXAlignment.Left
+    Button.ZIndex = 30
 
-    local ListContainer = Instance.new("ScrollingFrame", DropFrame)
-    ListContainer.Size = UDim2.new(1, 0, 0, #options * 26)
-    ListContainer.Position = UDim2.new(0, 0, 0, 32)
-    ListContainer.BackgroundTransparency = 1
-    ListContainer.BorderSizePixel = 0
-    ListContainer.ScrollBarThickness = 2
-    ListContainer.ZIndex = 30
-    
-    local ListLayout = Instance.new("UIListLayout", ListContainer)
-    ListLayout.SortOrder = Enum.SortOrder.LayoutOrder
-
-    local isOpen = false
-    MainBtn.MouseButton1Click:Connect(function()
-        isOpen = not isOpen
-        local targetSize = isOpen and 32 + (#options * 26) or 32
-        TweenService:Create(DropFrame, TweenInfo.new(0.2), {Size = UDim2.new(1, -4, 0, targetSize)}):Play()
+    Button.MouseButton1Click:Connect(function()
+        CreateRipple(BtnFrame)
+        if callback then callback() end
     end)
-
-    for _, opt in ipairs(options) do
-        local OptBtn = Instance.new("TextButton", ListContainer)
-        OptBtn.Size = UDim2.new(1, 0, 0, 26)
-        OptBtn.BackgroundTransparency = 1
-        OptBtn.Text = "   > " .. opt
-        OptBtn.TextColor3 = Color3.fromRGB(160, 160, 160)
-        OptBtn.Font = Enum.Font.Gotham
-        OptBtn.TextSize = 11
-        OptBtn.TextXAlignment = Enum.TextXAlignment.Left
-        OptBtn.ZIndex = 30
-
-        OptBtn.MouseButton1Click:Connect(function()
-            MainBtn.Text = "  " .. name .. ": [ " .. opt .. " ]"
-            isOpen = false
-            TweenService:Create(DropFrame, TweenInfo.new(0.2), {Size = UDim2.new(1, -4, 0, 32)}):Play()
-            if callback then callback(opt) end
-        end)
-    end
 end
 
 -- ==========================================
 -- 7. DISTRIBUIR FUNÇÕES NAS ABAS
 -- ==========================================
+local TabInfo = CreateTab("Info", "Info")
 local TabMain = CreateTab("Principal", "Principal")
 local TabPlayer = CreateTab("Jogador", "Jogador")
 local TabVisual = CreateTab("Visual", "Visual")
 local TabMisc = CreateTab("Misc", "Misc")
 
+-- Aba INFO (1ª aba)
+CreateButtonInfo(TabInfo.Left, "Usuário", LocalPlayer.Name)
+CreateButtonInfo(TabInfo.Left, "Display", "@" .. LocalPlayer.DisplayName)
+CreateButtonInfo(TabInfo.Left, "ID", tostring(LocalPlayer.UserId))
+CreateButtonInfo(TabInfo.Right, "Idade Conta", (LocalPlayer.AccountAge or 0) .. " dias")
+CreateButtonInfo(TabInfo.Right, "Plataforma", UserInputService.TouchEnabled and "Mobile" or "PC")
+CreateButtonInfo(TabInfo.Right, "Executor", identifyexecutor and identifyexecutor() or "Desconhecido")
+
+-- Aba Principal
 CreateToggle(TabMain.Left, "Auto Attack", function(v) 
     Config.AutoAttack = v 
     UserInputService.MouseIconEnabled = not (v or Config.AutoDefense or Config.AutoKiBlast)
@@ -2302,12 +2143,12 @@ end, true, 0.05, 0.5, 0.15, function(v) Config.AutoKiBlastSpeed = v end, true, f
 
 CreateToggle(TabMain.Left, "Auto Charge Ki", function(v) Config.AutoCharge = v end, false)
 
-CreateToggle(TabMain.Right, "Auto Quest", function(v) Config.AutoQuest = v end, false)
-CreateToggle(TabMain.Right, "Auto Rebirth", function(v) Config.AutoRebirth = v end, false)
-
-CreateToggle(TabPlayer.Left, "Pulo Infinito", function(v) Config.InfJump = v end, false)
-CreateToggle(TabPlayer.Left, "Ativar Velocidade", function(v) Config.EnableWalkSpeed = v end, false)
-CreateSlider(TabPlayer.Left, "Velocidade (WalkSpeed)", 16, 250, 50, function(v) Config.WalkSpeed = v end)
+-- Aba Jogador
+CreateToggle(TabPlayer.Left, "Ativar Velocidade", function(v) 
+    Config.EnableWalkSpeed = v 
+end, true, 16, 300, 50, function(v) 
+    Config.WalkSpeed = v 
+end, false, nil, nil)
 
 CreateToggle(TabPlayer.Right, "Atravessar Paredes", function(v) 
     Config.Noclip = v 
@@ -2324,8 +2165,8 @@ CreateToggle(TabPlayer.Right, "Atravessar Paredes", function(v)
         end)
     end
 end, false)
-CreateDropdown(TabPlayer.Right, "Tema de Aura", {"Vermelho Insano", "Azul Divino", "Preto Sombrio"}, function(v) Config.AuraTheme = v end)
 
+-- Aba Visual
 CreateToggleWithSubOptions(TabVisual.Left, "ESP Players", function(v) 
     ESPConfig.Enabled = v 
 end, {
@@ -2390,7 +2231,8 @@ end, {
     }
 })
 
-CreateButton(TabMisc.Left, "Teleportar para DragonBall", function()
+-- Aba Misc
+CreateButtonAction(TabMisc.Left, "Teleportar para DragonBall", function()
     TeleportToNearestDragonBall()
 end)
 
