@@ -1077,9 +1077,8 @@ local function CreateTopButton(name, text, posOffset, sizeW, sizeH, hoverColor, 
     return Btn
 end
 
--- Botões de minimizar e rolar com bolinhas aumentadas para TextSize = 60
-local MinimizeIconBtn = CreateTopButton("MinimizeIconBtn", "•", -104, 40, 40, Color3.fromRGB(40, 150, 40), Color3.fromRGB(46, 204, 113), false, false, 60)
-local RollUpBtn = CreateTopButton("RollUpBtn", "•", -62, 40, 40, Color3.fromRGB(150, 150, 40), Color3.fromRGB(255, 220, 40), false, false, 60)
+local MinimizeIconBtn = CreateTopButton("MinimizeIconBtn", "•", -104, 40, 40, Color3.fromRGB(40, 150, 40), Color3.fromRGB(46, 204, 113), false, false, 45)
+local RollUpBtn = CreateTopButton("RollUpBtn", "•", -62, 40, 40, Color3.fromRGB(150, 150, 40), Color3.fromRGB(255, 220, 40), false, false, 45)
 local CloseBtn = CreateTopButton("CloseBtn", "X", -20, 24, 24, Color3.fromRGB(255, 30, 30), Color3.fromRGB(255, 60, 60), true, true, 14)
 
 local BypassContainer = Instance.new("Frame", TopBar)
@@ -2045,81 +2044,6 @@ local function CreateToggleWithSubOptions(parentCol, name, callback, subOptions)
     end)
 end
 
-local function CreateSlider(parentCol, name, min, max, default, callback)
-    local SliderFrame = Instance.new("Frame", parentCol)
-    SliderFrame.Size = UDim2.new(1, -4, 0, 45)
-    SliderFrame.BackgroundColor3 = Color3.fromRGB(12, 12, 12)
-    SliderFrame.BorderSizePixel = 0
-    SliderFrame.ZIndex = 30
-    Instance.new("UICorner", SliderFrame).CornerRadius = UDim.new(0, 6)
-    
-    local Stroke = Instance.new("UIStroke", SliderFrame)
-    Stroke.Color = Color3.fromRGB(35, 20, 20)
-    Stroke.Thickness = 1
-
-    local TitleLbl = Instance.new("TextLabel", SliderFrame)
-    TitleLbl.Size = UDim2.new(1, -15, 0, 20)
-    TitleLbl.Position = UDim2.new(0, 8, 0, 4)
-    TitleLbl.BackgroundTransparency = 1
-    TitleLbl.Text = name
-    TitleLbl.TextColor3 = Color3.fromRGB(220, 220, 220)
-    TitleLbl.Font = Enum.Font.GothamSemibold
-    TitleLbl.TextSize = 11
-    TitleLbl.TextXAlignment = Enum.TextXAlignment.Left
-    TitleLbl.ZIndex = 30
-
-    local ValLbl = Instance.new("TextLabel", SliderFrame)
-    ValLbl.Size = UDim2.new(0, 50, 0, 20)
-    ValLbl.Position = UDim2.new(1, -55, 0, 4)
-    ValLbl.BackgroundTransparency = 1
-    ValLbl.Text = tostring(default)
-    ValLbl.TextColor3 = Color3.fromRGB(255, 60, 60)
-    ValLbl.Font = Enum.Font.GothamBold
-    ValLbl.TextSize = 11
-    ValLbl.TextXAlignment = Enum.TextXAlignment.Right
-    ValLbl.ZIndex = 30
-
-    local BarBg = Instance.new("Frame", SliderFrame)
-    BarBg.Size = UDim2.new(1, -16, 0, 6)
-    BarBg.Position = UDim2.new(0, 8, 0, 28)
-    BarBg.BackgroundColor3 = Color3.fromRGB(20, 12, 12)
-    BarBg.BorderSizePixel = 0
-    BarBg.ZIndex = 30
-    Instance.new("UICorner", BarBg).CornerRadius = UDim.new(1, 0)
-
-    local BarFill = Instance.new("Frame", BarBg)
-    BarFill.Size = UDim2.new((default - min)/(max - min), 0, 1, 0)
-    BarFill.BackgroundColor3 = Color3.fromRGB(255, 40, 40)
-    BarFill.BorderSizePixel = 0
-    BarFill.ZIndex = 30
-    Instance.new("UICorner", BarFill).CornerRadius = UDim.new(1, 0)
-
-    local dragging = false
-
-    BarBg.InputBegan:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-            dragging = true
-        end
-    end)
-
-    UserInputService.InputEnded:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-            dragging = false
-        end
-    end)
-
-    RunService.RenderStepped:Connect(function()
-        if dragging then
-            local mousePos = UserInputService:GetMouseLocation()
-            local pos = math.clamp((mousePos.X - BarBg.AbsolutePosition.X) / BarBg.AbsoluteSize.X, 0, 1)
-            local val = math.floor(min + ((max - min) * pos) + 0.5)
-            BarFill.Size = UDim2.new(pos, 0, 1, 0)
-            ValLbl.Text = tostring(val)
-            if callback then callback(val) end
-        end
-    end)
-end
-
 -- ==========================================
 -- 7. DISTRIBUIR FUNÇÕES NAS ABAS (INFO EM 1º)
 -- ==========================================
@@ -2129,7 +2053,7 @@ local TabPlayer = CreateTab("Jogador", "Jogador")
 local TabVisual = CreateTab("Visual", "Visual")
 local TabMisc = CreateTab("Misc", "Misc")
 
--- Conteúdo da Aba Info com a imagem do personagem
+-- Conteúdo da Aba Info - Cartão do Jogador (Lado Esquerdo)
 local InfoCard = Instance.new("Frame", TabInfo.Left)
 InfoCard.Size = UDim2.new(1, -4, 0, 135)
 InfoCard.BackgroundColor3 = Color3.fromRGB(12, 12, 12)
@@ -2191,6 +2115,97 @@ DetailsLbl.TextSize = 10
 DetailsLbl.TextXAlignment = Enum.TextXAlignment.Left
 DetailsLbl.ZIndex = 31
 
+-- Conteúdo da Aba Info - Cartão de Estatísticas (Lado Direito)
+local StatsCard = Instance.new("Frame", TabInfo.Right)
+StatsCard.Size = UDim2.new(1, -4, 0, 240)
+StatsCard.BackgroundColor3 = Color3.fromRGB(12, 12, 12)
+StatsCard.BorderSizePixel = 0
+StatsCard.ZIndex = 30
+Instance.new("UICorner", StatsCard).CornerRadius = UDim.new(0, 6)
+
+local StatsCardStroke = Instance.new("UIStroke", StatsCard)
+StatsCardStroke.Color = Color3.fromRGB(35, 20, 20)
+StatsCardStroke.Thickness = 1
+
+local StatsTitle = Instance.new("TextLabel", StatsCard)
+StatsTitle.Size = UDim2.new(1, -16, 0, 25)
+StatsTitle.Position = UDim2.new(0, 8, 0, 5)
+StatsTitle.BackgroundTransparency = 1
+StatsTitle.Text = "Estatísticas do Personagem"
+StatsTitle.TextColor3 = Color3.fromRGB(255, 60, 60)
+StatsTitle.Font = Enum.Font.GothamBold
+StatsTitle.TextSize = 12
+StatsTitle.TextXAlignment = Enum.TextXAlignment.Left
+StatsTitle.ZIndex = 31
+
+local StatsContainer = Instance.new("ScrollingFrame", StatsCard)
+StatsContainer.Size = UDim2.new(1, -16, 1, -35)
+StatsContainer.Position = UDim2.new(0, 8, 0, 30)
+StatsContainer.BackgroundTransparency = 1
+StatsContainer.BorderSizePixel = 0
+StatsContainer.ScrollBarThickness = 2
+StatsContainer.ScrollBarImageColor3 = Color3.fromRGB(200, 40, 40)
+StatsContainer.ZIndex = 31
+
+local StatsListLayout = Instance.new("UIListLayout", StatsContainer)
+StatsListLayout.SortOrder = Enum.SortOrder.LayoutOrder
+StatsListLayout.Padding = UDim.new(0, 4)
+StatsListLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
+    StatsContainer.CanvasSize = UDim2.new(0, 0, 0, StatsListLayout.AbsoluteContentSize.Y + 10)
+end)
+
+local statLabels = {}
+local statNames = {"Agility", "Attack", "Defense", "Ki", "ZenkaiBoost", "Zeni", "SelectedMode", "Kills", "DragonBalls"}
+
+for _, statName in ipairs(statNames) do
+    local Row = Instance.new("Frame", StatsContainer)
+    Row.Size = UDim2.new(1, 0, 0, 20)
+    Row.BackgroundTransparency = 1
+    Row.ZIndex = 32
+
+    local KeyLbl = Instance.new("TextLabel", Row)
+    KeyLbl.Size = UDim2.new(0.5, 0, 1, 0)
+    KeyLbl.BackgroundTransparency = 1
+    KeyLbl.Text = statName .. " :"
+    KeyLbl.TextColor3 = Color3.fromRGB(180, 180, 180)
+    KeyLbl.Font = Enum.Font.GothamSemibold
+    KeyLbl.TextSize = 11
+    KeyLbl.TextXAlignment = Enum.TextXAlignment.Left
+    KeyLbl.ZIndex = 32
+
+    local ValLbl = Instance.new("TextLabel", Row)
+    ValLbl.Size = UDim2.new(0.5, 0, 1, 0)
+    ValLbl.Position = UDim2.new(0.5, 0, 0, 0)
+    ValLbl.BackgroundTransparency = 1
+    ValLbl.Text = "0"
+    ValLbl.TextColor3 = Color3.fromRGB(255, 255, 255)
+    ValLbl.Font = Enum.Font.GothamBold
+    ValLbl.TextSize = 11
+    ValLbl.TextXAlignment = Enum.TextXAlignment.Right
+    ValLbl.ZIndex = 32
+
+    statLabels[statName] = ValLbl
+end
+
+-- Loop para atualizar as estatísticas em tempo real
+task.spawn(function()
+    while task.wait(0.5) do
+        pcall(function()
+            local statsFolder = LocalPlayer:FindFirstChild("Stats")
+            if statsFolder then
+                for statName, lbl in pairs(statLabels) do
+                    local statVal = statsFolder:FindFirstChild(statName)
+                    if statVal then
+                        lbl.Text = tostring(statVal.Value)
+                    else
+                        lbl.Text = "N/A"
+                    end
+                end
+            end
+        end)
+    end
+end)
+
 -- Aba Principal
 CreateToggle(TabMain.Left, "Auto Attack", function(v) 
     Config.AutoAttack = v 
@@ -2207,7 +2222,6 @@ CreateToggle(TabMain.Left, "Auto Ki Blast", function(v)
     UserInputService.MouseIconEnabled = not (Config.AutoAttack or Config.AutoDefense or v)
 end, true, 0.05, 0.5, 0.15, function(v) Config.AutoKiBlastSpeed = v end, true, function(m) Config.AutoKiBlastMethod = m end, "Segurar")
 
--- Auto Charge Ki com configuração de % mínima
 CreateToggle(TabMain.Left, "Auto Charge Ki", function(v) 
     Config.AutoCharge = v 
 end, true, 0, 90, 10, function(v) 
@@ -2217,7 +2231,6 @@ end, false, nil, "Segurar", "%", true)
 -- Aba Jogador
 CreateToggle(TabPlayer.Left, "Pulo Infinito", function(v) Config.InfJump = v end, false)
 
--- Ativar Velocidade com configuração integrada (removido o slider solto)
 CreateToggle(TabPlayer.Left, "Ativar Velocidade", function(v) 
     Config.EnableWalkSpeed = v 
 end, true, 16, 300, 50, function(v) 
@@ -2297,7 +2310,6 @@ CreateToggle(TabMisc.Left, "Auto tp DragonBall", function(v)
     Config.AutoTpDB = v
 end, false)
 
--- Contador de Dragon Balls no Mapa
 local DBCountFrame = Instance.new("Frame", TabMisc.Left)
 DBCountFrame.Size = UDim2.new(1, -4, 0, 32)
 DBCountFrame.BackgroundColor3 = Color3.fromRGB(12, 12, 12)
@@ -2320,7 +2332,6 @@ DBCountLbl.TextSize = 11
 DBCountLbl.TextXAlignment = Enum.TextXAlignment.Left
 DBCountLbl.ZIndex = 30
 
--- Loop para atualizar o contador e gerenciar Auto TP de DB
 task.spawn(function()
     while task.wait(0.5) do
         pcall(function()
