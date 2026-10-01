@@ -37,13 +37,13 @@ end
 local Config = {
     AutoAttack = false,
     AutoAttackSpeed = 0.1,
-    AutoAttackMethod = "Clique",
+    AutoAttackMethod = "Segurar",
     AutoDefense = false,
     AutoDefenseSpeed = 0.15,
-    AutoDefenseMethod = "Clique",
+    AutoDefenseMethod = "Segurar",
     AutoKiBlast = false,
     AutoKiBlastSpeed = 0.15,
-    AutoKiBlastMethod = "Clique",
+    AutoKiBlastMethod = "Segurar",
     AutoCharge = false,
     AutoQuest = false,
     AutoRebirth = false,
@@ -157,7 +157,7 @@ task.spawn(function()
     end
 end)
 
--- AUTO DEFENSE LOOP (Com 100% energia -> pausa 1s e segura de novo)
+-- AUTO DEFENSE LOOP (Com 100% energia -> pausa 3s e segura de novo)
 local defenseHolding = false
 local defenseEnergyCooldown = false
 task.spawn(function()
@@ -191,7 +191,7 @@ task.spawn(function()
                                 defenseHolding = false
                                 pcall(function() VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.R, false, game) end)
                                 defenseEnergyCooldown = true
-                                task.delay(1.0, function()
+                                task.delay(3.0, function()
                                     defenseEnergyCooldown = false
                                 end)
                             end
@@ -210,7 +210,7 @@ task.spawn(function()
     end
 end)
 
--- AUTO KI BLAST LOOP (Com 100% energia -> pausa 1s e segura de novo)
+-- AUTO KI BLAST LOOP (Com 100% energia -> pausa 3s e segura de novo)
 local kiBlastHolding = false
 local kiBlastEnergyCooldown = false
 task.spawn(function()
@@ -244,7 +244,7 @@ task.spawn(function()
                                 kiBlastHolding = false
                                 pcall(function() VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.Q, false, game) end)
                                 kiBlastEnergyCooldown = true
-                                task.delay(1.0, function()
+                                task.delay(3.0, function()
                                     kiBlastEnergyCooldown = false
                                 end)
                             end
@@ -1742,7 +1742,8 @@ local function CreateButton(parentCol, name, callback)
     end)
 end
 
-local function CreateToggle(parentCol, name, callback, hasConfig, minVal, maxVal, defaultVal, speedCallback, hasMethodDropdown, methodCallback)
+local function CreateToggle(parentCol, name, callback, hasConfig, minVal, maxVal, defaultVal, speedCallback, hasMethodDropdown, methodCallback, defaultMethod)
+    defaultMethod = defaultMethod or "Segurar"
     local baseHeight = 30
     local expandedHeight = hasMethodDropdown and 102 or 68
     
@@ -1880,7 +1881,8 @@ local function CreateToggle(parentCol, name, callback, hasConfig, minVal, maxVal
             DropBtn.Size = UDim2.new(0, 85, 0, 20)
             DropBtn.Position = UDim2.new(1, -85, 0, 2)
             DropBtn.BackgroundColor3 = Color3.fromRGB(20, 12, 12)
-            DropBtn.Text = "Clique ▼"
+            local currentMethod = defaultMethod
+            DropBtn.Text = currentMethod .. " ▼"
             DropBtn.TextColor3 = Color3.fromRGB(220, 220, 220)
             DropBtn.Font = Enum.Font.GothamBold
             DropBtn.TextSize = 10
@@ -1888,7 +1890,6 @@ local function CreateToggle(parentCol, name, callback, hasConfig, minVal, maxVal
             DropBtn.ZIndex = 30
             Instance.new("UICorner", DropBtn).CornerRadius = UDim.new(0, 4)
 
-            local currentMethod = "Clique"
             DropBtn.MouseButton1Click:Connect(function()
                 if currentMethod == "Clique" then
                     currentMethod = "Segurar"
@@ -2285,17 +2286,17 @@ local TabMisc = CreateTab("Misc", "Misc")
 CreateToggle(TabMain.Left, "Auto Attack", function(v) 
     Config.AutoAttack = v 
     UserInputService.MouseIconEnabled = not (v or Config.AutoDefense or Config.AutoKiBlast)
-end, true, 0.02, 0.5, 0.1, function(v) Config.AutoAttackSpeed = v end, true, function(m) Config.AutoAttackMethod = m end)
+end, true, 0.02, 0.5, 0.1, function(v) Config.AutoAttackSpeed = v end, true, function(m) Config.AutoAttackMethod = m end, "Segurar")
 
 CreateToggle(TabMain.Left, "Auto Defense", function(v) 
     Config.AutoDefense = v 
     UserInputService.MouseIconEnabled = not (Config.AutoAttack or v or Config.AutoKiBlast)
-end, true, 0.05, 0.5, 0.15, function(v) Config.AutoDefenseSpeed = v end, true, function(m) Config.AutoDefenseMethod = m end)
+end, true, 0.05, 0.5, 0.15, function(v) Config.AutoDefenseSpeed = v end, true, function(m) Config.AutoDefenseMethod = m end, "Segurar")
 
 CreateToggle(TabMain.Left, "Auto Ki Blast", function(v) 
     Config.AutoKiBlast = v 
     UserInputService.MouseIconEnabled = not (Config.AutoAttack or Config.AutoDefense or v)
-end, true, 0.05, 0.5, 0.15, function(v) Config.AutoKiBlastSpeed = v end, true, function(m) Config.AutoKiBlastMethod = m end)
+end, true, 0.05, 0.5, 0.15, function(v) Config.AutoKiBlastSpeed = v end, true, function(m) Config.AutoKiBlastMethod = m end, "Segurar")
 
 CreateToggle(TabMain.Left, "Auto Charge Ki", function(v) Config.AutoCharge = v end, false)
 
