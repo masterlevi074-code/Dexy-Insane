@@ -2895,21 +2895,32 @@ task.spawn(function()
                     local statVal = statsFolder:FindFirstChild(statName)
                     if statVal then
                         if statName == "DragonBalls" then
-                            local strVal = tostring(statVal.Value)
-                            if strVal:find("=") then
-                                local total = 0
-                                for val in strVal:gmatch("=(%d+)") do
-                                    total = total + (tonumber(val) or 0)
-                                end
-                                lbl.Text = tostring(total)
+                            local rawVal = statVal.Value
+                            if type(rawVal) == "number" then
+                                lbl.Text = tostring(rawVal)
                             else
-                                lbl.Text = strVal
+                                local strVal = tostring(rawVal)
+                                if strVal:find("=") then
+                                    local total = 0
+                                    for val in strVal:gmatch("=(%d+)") do
+                                        total = total + (tonumber(val) or 0)
+                                    end
+                                    lbl.Text = tostring(total)
+                                elseif strVal:find(",") then
+                                    local count = 0
+                                    for _ in strVal:gmatch("%d+") do
+                                        count = count + 1
+                                    end
+                                    lbl.Text = tostring(count)
+                                else
+                                    lbl.Text = tostring(tonumber(strVal) or strVal)
+                                end
                             end
                         else
                             lbl.Text = tostring(statVal.Value)
                         end
                     else
-                        lbl.Text = "N/A"
+                        lbl.Text = "0"
                     end
                 end
             end
@@ -3010,28 +3021,22 @@ end, {
     }
 })
 
--- Aba Misc
-CreateSection(TabMisc.Left, "Teleportes")
+-- ==========================================
+-- Aba Misc (ORGANIZAÇÃO REORDENADA CONFORME SOLICITADO)
+-- ==========================================
+
+-- 1° Botão de teleportar para Dragonball
 CreateButton(TabMisc.Left, "Teleportar para Dragonball", function()
     TeleportToNearestDragonBall()
 end)
 
-CreateButton(TabMisc.Left, "Teleportar para Comerciante", function()
-    TeleportToMerchant()
-end)
-
-CreateSection(TabMisc.Left, "Auto Teleporte")
+-- 2° Auto tp Dragonball
 CreateToggle(TabMisc.Left, "Auto tp DragonBall", function(v)
     Config.AutoTpDB = v
     dbAutoTpTriggered = false
 end, false)
 
-CreateToggle(TabMisc.Left, "Auto tp Comerciante", function(v)
-    Config.AutoTpMerchant = v
-    merchantAutoTpTriggered = false
-end, false)
-
-CreateSection(TabMisc.Left, "Informações do Mapa")
+-- 3° Mostrador de quantas dragonballs possuem no mapa
 local DBCountFrame = Instance.new("Frame", TabMisc.Left)
 DBCountFrame.Size = UDim2.new(1, -4, 0, 32)
 DBCountFrame.BackgroundColor3 = Color3.fromRGB(12, 12, 12)
@@ -3053,6 +3058,17 @@ DBCountLbl.Font = Enum.Font.GothamSemibold
 DBCountLbl.TextSize = 11
 DBCountLbl.TextXAlignment = Enum.TextXAlignment.Left
 DBCountLbl.ZIndex = 30
+
+-- 4° Botão de teleporte para o Comerciante
+CreateButton(TabMisc.Left, "Teleportar para Comerciante", function()
+    TeleportToMerchant()
+end)
+
+-- Auto tp Comerciante (Em baixo do botão do comerciante)
+CreateToggle(TabMisc.Left, "Auto tp Comerciante", function(v)
+    Config.AutoTpMerchant = v
+    merchantAutoTpTriggered = false
+end, false)
 
 -- Teleport Ilhas na Coluna da Direita da aba Misc
 CreateSection(TabMisc.Right, "Teleport Ilha")
