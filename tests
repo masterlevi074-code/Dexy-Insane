@@ -1892,6 +1892,170 @@ local function CreateButton(parentCol, name, callback)
     end)
 end
 
+local function CreateDropdown(parentCol, titleText, options, defaultSelected, onSelect)
+    local baseHeight = 54
+    local selectedOption = defaultSelected or options[1]
+    local isOpen = false
+
+    local DropdownContainer = Instance.new("Frame", parentCol)
+    DropdownContainer.Size = UDim2.new(1, -4, 0, baseHeight)
+    DropdownContainer.BackgroundColor3 = Color3.fromRGB(12, 12, 12)
+    DropdownContainer.BorderSizePixel = 0
+    DropdownContainer.ClipsDescendants = true
+    DropdownContainer.ZIndex = 30
+    Instance.new("UICorner", DropdownContainer).CornerRadius = UDim.new(0, 6)
+
+    local Stroke = Instance.new("UIStroke", DropdownContainer)
+    Stroke.Color = Color3.fromRGB(35, 20, 20)
+    Stroke.Thickness = 1
+
+    local TitleLbl = Instance.new("TextLabel", DropdownContainer)
+    TitleLbl.Size = UDim2.new(1, -16, 0, 18)
+    TitleLbl.Position = UDim2.new(0, 8, 0, 4)
+    TitleLbl.BackgroundTransparency = 1
+    TitleLbl.Text = titleText
+    TitleLbl.TextColor3 = Color3.fromRGB(160, 160, 160)
+    TitleLbl.Font = Enum.Font.GothamSemibold
+    TitleLbl.TextSize = 10
+    TitleLbl.TextXAlignment = Enum.TextXAlignment.Left
+    TitleLbl.ZIndex = 31
+
+    local HeaderBtn = Instance.new("TextButton", DropdownContainer)
+    HeaderBtn.Size = UDim2.new(1, -16, 0, 24)
+    HeaderBtn.Position = UDim2.new(0, 8, 0, 24)
+    HeaderBtn.BackgroundColor3 = Color3.fromRGB(20, 12, 12)
+    HeaderBtn.Text = "  " .. tostring(selectedOption)
+    HeaderBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    HeaderBtn.Font = Enum.Font.GothamBold
+    HeaderBtn.TextSize = 11
+    HeaderBtn.TextXAlignment = Enum.TextXAlignment.Left
+    HeaderBtn.AutoButtonColor = false
+    HeaderBtn.ZIndex = 31
+    Instance.new("UICorner", HeaderBtn).CornerRadius = UDim.new(0, 4)
+
+    local HeaderStroke = Instance.new("UIStroke", HeaderBtn)
+    HeaderStroke.Color = Color3.fromRGB(50, 25, 25)
+    HeaderStroke.Thickness = 1
+
+    local ArrowLbl = Instance.new("TextLabel", HeaderBtn)
+    ArrowLbl.Size = UDim2.new(0, 20, 1, 0)
+    ArrowLbl.Position = UDim2.new(1, -22, 0, 0)
+    ArrowLbl.BackgroundTransparency = 1
+    ArrowLbl.Text = "▼"
+    ArrowLbl.TextColor3 = Color3.fromRGB(255, 60, 60)
+    ArrowLbl.Font = Enum.Font.GothamBold
+    ArrowLbl.TextSize = 9
+    ArrowLbl.ZIndex = 32
+
+    local ListFrame = Instance.new("ScrollingFrame", DropdownContainer)
+    ListFrame.Size = UDim2.new(1, -16, 0, 110)
+    ListFrame.Position = UDim2.new(0, 8, 0, 52)
+    ListFrame.BackgroundColor3 = Color3.fromRGB(8, 8, 8)
+    ListFrame.BorderSizePixel = 0
+    ListFrame.Visible = false
+    ListFrame.ScrollBarThickness = 3
+    ListFrame.ScrollBarImageColor3 = Color3.fromRGB(255, 40, 40)
+    ListFrame.ZIndex = 33
+    ListFrame.CanvasSize = UDim2.new(0, 0, 0, 0)
+    Instance.new("UICorner", ListFrame).CornerRadius = UDim.new(0, 4)
+
+    local ListStroke = Instance.new("UIStroke", ListFrame)
+    ListStroke.Color = Color3.fromRGB(40, 20, 20)
+    ListStroke.Thickness = 1
+
+    local ListLayout = Instance.new("UIListLayout", ListFrame)
+    ListLayout.SortOrder = Enum.SortOrder.LayoutOrder
+    ListLayout.Padding = UDim.new(0, 2)
+
+    ListLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
+        ListFrame.CanvasSize = UDim2.new(0, 0, 0, ListLayout.AbsoluteContentSize.Y + 4)
+    end)
+
+    ListFrame.MouseEnter:Connect(function()
+        setParentScrolling(ListFrame, false)
+    end)
+
+    ListFrame.MouseLeave:Connect(function()
+        setParentScrolling(ListFrame, true)
+    end)
+
+    local optionButtons = {}
+
+    local function updateSelected(opt)
+        selectedOption = opt
+        HeaderBtn.Text = "  " .. tostring(opt)
+        for _, btn in ipairs(optionButtons) do
+            if btn.Name == opt then
+                btn.BackgroundColor3 = Color3.fromRGB(40, 15, 15)
+                btn.TextColor3 = Color3.fromRGB(255, 60, 60)
+            else
+                btn.BackgroundColor3 = Color3.fromRGB(12, 12, 12)
+                btn.TextColor3 = Color3.fromRGB(180, 180, 180)
+            end
+        end
+        if onSelect then onSelect(opt) end
+    end
+
+    for _, opt in ipairs(options) do
+        local OptBtn = Instance.new("TextButton", ListFrame)
+        OptBtn.Name = opt
+        OptBtn.Size = UDim2.new(1, -4, 0, 22)
+        OptBtn.BackgroundColor3 = (opt == selectedOption) and Color3.fromRGB(40, 15, 15) or Color3.fromRGB(12, 12, 12)
+        OptBtn.BorderSizePixel = 0
+        OptBtn.Text = "  " .. opt
+        OptBtn.TextColor3 = (opt == selectedOption) and Color3.fromRGB(255, 60, 60) or Color3.fromRGB(180, 180, 180)
+        OptBtn.Font = Enum.Font.GothamSemibold
+        OptBtn.TextSize = 10
+        OptBtn.TextXAlignment = Enum.TextXAlignment.Left
+        OptBtn.AutoButtonColor = false
+        OptBtn.ZIndex = 34
+        Instance.new("UICorner", OptBtn).CornerRadius = UDim.new(0, 3)
+
+        OptBtn.MouseEnter:Connect(function()
+            if selectedOption ~= opt then
+                TweenService:Create(OptBtn, TweenInfo.new(0.15), {BackgroundColor3 = Color3.fromRGB(25, 15, 15), TextColor3 = Color3.fromRGB(220, 220, 220)}):Play()
+            end
+        end)
+        OptBtn.MouseLeave:Connect(function()
+            if selectedOption ~= opt then
+                TweenService:Create(OptBtn, TweenInfo.new(0.15), {BackgroundColor3 = Color3.fromRGB(12, 12, 12), TextColor3 = Color3.fromRGB(180, 180, 180)}):Play()
+            end
+        end)
+
+        OptBtn.MouseButton1Click:Connect(function()
+            updateSelected(opt)
+            isOpen = false
+            TweenService:Create(ArrowLbl, TweenInfo.new(0.2), {Rotation = 0}):Play()
+            TweenService:Create(DropdownContainer, TweenInfo.new(0.3, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {Size = UDim2.new(1, -4, 0, baseHeight)}):Play()
+            task.delay(0.3, function()
+                if not isOpen then ListFrame.Visible = false end
+            end)
+        end)
+
+        table.insert(optionButtons, OptBtn)
+    end
+
+    HeaderBtn.MouseButton1Click:Connect(function()
+        isOpen = not isOpen
+        if isOpen then
+            ListFrame.Visible = true
+            TweenService:Create(ArrowLbl, TweenInfo.new(0.2), {Rotation = 180}):Play()
+            TweenService:Create(DropdownContainer, TweenInfo.new(0.3, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {Size = UDim2.new(1, -4, 0, 168)}):Play()
+        else
+            TweenService:Create(ArrowLbl, TweenInfo.new(0.2), {Rotation = 0}):Play()
+            TweenService:Create(DropdownContainer, TweenInfo.new(0.3, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {Size = UDim2.new(1, -4, 0, baseHeight)}):Play()
+            task.delay(0.3, function()
+                if not isOpen then ListFrame.Visible = false end
+            end)
+        end
+    end)
+
+    return {
+        GetSelected = function() return selectedOption end,
+        SetSelected = function(opt) updateSelected(opt) end
+    }
+end
+
 local function CreateToggle(parentCol, name, callback, hasConfig, minVal, maxVal, defaultVal, speedCallback, hasMethodDropdown, methodCallback, defaultMethod, unitSuffix, isInteger)
     defaultMethod = defaultMethod or "Segurar"
     unitSuffix = unitSuffix or "s"
@@ -2850,6 +3014,51 @@ DBCountLbl.Font = Enum.Font.GothamSemibold
 DBCountLbl.TextSize = 11
 DBCountLbl.TextXAlignment = Enum.TextXAlignment.Left
 DBCountLbl.ZIndex = 30
+
+-- Teleport Ilhas na Coluna da Direita da aba Misc
+CreateSection(TabMisc.Right, "Teleport Ilha")
+
+local IslandLocations = {
+    ["Desert"] = Vector3.new(3286.9, 534.7, 172.0),
+    ["AbandonedIsland"] = Vector3.new(-1409.0, 556.4, 3447.2),
+    ["DesertWoods"] = Vector3.new(1267.5, 541.8, -2798.3),
+    ["Forest"] = Vector3.new(-3229.5, 491.8, -4418.2),
+    ["IceIsland"] = Vector3.new(-4110.4, 542.5, -1396.0),
+    ["LargeSland"] = Vector3.new(-2237.8, 550.9, 1539.1),
+    ["Montain"] = Vector3.new(-1617.6, 521.3, -1078.5),
+    ["StarterIsland"] = Vector3.new(-754.3, 542.2, 3048.6),
+    ["Tournament"] = Vector3.new(-734.1, 473.5, -3067.4),
+    ["Volcano"] = Vector3.new(837.5, 1018.4, -4986.3)
+}
+
+local selectedIsland = "Desert"
+
+CreateDropdown(TabMisc.Right, "Selecione a Ilha", {
+    "Desert",
+    "AbandonedIsland",
+    "DesertWoods",
+    "Forest",
+    "IceIsland",
+    "LargeSland",
+    "Montain",
+    "StarterIsland",
+    "Tournament",
+    "Volcano"
+}, "Desert", function(chosen)
+    selectedIsland = chosen
+end)
+
+CreateButton(TabMisc.Right, "Teleportar para Ilha", function()
+    local coords = IslandLocations[selectedIsland]
+    if coords then
+        pcall(function()
+            local hrp = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+            if hrp then
+                hrp.CFrame = CFrame.new(coords)
+            end
+        end)
+    end
+end)
 
 task.spawn(function()
     while task.wait(0.5) do
