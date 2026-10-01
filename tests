@@ -157,7 +157,7 @@ task.spawn(function()
     end
 end)
 
--- AUTO DEFENSE LOOP (Max -> espera 2s -> 1 clique -> espera 0.5s -> segura de novo)
+-- AUTO DEFENSE LOOP (Max -> espera 0.5s -> 1 clique -> espera 0.5s -> segura de novo)
 local defenseHolding = false
 local defenseEnergyCooldown = false
 task.spawn(function()
@@ -192,7 +192,7 @@ task.spawn(function()
                                 pcall(function() VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.R, false, game) end)
                                 defenseEnergyCooldown = true
                                 
-                                task.delay(2.0, function()
+                                task.delay(0.5, function()
                                     -- Dá um clique
                                     pcall(function()
                                         VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.R, false, game)
@@ -220,7 +220,7 @@ task.spawn(function()
     end
 end)
 
--- AUTO KI BLAST LOOP (Max -> espera 2s -> 1 clique -> espera 0.5s -> segura de novo)
+-- AUTO KI BLAST LOOP (Max -> espera 0.5s -> 1 clique -> espera 0.5s -> segura de novo)
 local kiBlastHolding = false
 local kiBlastEnergyCooldown = false
 task.spawn(function()
@@ -255,7 +255,7 @@ task.spawn(function()
                                 pcall(function() VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.Q, false, game) end)
                                 kiBlastEnergyCooldown = true
                                 
-                                task.delay(2.0, function()
+                                task.delay(0.5, function()
                                     -- Dá um clique
                                     pcall(function()
                                         VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.Q, false, game)
