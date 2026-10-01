@@ -76,7 +76,10 @@ local DBConfig = {
     Names = false,
     Distance = false,
     Lines = false,
-    Color = Color3.fromRGB(255, 165, 0)
+    HighlightColor = Color3.fromRGB(255, 165, 0),
+    NameColor = Color3.fromRGB(255, 165, 0),
+    DistanceColor = Color3.fromRGB(255, 165, 0),
+    LineColor = Color3.fromRGB(255, 165, 0)
 }
 
 local MerchantConfig = {
@@ -85,7 +88,10 @@ local MerchantConfig = {
     Names = false,
     Distance = false,
     Lines = false,
-    Color = Color3.fromRGB(0, 255, 128)
+    HighlightColor = Color3.fromRGB(0, 255, 128),
+    NameColor = Color3.fromRGB(0, 255, 128),
+    DistanceColor = Color3.fromRGB(0, 255, 128),
+    LineColor = Color3.fromRGB(0, 255, 128)
 }
 
 -- ==========================================
@@ -531,12 +537,13 @@ local function UpdateDBTracer(objData, targetPos)
     if not objData.Tracer and Drawing then
         local tracer = Drawing.new("Line")
         tracer.Thickness = 1.5
-        tracer.Color = DBConfig.Color
+        tracer.Color = DBConfig.LineColor
         tracer.Transparency = 1
         objData.Tracer = tracer
     end
 
     if objData.Tracer then
+        objData.Tracer.Color = DBConfig.LineColor
         local screenPos, onScreen = camera:WorldToViewportPoint(targetPos)
         if onScreen then
             objData.Tracer.From = Vector2.new(camera.ViewportSize.X / 2, camera.ViewportSize.Y)
@@ -571,7 +578,7 @@ local function ScanDragonBalls()
                             local highlight = Instance.new("Highlight")
                             highlight.Name = "DBHighlight"
                             highlight.Adornee = obj
-                            highlight.FillColor = DBConfig.Color
+                            highlight.FillColor = DBConfig.HighlightColor
                             highlight.FillTransparency = 0.4
                             highlight.OutlineColor = Color3.fromRGB(255, 255, 255)
                             highlight.Parent = obj
@@ -587,7 +594,7 @@ local function ScanDragonBalls()
                             local label = Instance.new("TextLabel", billboard)
                             label.Size = UDim2.new(1, 0, 1, 0)
                             label.BackgroundTransparency = 1
-                            label.TextColor3 = DBConfig.Color
+                            label.TextColor3 = DBConfig.NameColor
                             label.Font = Enum.Font.GothamBold
                             label.TextSize = 12
                             label.TextStrokeTransparency = 0
@@ -601,12 +608,12 @@ local function ScanDragonBalls()
                         
                         if data.Highlight then
                             data.Highlight.Enabled = DBConfig.Enabled and DBConfig.Highlight
-                            data.Highlight.FillColor = DBConfig.Color
+                            data.Highlight.FillColor = DBConfig.HighlightColor
                         end
 
                         if data.Billboard and data.TextLabel then
                             data.Billboard.Enabled = DBConfig.Enabled and (DBConfig.Names or DBConfig.Distance)
-                            data.TextLabel.TextColor3 = DBConfig.Color
+                            data.TextLabel.TextColor3 = DBConfig.NameColor
                             
                             local textComponents = {}
                             if DBConfig.Names then table.insert(textComponents, "DragonBall") end
@@ -692,12 +699,13 @@ local function UpdateMerchantTracer(objData, targetPos)
     if not objData.Tracer and Drawing then
         local tracer = Drawing.new("Line")
         tracer.Thickness = 1.5
-        tracer.Color = MerchantConfig.Color
+        tracer.Color = MerchantConfig.LineColor
         tracer.Transparency = 1
         objData.Tracer = tracer
     end
 
     if objData.Tracer then
+        objData.Tracer.Color = MerchantConfig.LineColor
         local screenPos, onScreen = camera:WorldToViewportPoint(targetPos)
         if onScreen then
             objData.Tracer.From = Vector2.new(camera.ViewportSize.X / 2, camera.ViewportSize.Y)
@@ -730,7 +738,7 @@ local function ScanMerchant()
                 local highlight = Instance.new("Highlight")
                 highlight.Name = "MerchantHighlight"
                 highlight.Adornee = shopObj
-                highlight.FillColor = MerchantConfig.Color
+                highlight.FillColor = MerchantConfig.HighlightColor
                 highlight.FillTransparency = 0.4
                 highlight.OutlineColor = Color3.fromRGB(255, 255, 255)
                 highlight.Parent = shopObj
@@ -746,7 +754,7 @@ local function ScanMerchant()
                 local label = Instance.new("TextLabel", billboard)
                 label.Size = UDim2.new(1, 0, 1, 0)
                 label.BackgroundTransparency = 1
-                label.TextColor3 = MerchantConfig.Color
+                label.TextColor3 = MerchantConfig.NameColor
                 label.Font = Enum.Font.GothamBold
                 label.TextSize = 12
                 label.TextStrokeTransparency = 0
@@ -760,12 +768,12 @@ local function ScanMerchant()
             
             if data.Highlight then
                 data.Highlight.Enabled = MerchantConfig.Enabled and MerchantConfig.Highlight
-                data.Highlight.FillColor = MerchantConfig.Color
+                data.Highlight.FillColor = MerchantConfig.HighlightColor
             end
 
             if data.Billboard and data.TextLabel then
                 data.Billboard.Enabled = MerchantConfig.Enabled and (MerchantConfig.Names or MerchantConfig.Distance)
-                data.TextLabel.TextColor3 = MerchantConfig.Color
+                data.TextLabel.TextColor3 = MerchantConfig.NameColor
                 
                 local textComponents = {}
                 if MerchantConfig.Names then table.insert(textComponents, "Comerciante") end
@@ -1240,13 +1248,14 @@ local function CreateTopButton(name, text, posOffset, sizeW, sizeH, hoverColor, 
     return Btn
 end
 
-local MinimizeIconBtn = CreateTopButton("MinimizeIconBtn", "•", -96, 40, 40, Color3.fromRGB(40, 150, 40), Color3.fromRGB(46, 204, 113), false, false, 45)
-local RollUpBtn = CreateTopButton("RollUpBtn", "•", -78, 40, 40, Color3.fromRGB(150, 150, 40), Color3.fromRGB(255, 220, 40), false, false, 45)
-local CloseBtn = CreateTopButton("CloseBtn", "X", -34, 24, 24, Color3.fromRGB(255, 30, 30), Color3.fromRGB(255, 60, 60), true, true, 14)
+-- Ajuste limpo da hitbox do botão verde sem sobreposição com o amarelo
+local MinimizeIconBtn = CreateTopButton("MinimizeIconBtn", "•", -68, 30, 30, Color3.fromRGB(40, 150, 40), Color3.fromRGB(46, 204, 113), false, false, 36)
+local RollUpBtn = CreateTopButton("RollUpBtn", "•", -36, 30, 30, Color3.fromRGB(150, 150, 40), Color3.fromRGB(255, 220, 40), false, false, 36)
+local CloseBtn = CreateTopButton("CloseBtn", "X", -6, 24, 24, Color3.fromRGB(255, 30, 30), Color3.fromRGB(255, 60, 60), true, true, 14)
 
 local BypassContainer = Instance.new("Frame", TopBar)
 BypassContainer.Size = UDim2.new(0, 60, 0, 20)
-BypassContainer.Position = UDim2.new(1, -190, 0.5, -10)
+BypassContainer.Position = UDim2.new(1, -140, 0.5, -10)
 BypassContainer.BackgroundTransparency = 1
 BypassContainer.ZIndex = 30
 
@@ -1777,6 +1786,19 @@ end
 -- COMPONENTES DA UI
 -- ==========================================
 
+local function CreateSection(parentCol, titleText)
+    local SectionLbl = Instance.new("TextLabel", parentCol)
+    SectionLbl.Size = UDim2.new(1, -4, 0, 22)
+    SectionLbl.BackgroundTransparency = 1
+    SectionLbl.Text = "  " .. string.upper(titleText)
+    SectionLbl.TextColor3 = Color3.fromRGB(255, 60, 60)
+    SectionLbl.Font = Enum.Font.GothamBold
+    SectionLbl.TextSize = 10
+    SectionLbl.TextXAlignment = Enum.TextXAlignment.Left
+    SectionLbl.ZIndex = 30
+    return SectionLbl
+end
+
 local function CreateButton(parentCol, name, callback)
     local BtnFrame = Instance.new("Frame", parentCol)
     BtnFrame.Size = UDim2.new(1, -4, 0, 32)
@@ -2278,9 +2300,9 @@ DetailsLbl.TextSize = 10
 DetailsLbl.TextXAlignment = Enum.TextXAlignment.Left
 DetailsLbl.ZIndex = 31
 
--- Conteúdo da Aba Info - Cartão de Estatísticas (Lado Direito)
+-- Conteúdo da Aba Info - Cartão de Estatísticas (Lado Direito - Sem scroll duplo interno)
 local StatsCard = Instance.new("Frame", TabInfo.Right)
-StatsCard.Size = UDim2.new(1, -4, 0, 240)
+StatsCard.Size = UDim2.new(1, -4, 0, 250)
 StatsCard.BackgroundColor3 = Color3.fromRGB(12, 12, 12)
 StatsCard.BorderSizePixel = 0
 StatsCard.ZIndex = 30
@@ -2301,21 +2323,15 @@ StatsTitle.TextSize = 12
 StatsTitle.TextXAlignment = Enum.TextXAlignment.Left
 StatsTitle.ZIndex = 31
 
-local StatsContainer = Instance.new("ScrollingFrame", StatsCard)
+local StatsContainer = Instance.new("Frame", StatsCard)
 StatsContainer.Size = UDim2.new(1, -16, 1, -35)
 StatsContainer.Position = UDim2.new(0, 8, 0, 30)
 StatsContainer.BackgroundTransparency = 1
-StatsContainer.BorderSizePixel = 0
-StatsContainer.ScrollBarThickness = 2
-StatsContainer.ScrollBarImageColor3 = Color3.fromRGB(200, 40, 40)
 StatsContainer.ZIndex = 31
 
 local StatsListLayout = Instance.new("UIListLayout", StatsContainer)
 StatsListLayout.SortOrder = Enum.SortOrder.LayoutOrder
 StatsListLayout.Padding = UDim.new(0, 4)
-StatsListLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
-    StatsContainer.CanvasSize = UDim2.new(0, 0, 0, StatsListLayout.AbsoluteContentSize.Y + 10)
-end)
 
 local statLabels = {}
 local statNames = {"Agility", "Attack", "Defense", "Ki", "ZenkaiBoost", "Zeni", "SelectedMode", "Kills", "DragonBalls"}
@@ -2441,26 +2457,26 @@ CreateToggleWithSubOptions(TabVisual.Right, "ESP DragonBall", function(v)
 end, {
     {
         Name = "Highlight (Chams)", 
-        GetColor = function() return DBConfig.Color end,
-        SetColor = function(c) DBConfig.Color = c end,
+        GetColor = function() return DBConfig.HighlightColor end,
+        SetColor = function(c) DBConfig.HighlightColor = c end,
         Callback = function(v) DBConfig.Highlight = v end
     },
     {
         Name = "Exibir Nomes", 
-        GetColor = function() return DBConfig.Color end,
-        SetColor = function(c) DBConfig.Color = c end,
+        GetColor = function() return DBConfig.NameColor end,
+        SetColor = function(c) DBConfig.NameColor = c end,
         Callback = function(v) DBConfig.Names = v end
     },
     {
         Name = "Exibir Distância", 
-        GetColor = function() return DBConfig.Color end,
-        SetColor = function(c) DBConfig.Color = c end,
+        GetColor = function() return DBConfig.DistanceColor end,
+        SetColor = function(c) DBConfig.DistanceColor = c end,
         Callback = function(v) DBConfig.Distance = v end
     },
     {
         Name = "Linhas (Tracers)", 
-        GetColor = function() return DBConfig.Color end,
-        SetColor = function(c) DBConfig.Color = c end,
+        GetColor = function() return DBConfig.LineColor end,
+        SetColor = function(c) DBConfig.LineColor = c end,
         Callback = function(v) DBConfig.Lines = v end
     }
 })
@@ -2470,49 +2486,52 @@ CreateToggleWithSubOptions(TabVisual.Right, "ESP Comerciante", function(v)
 end, {
     {
         Name = "Highlight (Chams)", 
-        GetColor = function() return MerchantConfig.Color end,
-        SetColor = function(c) MerchantConfig.Color = c end,
+        GetColor = function() return MerchantConfig.HighlightColor end,
+        SetColor = function(c) MerchantConfig.HighlightColor = c end,
         Callback = function(v) MerchantConfig.Highlight = v end
     },
     {
         Name = "Exibir Nomes", 
-        GetColor = function() return MerchantConfig.Color end,
-        SetColor = function(c) MerchantConfig.Color = c end,
+        GetColor = function() return MerchantConfig.NameColor end,
+        SetColor = function(c) MerchantConfig.NameColor = c end,
         Callback = function(v) MerchantConfig.Names = v end
     },
     {
         Name = "Exibir Distância", 
-        GetColor = function() return MerchantConfig.Color end,
-        SetColor = function(c) MerchantConfig.Color = c end,
+        GetColor = function() return MerchantConfig.DistanceColor end,
+        SetColor = function(c) MerchantConfig.DistanceColor = c end,
         Callback = function(v) MerchantConfig.Distance = v end
     },
     {
         Name = "Linhas (Tracers)", 
-        GetColor = function() return MerchantConfig.Color end,
-        SetColor = function(c) MerchantConfig.Color = c end,
+        GetColor = function() return MerchantConfig.LineColor end,
+        SetColor = function(c) MerchantConfig.LineColor = c end,
         Callback = function(v) MerchantConfig.Lines = v end
     }
 })
 
--- Aba Misc
+-- Aba Misc (Organizada com Seções)
+CreateSection(TabMisc.Left, "Teleportes")
 CreateButton(TabMisc.Left, "Teleportar para Dragonball", function()
     TeleportToNearestDragonBall()
 end)
 
+CreateButton(TabMisc.Left, "Teleportar para Comerciante", function()
+    TeleportToMerchant()
+end)
+
+CreateSection(TabMisc.Left, "Auto Teleporte")
 CreateToggle(TabMisc.Left, "Auto tp DragonBall", function(v)
     Config.AutoTpDB = v
     dbAutoTpTriggered = false
 end, false)
-
-CreateButton(TabMisc.Left, "Teleportar para Comerciante", function()
-    TeleportToMerchant()
-end)
 
 CreateToggle(TabMisc.Left, "Auto tp Comerciante", function(v)
     Config.AutoTpMerchant = v
     merchantAutoTpTriggered = false
 end, false)
 
+CreateSection(TabMisc.Left, "Informações do Mapa")
 local DBCountFrame = Instance.new("Frame", TabMisc.Left)
 DBCountFrame.Size = UDim2.new(1, -4, 0, 32)
 DBCountFrame.BackgroundColor3 = Color3.fromRGB(12, 12, 12)
