@@ -1023,7 +1023,7 @@ UserInputService.InputChanged:Connect(function(input)
 
 		if resizing and startInputPos and startSize then
 			local delta = input.Position - startInputPos
-			local newWidth = math.clamp(startSize.X + delta.X, 440, 850)
+			local newWidth = math.clamp(startSize.X + delta.X, 420, 850)
 			local newHeight = math.clamp(startSize.Y + delta.Y, 280, 600)
 
 			MainPanel.Size = UDim2.new(0, newWidth, 0, newHeight)
@@ -1305,11 +1305,11 @@ CloseBtn.MouseButton1Click:Connect(function()
 end)
 
 -- ==========================================
--- 5. ABAS E SÍMBOLOS (VERTICAL SIDEBAR)
+-- 5. ABAS E SÍMBOLOS (VERTICAL SIDEBAR - COMPACTO)
 -- ==========================================
 TabsContainer = Instance.new("Frame", MainPanel)
 TabsContainer.Name = "TabsContainer"
-TabsContainer.Size = UDim2.new(0, 130, 1, -55)
+TabsContainer.Size = UDim2.new(0, 100, 1, -55) -- Largura reduzida (Compacto)
 TabsContainer.Position = UDim2.new(0, 10, 0, 50)
 TabsContainer.BackgroundColor3 = Color3.fromRGB(10, 10, 10)
 TabsContainer.BorderSizePixel = 0
@@ -1323,21 +1323,21 @@ TabsLayout.Padding = UDim.new(0, 4)
 
 PagesContainer = Instance.new("Frame", MainPanel)
 PagesContainer.Name = "PagesContainer"
-PagesContainer.Size = UDim2.new(1, -150, 1, -55)
-PagesContainer.Position = UDim2.new(0, 145, 0, 50)
+PagesContainer.Size = UDim2.new(1, -120, 1, -55) -- Ajustado proporcionalmente
+PagesContainer.Position = UDim2.new(0, 115, 0, 50) -- Ajustado proporcionalmente
 PagesContainer.BackgroundTransparency = 1
 PagesContainer.ZIndex = 30
 
 local function CreateTabSymbol(parent, iconType)
     local IconFrame = Instance.new("Frame", parent)
-    IconFrame.Size = UDim2.new(0, 16, 0, 16)
-    IconFrame.Position = UDim2.new(0, 12, 0.5, -8)
+    IconFrame.Size = UDim2.new(0, 14, 0, 14)
+    IconFrame.Position = UDim2.new(0, 10, 0.5, -7)
     IconFrame.BackgroundTransparency = 1
     IconFrame.ZIndex = 30
 
     if iconType == "Principal" then
         local Roof = Instance.new("Frame", IconFrame)
-        Roof.Size = UDim2.new(0, 10, 0, 10)
+        Roof.Size = UDim2.new(0, 9, 0, 9)
         Roof.Position = UDim2.new(0.5, 0, 0, 2)
         Roof.AnchorPoint = Vector2.new(0.5, 0)
         Roof.Rotation = 45
@@ -1346,7 +1346,7 @@ local function CreateTabSymbol(parent, iconType)
         Instance.new("UICorner", Roof).CornerRadius = UDim.new(0, 2)
 
         local HouseBody = Instance.new("Frame", IconFrame)
-        HouseBody.Size = UDim2.new(0, 10, 0, 8)
+        HouseBody.Size = UDim2.new(0, 9, 0, 7)
         HouseBody.Position = UDim2.new(0.5, 0, 1, -1)
         HouseBody.AnchorPoint = Vector2.new(0.5, 1)
         HouseBody.BackgroundColor3 = Color3.fromRGB(255, 60, 60)
@@ -1354,7 +1354,7 @@ local function CreateTabSymbol(parent, iconType)
         Instance.new("UICorner", HouseBody).CornerRadius = UDim.new(0, 1)
         
         local Door = Instance.new("Frame", HouseBody)
-        Door.Size = UDim2.new(0, 4, 0, 5)
+        Door.Size = UDim2.new(0, 3, 0, 4)
         Door.Position = UDim2.new(0.5, 0, 1, 0)
         Door.AnchorPoint = Vector2.new(0.5, 1)
         Door.BackgroundColor3 = Color3.fromRGB(10, 10, 10)
@@ -1363,7 +1363,7 @@ local function CreateTabSymbol(parent, iconType)
 
     elseif iconType == "Jogador" then
         local Head = Instance.new("Frame", IconFrame)
-        Head.Size = UDim2.new(0, 6, 0, 6)
+        Head.Size = UDim2.new(0, 5, 0, 5)
         Head.Position = UDim2.new(0.5, 0, 0, 1)
         Head.AnchorPoint = Vector2.new(0.5, 0)
         Head.BackgroundColor3 = Color3.fromRGB(255, 60, 60)
@@ -1371,7 +1371,7 @@ local function CreateTabSymbol(parent, iconType)
         Instance.new("UICorner", Head).CornerRadius = UDim.new(1, 0)
 
         local Body = Instance.new("Frame", IconFrame)
-        Body.Size = UDim2.new(0, 14, 0, 7)
+        Body.Size = UDim2.new(0, 12, 0, 6)
         Body.Position = UDim2.new(0.5, 0, 1, -1)
         Body.AnchorPoint = Vector2.new(0.5, 1)
         Body.BackgroundColor3 = Color3.fromRGB(255, 60, 60)
@@ -1380,7 +1380,7 @@ local function CreateTabSymbol(parent, iconType)
 
     elseif iconType == "Visual" then
         local OuterEye = Instance.new("Frame", IconFrame)
-        OuterEye.Size = UDim2.new(0, 14, 0, 10)
+        OuterEye.Size = UDim2.new(0, 12, 0, 9)
         OuterEye.Position = UDim2.new(0.5, 0, 0.5, 0)
         OuterEye.AnchorPoint = Vector2.new(0.5, 0.5)
         OuterEye.BackgroundColor3 = Color3.fromRGB(10, 10, 10)
@@ -1392,7 +1392,7 @@ local function CreateTabSymbol(parent, iconType)
         OuterStroke.Thickness = 1.5
 
         local Pupil = Instance.new("Frame", OuterEye)
-        Pupil.Size = UDim2.new(0, 5, 0, 5)
+        Pupil.Size = UDim2.new(0, 4, 0, 4)
         Pupil.Position = UDim2.new(0.5, 0, 0.5, 0)
         Pupil.AnchorPoint = Vector2.new(0.5, 0.5)
         Pupil.BackgroundColor3 = Color3.fromRGB(255, 60, 60)
@@ -1401,7 +1401,7 @@ local function CreateTabSymbol(parent, iconType)
 
     elseif iconType == "Misc" then
         local WrenchHandle = Instance.new("Frame", IconFrame)
-        WrenchHandle.Size = UDim2.new(0, 3, 0, 13)
+        WrenchHandle.Size = UDim2.new(0, 3, 0, 11)
         WrenchHandle.Position = UDim2.new(0.5, 0, 0.5, 0)
         WrenchHandle.AnchorPoint = Vector2.new(0.5, 0.5)
         WrenchHandle.Rotation = 45
@@ -1410,31 +1410,31 @@ local function CreateTabSymbol(parent, iconType)
         Instance.new("UICorner", WrenchHandle).CornerRadius = UDim.new(0, 1)
 
         local WrenchHead = Instance.new("Frame", IconFrame)
-        WrenchHead.Size = UDim2.new(0, 9, 0, 8)
-        WrenchHead.Position = UDim2.new(0.5, 4, 0.5, -4)
+        WrenchHead.Size = UDim2.new(0, 8, 0, 7)
+        WrenchHead.Position = UDim2.new(0.5, 3, 0.5, -3)
         WrenchHead.AnchorPoint = Vector2.new(0.5, 0.5)
         WrenchHead.BackgroundColor3 = Color3.fromRGB(255, 60, 60)
         WrenchHead.BorderSizePixel = 0
         Instance.new("UICorner", WrenchHead).CornerRadius = UDim.new(0, 2)
 
         local JawCutout = Instance.new("Frame", WrenchHead)
-        JawCutout.Size = UDim2.new(0, 4, 0, 4)
-        JawCutout.Position = UDim2.new(1, -2, 0.5, 0)
+        JawCutout.Size = UDim2.new(0, 3, 0, 3)
+        JawCutout.Position = UDim2.new(1, -1, 0.5, 0)
         JawCutout.AnchorPoint = Vector2.new(1, 0.5)
         JawCutout.BackgroundColor3 = Color3.fromRGB(10, 10, 10)
         JawCutout.BorderSizePixel = 0
         Instance.new("UICorner", JawCutout).CornerRadius = UDim.new(0, 1)
 
         local WrenchRing = Instance.new("Frame", IconFrame)
-        WrenchRing.Size = UDim2.new(0, 7, 0, 7)
-        WrenchRing.Position = UDim2.new(0.5, -4, 0.5, 4)
+        WrenchRing.Size = UDim2.new(0, 6, 0, 6)
+        WrenchRing.Position = UDim2.new(0.5, -3, 0.5, 3)
         WrenchRing.AnchorPoint = Vector2.new(0.5, 0.5)
         WrenchRing.BackgroundColor3 = Color3.fromRGB(255, 60, 60)
         WrenchRing.BorderSizePixel = 0
         Instance.new("UICorner", WrenchRing).CornerRadius = UDim.new(1, 0)
 
         local RingHole = Instance.new("Frame", WrenchRing)
-        RingHole.Size = UDim2.new(0, 3, 0, 3)
+        RingHole.Size = UDim2.new(0, 2, 0, 2)
         RingHole.Position = UDim2.new(0.5, 0, 0.5, 0)
         RingHole.AnchorPoint = Vector2.new(0.5, 0.5)
         RingHole.BackgroundColor3 = Color3.fromRGB(10, 10, 10)
@@ -1445,7 +1445,7 @@ end
 
 local function CreateTab(name, iconType)
     local TabBtn = Instance.new("TextButton", TabsContainer)
-    TabBtn.Size = UDim2.new(1, 0, 0, 38)
+    TabBtn.Size = UDim2.new(1, 0, 0, 32) -- Altura menor para ficar mais compacto (de 38 para 32)
     TabBtn.BackgroundTransparency = 1
     TabBtn.Text = "" 
     TabBtn.AutoButtonColor = false
@@ -1454,13 +1454,13 @@ local function CreateTab(name, iconType)
     CreateTabSymbol(TabBtn, iconType)
 
     local TabText = Instance.new("TextLabel", TabBtn)
-    TabText.Size = UDim2.new(1, -34, 1, 0)
-    TabText.Position = UDim2.new(0, 34, 0, 0)
+    TabText.Size = UDim2.new(1, -28, 1, 0)
+    TabText.Position = UDim2.new(0, 28, 0, 0)
     TabText.BackgroundTransparency = 1
     TabText.Text = name
     TabText.TextColor3 = Color3.fromRGB(150, 150, 150)
     TabText.Font = Enum.Font.GothamSemibold
-    TabText.TextSize = 12
+    TabText.TextSize = 11 -- Fonte ligeiramente menor para encaixar perfeitamente
     TabText.TextXAlignment = Enum.TextXAlignment.Left
     TabText.ZIndex = 30
 
