@@ -51,9 +51,8 @@ local Config = {
     WalkSpeed = 50,
     AutoTpDB = false,
     AutoTpMerchant = false,
-    -- Configurações de Voo Integradas
     FlightEnabled = false,
-    FlightMode = "Both", -- "Both", "FastOnly", "NormalOnly"
+    FlightMode = "Both",
     NormalMultiplier = 1.5,
     FastMultiplier = 3.0
 }
@@ -120,7 +119,6 @@ RunService.RenderStepped:Connect(function()
     end)
 end)
 
--- APLICAÇÃO INTELIGENTE DA FÍSICA DE VOO
 RunService.RenderStepped:Connect(function()
     if not Config.FlightEnabled then return end
 
@@ -2529,91 +2527,6 @@ DetailsLbl.TextSize = 10
 DetailsLbl.TextXAlignment = Enum.TextXAlignment.Left
 DetailsLbl.ZIndex = 31
 
--- Conteúdo da Aba Info - Cartão de Estatísticas (Lado Direito)
-local StatsCard = Instance.new("Frame", TabInfo.Right)
-StatsCard.Size = UDim2.new(1, -4, 0, 250)
-StatsCard.BackgroundColor3 = Color3.fromRGB(12, 12, 12)
-StatsCard.BorderSizePixel = 0
-StatsCard.ZIndex = 30
-Instance.new("UICorner", StatsCard).CornerRadius = UDim.new(0, 6)
-
-local StatsCardStroke = Instance.new("UIStroke", StatsCard)
-StatsCardStroke.Color = Color3.fromRGB(35, 20, 20)
-StatsCardStroke.Thickness = 1
-
-local StatsTitle = Instance.new("TextLabel", StatsCard)
-StatsTitle.Size = UDim2.new(1, -16, 0, 25)
-StatsTitle.Position = UDim2.new(0, 8, 0, 5)
-StatsTitle.BackgroundTransparency = 1
-StatsTitle.Text = "Estatísticas do Personagem"
-StatsTitle.TextColor3 = Color3.fromRGB(255, 60, 60)
-StatsTitle.Font = Enum.Font.GothamBold
-StatsTitle.TextSize = 12
-StatsTitle.TextXAlignment = Enum.TextXAlignment.Left
-StatsTitle.ZIndex = 31
-
-local StatsContainer = Instance.new("Frame", StatsCard)
-StatsContainer.Size = UDim2.new(1, -16, 1, -35)
-StatsContainer.Position = UDim2.new(0, 8, 0, 30)
-StatsContainer.BackgroundTransparency = 1
-StatsContainer.ZIndex = 31
-
-local StatsListLayout = Instance.new("UIListLayout", StatsContainer)
-StatsListLayout.SortOrder = Enum.SortOrder.LayoutOrder
-StatsListLayout.Padding = UDim.new(0, 4)
-
-local statLabels = {}
-local statNames = {"Agility", "Attack", "Defense", "Ki", "ZenkaiBoost", "Zeni", "SelectedMode", "Kills", "DragonBalls"}
-
-for _, statName in ipairs(statNames) do
-    local Row = Instance.new("Frame", StatsContainer)
-    Row.Size = UDim2.new(1, -6, 0, 20)
-    Row.BackgroundTransparency = 1
-    Row.ZIndex = 32
-
-    local KeyLbl = Instance.new("TextLabel", Row)
-    KeyLbl.Size = UDim2.new(0.6, 0, 1, 0)
-    KeyLbl.BackgroundTransparency = 1
-    KeyLbl.Text = statName .. " :"
-    KeyLbl.TextColor3 = Color3.fromRGB(180, 180, 180)
-    KeyLbl.Font = Enum.Font.GothamSemibold
-    KeyLbl.TextSize = 11
-    KeyLbl.TextXAlignment = Enum.TextXAlignment.Left
-    KeyLbl.ZIndex = 32
-
-    local ValLbl = Instance.new("TextLabel", Row)
-    ValLbl.Size = UDim2.new(0.4, -4, 1, 0)
-    ValLbl.Position = UDim2.new(0.6, 0, 0, 0)
-    ValLbl.BackgroundTransparency = 1
-    ValLbl.Text = "0"
-    ValLbl.TextColor3 = Color3.fromRGB(255, 255, 255)
-    ValLbl.Font = Enum.Font.GothamBold
-    ValLbl.TextSize = 11
-    ValLbl.TextScaled = true
-    ValLbl.TextXAlignment = Enum.TextXAlignment.Right
-    ValLbl.ZIndex = 32
-
-    statLabels[statName] = ValLbl
-end
-
-task.spawn(function()
-    while task.wait(0.5) do
-        pcall(function()
-            local statsFolder = LocalPlayer:FindFirstChild("Stats")
-            if statsFolder then
-                for statName, lbl in pairs(statLabels) do
-                    local statVal = statsFolder:FindFirstChild(statName)
-                    if statVal then
-                        lbl.Text = tostring(statVal.Value)
-                    else
-                        lbl.Text = "N/A"
-                    end
-                end
-            end
-        end)
-    end
-end)
-
 -- Aba Principal
 CreateToggle(TabMain.Left, "Auto Attack", function(v) 
     Config.AutoAttack = v 
@@ -2636,7 +2549,7 @@ end, true, 0, 90, 10, function(v)
     Config.AutoChargeMin = v 
 end, false, nil, "Segurar", "%", true)
 
--- Aba Jogador
+-- Aba Jogador (Lado Esquerdo - Controles de Movimento/Voo)
 CreateToggle(TabPlayer.Left, "Pulo Infinito", function(v) Config.InfJump = v end, false)
 
 CreateToggle(TabPlayer.Left, "Ativar Velocidade", function(v) 
@@ -2645,7 +2558,7 @@ end, true, 16, 300, 50, function(v)
     Config.WalkSpeed = v 
 end, false, nil, "Segurar", "", true)
 
--- SISTEMA DE VOO CONTROLLER INTEGRADO (FLIGHT SPEED CONTROLLER)
+-- SISTEMA DE VOO CONTROLLER INTEGRADO
 do
     local baseHeight = 30
     local expandedHeight = 150
@@ -2719,7 +2632,6 @@ do
     ContentContainer.Visible = false
     ContentContainer.ZIndex = 30
 
-    -- Botão de Seleção de Modo
     local ModeBtn = Instance.new("TextButton", ContentContainer)
     ModeBtn.Size = UDim2.new(1, 0, 0, 22)
     ModeBtn.Position = UDim2.new(0, 0, 0, 0)
@@ -2747,7 +2659,6 @@ do
         end
     end)
 
-    -- Slider: Velocidade Normal (1.0x - 15.0x)
     local speedLbl1 = Instance.new("TextLabel", ContentContainer)
     speedLbl1.Size = UDim2.new(1, -50, 0, 14)
     speedLbl1.Position = UDim2.new(0, 0, 0, 28)
@@ -2781,7 +2692,6 @@ do
     barFill1.BorderSizePixel = 0
     Instance.new("UICorner", barFill1).CornerRadius = UDim.new(1, 0)
 
-    -- Slider: Velocidade Fast Flight (1.0x - 15.0x)
     local speedLbl2 = Instance.new("TextLabel", ContentContainer)
     speedLbl2.Size = UDim2.new(1, -50, 0, 14)
     speedLbl2.Position = UDim2.new(0, 0, 0, 56)
@@ -2877,6 +2787,90 @@ do
         end
     end)
 end
+
+-- Aba Jogador (Lado Direito - Cartão Compacto de Estatísticas do Player)
+local StatsCard = Instance.new("Frame", TabPlayer.Right)
+StatsCard.Size = UDim2.new(1, -4, 0, 115)
+StatsCard.BackgroundColor3 = Color3.fromRGB(12, 12, 12)
+StatsCard.BorderSizePixel = 0
+StatsCard.ZIndex = 30
+Instance.new("UICorner", StatsCard).CornerRadius = UDim.new(0, 6)
+
+local StatsCardStroke = Instance.new("UIStroke", StatsCard)
+StatsCardStroke.Color = Color3.fromRGB(35, 20, 20)
+StatsCardStroke.Thickness = 1
+
+local StatsTitle = Instance.new("TextLabel", StatsCard)
+StatsTitle.Size = UDim2.new(1, -12, 0, 18)
+StatsTitle.Position = UDim2.new(0, 6, 0, 4)
+StatsTitle.BackgroundTransparency = 1
+StatsTitle.Text = "Estatísticas do Player"
+StatsTitle.TextColor3 = Color3.fromRGB(255, 60, 60)
+StatsTitle.Font = Enum.Font.GothamBold
+StatsTitle.TextSize = 10
+StatsTitle.TextXAlignment = Enum.TextXAlignment.Left
+StatsTitle.ZIndex = 31
+
+local StatsContainer = Instance.new("Frame", StatsCard)
+StatsContainer.Size = UDim2.new(1, -12, 1, -26)
+StatsContainer.Position = UDim2.new(0, 6, 0, 24)
+StatsContainer.BackgroundTransparency = 1
+StatsContainer.ZIndex = 31
+
+local StatsGridLayout = Instance.new("UIGridLayout", StatsContainer)
+StatsGridLayout.CellSize = UDim2.new(0.5, -3, 0, 15)
+StatsGridLayout.CellPadding = UDim2.new(0, 4, 0, 2)
+StatsGridLayout.SortOrder = Enum.SortOrder.LayoutOrder
+
+local statLabels = {}
+local statNames = {"Agility", "Attack", "Defense", "Ki", "ZenkaiBoost", "Zeni", "SelectedMode", "Kills", "DragonBalls"}
+
+for _, statName in ipairs(statNames) do
+    local ItemFrame = Instance.new("Frame", StatsContainer)
+    ItemFrame.BackgroundTransparency = 1
+    ItemFrame.ZIndex = 32
+
+    local KeyLbl = Instance.new("TextLabel", ItemFrame)
+    KeyLbl.Size = UDim2.new(0.55, 0, 1, 0)
+    KeyLbl.BackgroundTransparency = 1
+    KeyLbl.Text = statName .. ":"
+    KeyLbl.TextColor3 = Color3.fromRGB(160, 160, 160)
+    KeyLbl.Font = Enum.Font.GothamSemibold
+    KeyLbl.TextSize = 9
+    KeyLbl.TextXAlignment = Enum.TextXAlignment.Left
+    KeyLbl.ZIndex = 32
+
+    local ValLbl = Instance.new("TextLabel", ItemFrame)
+    ValLbl.Size = UDim2.new(0.45, 0, 1, 0)
+    ValLbl.Position = UDim2.new(0.55, 0, 0, 0)
+    ValLbl.BackgroundTransparency = 1
+    ValLbl.Text = "0"
+    ValLbl.TextColor3 = Color3.fromRGB(255, 255, 255)
+    ValLbl.Font = Enum.Font.GothamBold
+    ValLbl.TextSize = 9
+    ValLbl.TextXAlignment = Enum.TextXAlignment.Right
+    ValLbl.ZIndex = 32
+
+    statLabels[statName] = ValLbl
+end
+
+task.spawn(function()
+    while task.wait(0.5) do
+        pcall(function()
+            local statsFolder = LocalPlayer:FindFirstChild("Stats")
+            if statsFolder then
+                for statName, lbl in pairs(statLabels) do
+                    local statVal = statsFolder:FindFirstChild(statName)
+                    if statVal then
+                        lbl.Text = tostring(statVal.Value)
+                    else
+                        lbl.Text = "N/A"
+                    end
+                end
+            end
+        end)
+    end
+end)
 
 -- Aba Visual
 CreateToggleWithSubOptions(TabVisual.Left, "ESP Players", function(v) 
