@@ -193,14 +193,12 @@ task.spawn(function()
                                 defenseEnergyCooldown = true
                                 
                                 task.delay(0.5, function()
-                                    -- Dá um clique
                                     pcall(function()
                                         VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.R, false, game)
                                         task.wait(0.02)
                                         VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.R, false, game)
                                     end)
                                     
-                                    -- Espera 0.5s e libera para voltar a segurar
                                     task.wait(0.5)
                                     defenseEnergyCooldown = false
                                 end)
@@ -256,14 +254,12 @@ task.spawn(function()
                                 kiBlastEnergyCooldown = true
                                 
                                 task.delay(0.5, function()
-                                    -- Dá um clique
                                     pcall(function()
                                         VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.Q, false, game)
                                         task.wait(0.02)
                                         VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.Q, false, game)
                                     end)
                                     
-                                    -- Espera 0.5s e libera para voltar a segurar
                                     task.wait(0.5)
                                     kiBlastEnergyCooldown = false
                                 end)
@@ -283,7 +279,7 @@ task.spawn(function()
     end
 end)
 
--- AUTO CHARGE KI LOOP (Comportamento original)
+-- AUTO CHARGE KI LOOP
 local chargeHolding = false
 task.spawn(function()
     while true do
@@ -865,7 +861,7 @@ end)
 -- ==========================================
 local MainPanel = Instance.new("Frame")
 MainPanel.Name = "MainPanel"
-MainPanel.Size = UDim2.new(0, 520, 0, 320)
+MainPanel.Size = UDim2.new(0, 540, 0, 340)
 MainPanel.Position = UDim2.new(0.5, 0, 0.5, 0)
 MainPanel.AnchorPoint = Vector2.new(0.5, 0.5)
 MainPanel.BackgroundColor3 = Color3.fromRGB(5, 5, 5)
@@ -990,7 +986,7 @@ local draggingPanel = false
 local dragStartPos = nil
 local startPanelPos = nil
 
-local lastPanelSize = Vector2.new(520, 320)
+local lastPanelSize = Vector2.new(540, 340)
 
 ResizeHandle.InputBegan:Connect(function(input)
 	if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
@@ -1027,8 +1023,8 @@ UserInputService.InputChanged:Connect(function(input)
 
 		if resizing and startInputPos and startSize then
 			local delta = input.Position - startInputPos
-			local newWidth = math.clamp(startSize.X + delta.X, 420, 850)
-			local newHeight = math.clamp(startSize.Y + delta.Y, 260, 600)
+			local newWidth = math.clamp(startSize.X + delta.X, 440, 850)
+			local newHeight = math.clamp(startSize.Y + delta.Y, 280, 600)
 
 			MainPanel.Size = UDim2.new(0, newWidth, 0, newHeight)
 			lastPanelSize = Vector2.new(newWidth, newHeight)
@@ -1309,23 +1305,26 @@ CloseBtn.MouseButton1Click:Connect(function()
 end)
 
 -- ==========================================
--- 5. ABAS E SÍMBOLOS
+-- 5. ABAS E SÍMBOLOS (VERTICAL SIDEBAR)
 -- ==========================================
 TabsContainer = Instance.new("Frame", MainPanel)
-TabsContainer.Size = UDim2.new(1, -20, 0, 35)
-TabsContainer.Position = UDim2.new(0, 10, 0, 55)
+TabsContainer.Name = "TabsContainer"
+TabsContainer.Size = UDim2.new(0, 130, 1, -55)
+TabsContainer.Position = UDim2.new(0, 10, 0, 50)
 TabsContainer.BackgroundColor3 = Color3.fromRGB(10, 10, 10)
 TabsContainer.BorderSizePixel = 0
 TabsContainer.ZIndex = 30
 Instance.new("UICorner", TabsContainer).CornerRadius = UDim.new(0, 8)
 
 local TabsLayout = Instance.new("UIListLayout", TabsContainer)
-TabsLayout.FillDirection = Enum.FillDirection.Horizontal
+TabsLayout.FillDirection = Enum.FillDirection.Vertical
 TabsLayout.SortOrder = Enum.SortOrder.LayoutOrder
+TabsLayout.Padding = UDim.new(0, 4)
 
 PagesContainer = Instance.new("Frame", MainPanel)
-PagesContainer.Size = UDim2.new(1, -20, 1, -110)
-PagesContainer.Position = UDim2.new(0, 10, 0, 100)
+PagesContainer.Name = "PagesContainer"
+PagesContainer.Size = UDim2.new(1, -150, 1, -55)
+PagesContainer.Position = UDim2.new(0, 145, 0, 50)
 PagesContainer.BackgroundTransparency = 1
 PagesContainer.ZIndex = 30
 
@@ -1446,7 +1445,7 @@ end
 
 local function CreateTab(name, iconType)
     local TabBtn = Instance.new("TextButton", TabsContainer)
-    TabBtn.Size = UDim2.new(0, 85, 1, 0)
+    TabBtn.Size = UDim2.new(1, 0, 0, 38)
     TabBtn.BackgroundTransparency = 1
     TabBtn.Text = "" 
     TabBtn.AutoButtonColor = false
@@ -1472,7 +1471,7 @@ local function CreateTab(name, iconType)
     Page.ZIndex = 30
 
     local LeftCol = Instance.new("ScrollingFrame", Page)
-    LeftCol.Size = UDim2.new(0.5, -5, 1, 0)
+    LeftCol.Size = UDim2.new(0.5, -4, 1, 0)
     LeftCol.Position = UDim2.new(0, 0, 0, 0)
     LeftCol.BackgroundTransparency = 1
     LeftCol.BorderSizePixel = 0
@@ -1487,8 +1486,8 @@ local function CreateTab(name, iconType)
     end)
 
     local RightCol = Instance.new("ScrollingFrame", Page)
-    RightCol.Size = UDim2.new(0.5, -5, 1, 0)
-    RightCol.Position = UDim2.new(0.5, 5, 0, 0)
+    RightCol.Size = UDim2.new(0.5, -4, 1, 0)
+    RightCol.Position = UDim2.new(0.5, 4, 0, 0)
     RightCol.BackgroundTransparency = 1
     RightCol.BorderSizePixel = 0
     RightCol.ScrollBarThickness = 3
@@ -2425,5 +2424,5 @@ task.spawn(function()
     
     MainPanel.Visible = true
     isPanelOpen = true
-    TweenService:Create(MainPanel, TweenInfo.new(0.6, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {Size = UDim2.new(0, 520, 0, 320)}):Play()
+    TweenService:Create(MainPanel, TweenInfo.new(0.6, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {Size = UDim2.new(0, 540, 0, 340)}):Play()
 end)
