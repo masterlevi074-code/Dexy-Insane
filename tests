@@ -253,6 +253,14 @@ task.spawn(function()
                             elseif chargeHolding and currentEnergy >= maxEnergy then
                                 chargeHolding = false
                                 VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.C, false, game)
+                                if Config.AutoDefense or Config.AutoKiBlast then
+                                    task.delay(1.0, function()
+                                        if Config.AutoCharge and not chargeHolding then
+                                            VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.C, false, game)
+                                            chargeHolding = true
+                                        end
+                                    end)
+                                end
                             end
                         end
                     end
@@ -797,7 +805,6 @@ FloatStroke.Color = Color3.fromRGB(255, 0, 0)
 FloatStroke.Thickness = 1.5
 FloatStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
 
--- Chamado com 'false' para remover a borda vermelha do símbolo flutuante
 CreateCustomSymbol(FloatingBtn, UDim2.new(0.5, 0, 0.5, 0), UDim2.new(0, 34, 0, 34), false)
 
 FloatingBtn.MouseEnter:Connect(function()
@@ -990,7 +997,6 @@ UserInputService.InputEnded:Connect(function(input)
 	end
 end)
 
--- Chamado com 'true' para manter a borda vermelha no topo
 CreateCustomSymbol(TopBar, UDim2.new(0, 25, 0.5, 0), UDim2.new(0, 28, 0, 28), true)
 
 local Title = Instance.new("TextLabel", TopBar)
@@ -1015,25 +1021,28 @@ Subtitle.TextSize = 10
 Subtitle.TextXAlignment = Enum.TextXAlignment.Left
 Subtitle.ZIndex = 30
 
--- FUNÇÃO PARA CRIAR BOTÕES DO TOPO COM BORDA VERMELHA
-local function CreateTopButton(name, text, posOffset, hoverColor)
+-- FUNÇÃO PARA CRIAR BOTÕES DO TOPO (COM OU SEM BORDA E FUNDO)
+local function CreateTopButton(name, text, posOffset, hoverColor, textColor, hasBorder)
     local Btn = Instance.new("TextButton", TopBar)
     Btn.Name = name
     Btn.Size = UDim2.new(0, 30, 0, 30)
     Btn.Position = UDim2.new(1, posOffset, 0.5, -15)
     Btn.BackgroundColor3 = Color3.fromRGB(10, 10, 10)
+    Btn.BackgroundTransparency = hasBorder and 0 or 1
     Btn.Text = text
-    Btn.TextColor3 = Color3.fromRGB(200, 200, 200)
+    Btn.TextColor3 = textColor
     Btn.Font = Enum.Font.GothamBold
     Btn.TextSize = 14
     Btn.AutoButtonColor = false
     Btn.ZIndex = 30
     Instance.new("UICorner", Btn).CornerRadius = UDim.new(0, 8)
 
-    local BtnStroke = Instance.new("UIStroke", Btn)
-    BtnStroke.Color = Color3.fromRGB(255, 40, 40)
-    BtnStroke.Thickness = 1.5
-    BtnStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+    if hasBorder then
+        local BtnStroke = Instance.new("UIStroke", Btn)
+        BtnStroke.Color = Color3.fromRGB(255, 40, 40)
+        BtnStroke.Thickness = 1.5
+        BtnStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+    end
 
     Btn.MouseEnter:Connect(function() TweenService:Create(Btn, TweenInfo.new(0.2), {BackgroundColor3 = hoverColor}):Play() end)
     Btn.MouseLeave:Connect(function() TweenService:Create(Btn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(10, 10, 10)}):Play() end)
@@ -1041,9 +1050,9 @@ local function CreateTopButton(name, text, posOffset, hoverColor)
     return Btn
 end
 
-local MinimizeIconBtn = CreateTopButton("MinimizeIconBtn", "•", -110, Color3.fromRGB(150, 40, 40))
-local RollUpBtn = CreateTopButton("RollUpBtn", "-", -75, Color3.fromRGB(150, 40, 40))
-local CloseBtn = CreateTopButton("CloseBtn", "X", -40, Color3.fromRGB(255, 30, 30))
+local MinimizeIconBtn = CreateTopButton("MinimizeIconBtn", "•", -110, Color3.fromRGB(40, 150, 40), Color3.fromRGB(46, 204, 113), false)
+local RollUpBtn = CreateTopButton("RollUpBtn", "•", -75, Color3.fromRGB(150, 150, 40), Color3.fromRGB(255, 220, 40), false)
+local CloseBtn = CreateTopButton("CloseBtn", "X", -40, Color3.fromRGB(255, 30, 30), Color3.fromRGB(255, 60, 60), true)
 
 -- INDICADOR DE BYPASS
 local BypassContainer = Instance.new("Frame", TopBar)
