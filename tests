@@ -658,9 +658,9 @@ local function CreateRipple(parentBtn)
 end
 
 -- ==========================================
--- SÍMBOLO CUSTOMIZADO COM BORA VERMELHA (IMAGEM)
+-- SÍMBOLO CUSTOMIZADO (COM OU SEM BORDA VERMELHA)
 -- ==========================================
-local function CreateCustomSymbol(parent, pos, size)
+local function CreateCustomSymbol(parent, pos, size, hasBorder)
     local SymbolFrame = Instance.new("Frame", parent)
     SymbolFrame.Size = size
     SymbolFrame.Position = pos
@@ -670,10 +670,12 @@ local function CreateCustomSymbol(parent, pos, size)
     SymbolFrame.ZIndex = 50
     Instance.new("UICorner", SymbolFrame).CornerRadius = UDim.new(0, 6)
 
-    local SymbolStroke = Instance.new("UIStroke", SymbolFrame)
-    SymbolStroke.Color = Color3.fromRGB(255, 40, 40)
-    SymbolStroke.Thickness = 1.5
-    SymbolStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+    if hasBorder then
+        local SymbolStroke = Instance.new("UIStroke", SymbolFrame)
+        SymbolStroke.Color = Color3.fromRGB(255, 40, 40)
+        SymbolStroke.Thickness = 1.5
+        SymbolStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+    end
 
     local SymbolImage = Instance.new("ImageLabel", SymbolFrame)
     SymbolImage.Size = UDim2.new(1, -6, 1, -6)
@@ -772,7 +774,7 @@ ProgressBarFill.ZIndex = 102
 Instance.new("UICorner", ProgressBarFill).CornerRadius = UDim.new(1, 0)
 
 -- ==========================================
--- 2. BOTÃO FLUTUANTE
+-- 2. BOTÃO FLUTUANTE (SEM BORDA VERMELHA NA IMAGEM)
 -- ==========================================
 local FloatingBtn = Instance.new("TextButton")
 FloatingBtn.Name = "FloatingIcon"
@@ -795,7 +797,8 @@ FloatStroke.Color = Color3.fromRGB(255, 0, 0)
 FloatStroke.Thickness = 1.5
 FloatStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
 
-CreateCustomSymbol(FloatingBtn, UDim2.new(0.5, 0, 0.5, 0), UDim2.new(0, 34, 0, 34))
+-- Chamado com 'false' para remover a borda vermelha do símbolo flutuante
+CreateCustomSymbol(FloatingBtn, UDim2.new(0.5, 0, 0.5, 0), UDim2.new(0, 34, 0, 34), false)
 
 FloatingBtn.MouseEnter:Connect(function()
     TweenService:Create(FloatingBtn, TweenInfo.new(0.3), {Size = UDim2.new(0, 55, 0, 55)}):Play()
@@ -987,7 +990,8 @@ UserInputService.InputEnded:Connect(function(input)
 	end
 end)
 
-CreateCustomSymbol(TopBar, UDim2.new(0, 25, 0.5, 0), UDim2.new(0, 28, 0, 28))
+-- Chamado com 'true' para manter a borda vermelha no topo
+CreateCustomSymbol(TopBar, UDim2.new(0, 25, 0.5, 0), UDim2.new(0, 28, 0, 28), true)
 
 local Title = Instance.new("TextLabel", TopBar)
 Title.Size = UDim2.new(1, -150, 0, 20)
