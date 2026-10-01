@@ -157,7 +157,7 @@ task.spawn(function()
     end
 end)
 
--- AUTO DEFENSE LOOP (Max -> espera 0.5s -> 1 clique -> espera 0.5s -> segura de novo)
+-- AUTO DEFENSE LOOP
 local defenseHolding = false
 local defenseEnergyCooldown = false
 task.spawn(function()
@@ -218,7 +218,7 @@ task.spawn(function()
     end
 end)
 
--- AUTO KI BLAST LOOP (Max -> espera 0.5s -> 1 clique -> espera 0.5s -> segura de novo)
+-- AUTO KI BLAST LOOP
 local kiBlastHolding = false
 local kiBlastEnergyCooldown = false
 task.spawn(function()
@@ -1050,6 +1050,7 @@ Title.TextColor3 = Color3.fromRGB(255, 60, 60)
 Title.Font = Enum.Font.GothamBlack
 Title.TextSize = 15
 Title.TextXAlignment = Enum.TextXAlignment.Left
+Title.TextTruncate = Enum.TextTruncate.AtEnd
 Title.ZIndex = 30
 
 local Subtitle = Instance.new("TextLabel", TopBar)
@@ -1061,6 +1062,7 @@ Subtitle.TextColor3 = Color3.fromRGB(150, 150, 150)
 Subtitle.Font = Enum.Font.GothamSemibold
 Subtitle.TextSize = 10
 Subtitle.TextXAlignment = Enum.TextXAlignment.Left
+Subtitle.TextTruncate = Enum.TextTruncate.AtEnd
 Subtitle.ZIndex = 30
 
 local function CreateTopButton(name, text, posOffset, sizeW, sizeH, hoverColor, textColor, hasBorder, hasRipple)
@@ -1127,6 +1129,7 @@ BypassLabel.TextColor3 = Color3.fromRGB(46, 204, 113)
 BypassLabel.Font = Enum.Font.GothamBold
 BypassLabel.TextSize = 10
 BypassLabel.TextXAlignment = Enum.TextXAlignment.Left
+BypassLabel.TextTruncate = Enum.TextTruncate.AtEnd
 BypassLabel.ZIndex = 30
 
 local InfoBtn = Instance.new("TextButton", TopBar)
@@ -1195,6 +1198,7 @@ NameLbl.TextColor3 = Color3.fromRGB(255, 255, 255)
 NameLbl.Font = Enum.Font.GothamBold
 NameLbl.TextSize = 13
 NameLbl.TextXAlignment = Enum.TextXAlignment.Left
+NameLbl.TextTruncate = Enum.TextTruncate.AtEnd
 NameLbl.ZIndex = 151
 
 local DisplayLbl = Instance.new("TextLabel", InfoPopup)
@@ -1206,6 +1210,7 @@ DisplayLbl.TextColor3 = Color3.fromRGB(160, 160, 160)
 DisplayLbl.Font = Enum.Font.Gotham
 DisplayLbl.TextSize = 11
 DisplayLbl.TextXAlignment = Enum.TextXAlignment.Left
+DisplayLbl.TextTruncate = Enum.TextTruncate.AtEnd
 DisplayLbl.ZIndex = 151
 
 local DetailsLbl = Instance.new("TextLabel", InfoPopup)
@@ -1217,6 +1222,7 @@ DetailsLbl.TextColor3 = Color3.fromRGB(200, 200, 200)
 DetailsLbl.Font = Enum.Font.GothamSemibold
 DetailsLbl.TextSize = 10
 DetailsLbl.TextXAlignment = Enum.TextXAlignment.Left
+DetailsLbl.TextTruncate = Enum.TextTruncate.AtEnd
 DetailsLbl.ZIndex = 151
 
 local ClosePopupBtn = Instance.new("TextButton", InfoPopup)
@@ -1309,7 +1315,7 @@ end)
 -- ==========================================
 TabsContainer = Instance.new("Frame", MainPanel)
 TabsContainer.Name = "TabsContainer"
-TabsContainer.Size = UDim2.new(0, 100, 1, -55) -- Largura reduzida (Compacto)
+TabsContainer.Size = UDim2.new(0, 100, 1, -55)
 TabsContainer.Position = UDim2.new(0, 10, 0, 50)
 TabsContainer.BackgroundColor3 = Color3.fromRGB(10, 10, 10)
 TabsContainer.BorderSizePixel = 0
@@ -1323,8 +1329,8 @@ TabsLayout.Padding = UDim.new(0, 4)
 
 PagesContainer = Instance.new("Frame", MainPanel)
 PagesContainer.Name = "PagesContainer"
-PagesContainer.Size = UDim2.new(1, -120, 1, -55) -- Ajustado proporcionalmente
-PagesContainer.Position = UDim2.new(0, 115, 0, 50) -- Ajustado proporcionalmente
+PagesContainer.Size = UDim2.new(1, -120, 1, -55)
+PagesContainer.Position = UDim2.new(0, 115, 0, 50)
 PagesContainer.BackgroundTransparency = 1
 PagesContainer.ZIndex = 30
 
@@ -1445,7 +1451,7 @@ end
 
 local function CreateTab(name, iconType)
     local TabBtn = Instance.new("TextButton", TabsContainer)
-    TabBtn.Size = UDim2.new(1, 0, 0, 32) -- Altura menor para ficar mais compacto (de 38 para 32)
+    TabBtn.Size = UDim2.new(1, 0, 0, 32)
     TabBtn.BackgroundTransparency = 1
     TabBtn.Text = "" 
     TabBtn.AutoButtonColor = false
@@ -1460,8 +1466,9 @@ local function CreateTab(name, iconType)
     TabText.Text = name
     TabText.TextColor3 = Color3.fromRGB(150, 150, 150)
     TabText.Font = Enum.Font.GothamSemibold
-    TabText.TextSize = 11 -- Fonte ligeiramente menor para encaixar perfeitamente
+    TabText.TextSize = 11
     TabText.TextXAlignment = Enum.TextXAlignment.Left
+    TabText.TextTruncate = Enum.TextTruncate.AtEnd
     TabText.ZIndex = 30
 
     local Page = Instance.new("Frame", PagesContainer)
@@ -1736,6 +1743,7 @@ local function CreateButton(parentCol, name, callback)
     Button.Font = Enum.Font.GothamSemibold
     Button.TextSize = 11
     Button.TextXAlignment = Enum.TextXAlignment.Left
+    Button.TextTruncate = Enum.TextTruncate.AtEnd
     Button.ZIndex = 30
 
     Button.MouseButton1Click:Connect(function()
@@ -1770,6 +1778,7 @@ local function CreateToggle(parentCol, name, callback, hasConfig, minVal, maxVal
     TitleLbl.Font = Enum.Font.GothamSemibold
     TitleLbl.TextSize = 11
     TitleLbl.TextXAlignment = Enum.TextXAlignment.Left
+    TitleLbl.TextTruncate = Enum.TextTruncate.AtEnd
     TitleLbl.ZIndex = 30
 
     local ToggleBtn = Instance.new("TextButton", ToggleFrame)
@@ -1831,6 +1840,7 @@ local function CreateToggle(parentCol, name, callback, hasConfig, minVal, maxVal
         SubValLbl.Font = Enum.Font.GothamBold
         SubValLbl.TextSize = 10
         SubValLbl.TextXAlignment = Enum.TextXAlignment.Right
+        SubValLbl.TextTruncate = Enum.TextTruncate.AtEnd
         SubValLbl.ZIndex = 30
 
         local SubTitleLbl = Instance.new("TextLabel", SliderContainer)
@@ -1842,6 +1852,7 @@ local function CreateToggle(parentCol, name, callback, hasConfig, minVal, maxVal
         SubTitleLbl.Font = Enum.Font.GothamSemibold
         SubTitleLbl.TextSize = 10
         SubTitleLbl.TextXAlignment = Enum.TextXAlignment.Left
+        SubTitleLbl.TextTruncate = Enum.TextTruncate.AtEnd
         SubTitleLbl.ZIndex = 30
 
         local BarBg = Instance.new("Frame", SliderContainer)
@@ -1877,6 +1888,7 @@ local function CreateToggle(parentCol, name, callback, hasConfig, minVal, maxVal
             MethodLbl.Font = Enum.Font.GothamSemibold
             MethodLbl.TextSize = 10
             MethodLbl.TextXAlignment = Enum.TextXAlignment.Left
+            MethodLbl.TextTruncate = Enum.TextTruncate.AtEnd
             MethodLbl.ZIndex = 30
 
             local DropBtn = Instance.new("TextButton", MethodRow)
@@ -1889,6 +1901,7 @@ local function CreateToggle(parentCol, name, callback, hasConfig, minVal, maxVal
             DropBtn.Font = Enum.Font.GothamBold
             DropBtn.TextSize = 10
             DropBtn.AutoButtonColor = false
+            DropBtn.TextTruncate = Enum.TextTruncate.AtEnd
             DropBtn.ZIndex = 30
             Instance.new("UICorner", DropBtn).CornerRadius = UDim.new(0, 4)
 
@@ -1975,6 +1988,7 @@ local function CreateToggleWithSubOptions(parentCol, name, callback, subOptions)
     TitleLbl.Font = Enum.Font.GothamSemibold
     TitleLbl.TextSize = 11
     TitleLbl.TextXAlignment = Enum.TextXAlignment.Left
+    TitleLbl.TextTruncate = Enum.TextTruncate.AtEnd
     TitleLbl.ZIndex = 30
 
     local ToggleBtn = Instance.new("TextButton", ToggleFrame)
@@ -2054,6 +2068,7 @@ local function CreateToggleWithSubOptions(parentCol, name, callback, subOptions)
         SubLbl.Font = Enum.Font.GothamSemibold
         SubLbl.TextSize = 10
         SubLbl.TextXAlignment = Enum.TextXAlignment.Left
+        SubLbl.TextTruncate = Enum.TextTruncate.AtEnd
         SubLbl.ZIndex = 30
 
         local SubToggleBtn = Instance.new("TextButton", SubRow)
@@ -2154,7 +2169,7 @@ local function CreateSlider(parentCol, name, min, max, default, callback)
     Stroke.Thickness = 1
 
     local TitleLbl = Instance.new("TextLabel", SliderFrame)
-    TitleLbl.Size = UDim2.new(1, -15, 0, 20)
+    TitleLbl.Size = UDim2.new(1, -65, 0, 20) -- Corrigido para não sobrepor o ValLbl
     TitleLbl.Position = UDim2.new(0, 8, 0, 4)
     TitleLbl.BackgroundTransparency = 1
     TitleLbl.Text = name
@@ -2162,6 +2177,7 @@ local function CreateSlider(parentCol, name, min, max, default, callback)
     TitleLbl.Font = Enum.Font.GothamSemibold
     TitleLbl.TextSize = 11
     TitleLbl.TextXAlignment = Enum.TextXAlignment.Left
+    TitleLbl.TextTruncate = Enum.TextTruncate.AtEnd
     TitleLbl.ZIndex = 30
 
     local ValLbl = Instance.new("TextLabel", SliderFrame)
@@ -2173,6 +2189,7 @@ local function CreateSlider(parentCol, name, min, max, default, callback)
     ValLbl.Font = Enum.Font.GothamBold
     ValLbl.TextSize = 11
     ValLbl.TextXAlignment = Enum.TextXAlignment.Right
+    ValLbl.TextTruncate = Enum.TextTruncate.AtEnd
     ValLbl.ZIndex = 30
 
     local BarBg = Instance.new("Frame", SliderFrame)
@@ -2237,6 +2254,7 @@ local function CreateDropdown(parentCol, name, options, callback)
     MainBtn.Font = Enum.Font.GothamSemibold
     MainBtn.TextSize = 11
     MainBtn.TextXAlignment = Enum.TextXAlignment.Left
+    MainBtn.TextTruncate = Enum.TextTruncate.AtEnd
     MainBtn.ZIndex = 30
 
     local ListContainer = Instance.new("ScrollingFrame", DropFrame)
@@ -2266,6 +2284,7 @@ local function CreateDropdown(parentCol, name, options, callback)
         OptBtn.Font = Enum.Font.Gotham
         OptBtn.TextSize = 11
         OptBtn.TextXAlignment = Enum.TextXAlignment.Left
+        OptBtn.TextTruncate = Enum.TextTruncate.AtEnd
         OptBtn.ZIndex = 30
 
         OptBtn.MouseButton1Click:Connect(function()
