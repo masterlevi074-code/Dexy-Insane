@@ -2894,7 +2894,20 @@ task.spawn(function()
                 for statName, lbl in pairs(statLabels) do
                     local statVal = statsFolder:FindFirstChild(statName)
                     if statVal then
-                        lbl.Text = tostring(statVal.Value)
+                        if statName == "DragonBalls" then
+                            local strVal = tostring(statVal.Value)
+                            if strVal:find("=") then
+                                local total = 0
+                                for val in strVal:gmatch("=(%d+)") do
+                                    total = total + (tonumber(val) or 0)
+                                end
+                                lbl.Text = tostring(total)
+                            else
+                                lbl.Text = strVal
+                            end
+                        else
+                            lbl.Text = tostring(statVal.Value)
+                        end
                     else
                         lbl.Text = "N/A"
                     end
