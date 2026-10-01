@@ -1229,7 +1229,7 @@ local function CreateTopButton(name, text, posOffset, sizeW, sizeH, hoverColor, 
     Btn.TextSize = customTextSize or 16
     Btn.AutoButtonColor = false
     Btn.ZIndex = 30
-    Instance.new("UICorner", Btn).CornerRadius = UDim.new(0, 8)
+    Instance.new("UICorner", Btn).CornerRadius = UDim.new(0, 6)
 
     if hasBorder then
         local BtnStroke = Instance.new("UIStroke", Btn)
@@ -1248,14 +1248,14 @@ local function CreateTopButton(name, text, posOffset, sizeW, sizeH, hoverColor, 
     return Btn
 end
 
--- Botões do Topo com o recuo seguro corrigido para o X não vazar do painel
-local CloseBtn = CreateTopButton("CloseBtn", "X", -34, 24, 24, Color3.fromRGB(255, 30, 30), Color3.fromRGB(255, 60, 60), true, true, 14)
-local RollUpBtn = CreateTopButton("RollUpBtn", "•", -70, 30, 30, Color3.fromRGB(150, 150, 40), Color3.fromRGB(255, 220, 40), false, false, 36)
-local MinimizeIconBtn = CreateTopButton("MinimizeIconBtn", "•", -106, 30, 30, Color3.fromRGB(40, 150, 40), Color3.fromRGB(46, 204, 113), false, false, 36)
+-- Botões do Topo com hitboxes compactas (22x22), espaçamento otimizado e X seguro dentro do painel
+local CloseBtn = CreateTopButton("CloseBtn", "X", -32, 22, 22, Color3.fromRGB(255, 30, 30), Color3.fromRGB(255, 60, 60), true, true, 13)
+local RollUpBtn = CreateTopButton("RollUpBtn", "•", -58, 22, 22, Color3.fromRGB(150, 150, 40), Color3.fromRGB(255, 220, 40), false, false, 30)
+local MinimizeIconBtn = CreateTopButton("MinimizeIconBtn", "•", -84, 22, 22, Color3.fromRGB(40, 150, 40), Color3.fromRGB(46, 204, 113), false, false, 30)
 
 local BypassContainer = Instance.new("Frame", TopBar)
 BypassContainer.Size = UDim2.new(0, 60, 0, 20)
-BypassContainer.Position = UDim2.new(1, -170, 0.5, -10)
+BypassContainer.Position = UDim2.new(1, -150, 0.5, -10)
 BypassContainer.BackgroundTransparency = 1
 BypassContainer.ZIndex = 30
 
