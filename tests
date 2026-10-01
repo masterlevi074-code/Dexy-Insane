@@ -1024,7 +1024,7 @@ end)
 CreateCustomSymbol(TopBar, UDim2.new(0, 25, 0.5, 0), UDim2.new(0, 28, 0, 28), true)
 
 local Title = Instance.new("TextLabel", TopBar)
-Title.Size = UDim2.new(1, -185, 0, 20)
+Title.Size = UDim2.new(1, -210, 0, 20)
 Title.Position = UDim2.new(0, 48, 0, 5)
 Title.BackgroundTransparency = 1
 Title.Text = "DEXY INSANE"
@@ -1035,7 +1035,7 @@ Title.TextXAlignment = Enum.TextXAlignment.Left
 Title.ZIndex = 30
 
 local Subtitle = Instance.new("TextLabel", TopBar)
-Subtitle.Size = UDim2.new(1, -185, 0, 15)
+Subtitle.Size = UDim2.new(1, -210, 0, 15)
 Subtitle.Position = UDim2.new(0, 48, 0, 23)
 Subtitle.BackgroundTransparency = 1
 Subtitle.Text = "Dragon Ball Rage"
@@ -1077,13 +1077,13 @@ local function CreateTopButton(name, text, posOffset, sizeW, sizeH, hoverColor, 
     return Btn
 end
 
-local MinimizeIconBtn = CreateTopButton("MinimizeIconBtn", "•", -104, 40, 40, Color3.fromRGB(40, 150, 40), Color3.fromRGB(46, 204, 113), false, false, 45)
-local RollUpBtn = CreateTopButton("RollUpBtn", "•", -62, 40, 40, Color3.fromRGB(150, 150, 40), Color3.fromRGB(255, 220, 40), false, false, 45)
-local CloseBtn = CreateTopButton("CloseBtn", "X", -20, 24, 24, Color3.fromRGB(255, 30, 30), Color3.fromRGB(255, 60, 60), true, true, 14)
+local MinimizeIconBtn = CreateTopButton("MinimizeIconBtn", "•", -122, 40, 40, Color3.fromRGB(40, 150, 40), Color3.fromRGB(46, 204, 113), false, false, 45)
+local RollUpBtn = CreateTopButton("RollUpBtn", "•", -78, 40, 40, Color3.fromRGB(150, 150, 40), Color3.fromRGB(255, 220, 40), false, false, 45)
+local CloseBtn = CreateTopButton("CloseBtn", "X", -34, 24, 24, Color3.fromRGB(255, 30, 30), Color3.fromRGB(255, 60, 60), true, true, 14)
 
 local BypassContainer = Instance.new("Frame", TopBar)
 BypassContainer.Size = UDim2.new(0, 60, 0, 20)
-BypassContainer.Position = UDim2.new(1, -175, 0.5, -10)
+BypassContainer.Position = UDim2.new(1, -190, 0.5, -10)
 BypassContainer.BackgroundTransparency = 1
 BypassContainer.ZIndex = 30
 
@@ -2159,12 +2159,12 @@ local statNames = {"Agility", "Attack", "Defense", "Ki", "ZenkaiBoost", "Zeni", 
 
 for _, statName in ipairs(statNames) do
     local Row = Instance.new("Frame", StatsContainer)
-    Row.Size = UDim2.new(1, 0, 0, 20)
+    Row.Size = UDim2.new(1, -6, 0, 20)
     Row.BackgroundTransparency = 1
     Row.ZIndex = 32
 
     local KeyLbl = Instance.new("TextLabel", Row)
-    KeyLbl.Size = UDim2.new(0.5, 0, 1, 0)
+    KeyLbl.Size = UDim2.new(0.6, 0, 1, 0)
     KeyLbl.BackgroundTransparency = 1
     KeyLbl.Text = statName .. " :"
     KeyLbl.TextColor3 = Color3.fromRGB(180, 180, 180)
@@ -2174,13 +2174,14 @@ for _, statName in ipairs(statNames) do
     KeyLbl.ZIndex = 32
 
     local ValLbl = Instance.new("TextLabel", Row)
-    ValLbl.Size = UDim2.new(0.5, 0, 1, 0)
-    ValLbl.Position = UDim2.new(0.5, 0, 0, 0)
+    ValLbl.Size = UDim2.new(0.4, -4, 1, 0)
+    ValLbl.Position = UDim2.new(0.6, 0, 0, 0)
     ValLbl.BackgroundTransparency = 1
     ValLbl.Text = "0"
     ValLbl.TextColor3 = Color3.fromRGB(255, 255, 255)
     ValLbl.Font = Enum.Font.GothamBold
     ValLbl.TextSize = 11
+    ValLbl.TextScaled = true -- Redimensiona/encolhe o número automaticamente
     ValLbl.TextXAlignment = Enum.TextXAlignment.Right
     ValLbl.ZIndex = 32
 
