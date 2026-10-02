@@ -1,7 +1,3 @@
--- ==========================================
--- DEXY INSANE - DRAGON BALL RAGE (CORRIGIDO)
--- ==========================================
-
 local TweenService = game:GetService("TweenService")
 local CoreGui = game:GetService("CoreGui")
 local UserInputService = game:GetService("UserInputService")
@@ -14,6 +10,7 @@ local StatsService = game:GetService("Stats")
 
 local LocalPlayer = Players.LocalPlayer
 
+-- Carregamento seguro dos módulos do jogo para o Zenkai
 local network, statUtils, uiState
 pcall(function()
     network = require(ReplicatedStorage:WaitForChild("Modules"):WaitForChild("Library"):WaitForChild("Network"))
@@ -44,6 +41,9 @@ local function setParentScrolling(obj, enabled)
     end
 end
 
+-- ==========================================
+-- ESTADOS / CONFIGURAÇÕES DAS FUNÇÕES
+-- ==========================================
 local Config = {
     AutoAttack = false,
     AutoAttackSpeed = 0.1,
@@ -57,6 +57,7 @@ local Config = {
     AutoCharge = false,
     AutoChargeMin = 10,
     AutoZenkai = false,
+    -- Auto Farm Zenis Configs (Seleção múltipla por toggles)
     AutoFarmZenis = false,
     SelectedNPCs = {
         ["Tennenman"] = true,
@@ -64,6 +65,7 @@ local Config = {
         ["Jinkouman"] = false
     },
     SelectedAttackMode = "Ambos",
+    -- Jogador & Outros
     InfJump = false,
     EnableWalkSpeed = false,
     WalkSpeed = 50,
@@ -94,6 +96,7 @@ local ESPConfig = {
     ChamsColor = Color3.fromRGB(255, 40, 40)
 }
 
+-- Configuração do ESP NPCs
 local NPCESPConfig = {
     Enabled = false,
     Boxes = false,
@@ -135,6 +138,11 @@ local MerchantConfig = {
     LineColor = Color3.fromRGB(0, 255, 128)
 }
 
+-- ==========================================
+-- LÓGICA REAL DAS FUNÇÕES DO JOGO
+-- ==========================================
+
+-- AUTO ZENKAI LOOP
 task.spawn(function()
     while true do
         if Config.AutoZenkai then
@@ -189,9 +197,13 @@ RunService.RenderStepped:Connect(function()
                             if Config.FlightMode == "Both" then
                                 applyMult = isFastFlight and Config.FastMultiplier or Config.NormalMultiplier
                             elseif Config.FlightMode == "FastOnly" then
-                                if isFastFlight then applyMult = Config.FastMultiplier end
+                                if isFastFlight then
+                                    applyMult = Config.FastMultiplier
+                                end
                             elseif Config.FlightMode == "NormalOnly" then
-                                if not isFastFlight then applyMult = Config.NormalMultiplier end
+                                if not isFastFlight then
+                                    applyMult = Config.NormalMultiplier
+                                end
                             end
 
                             obj.Velocity = currentVel * applyMult
@@ -207,9 +219,13 @@ RunService.RenderStepped:Connect(function()
                             if Config.FlightMode == "Both" then
                                 applyMult = isFastFlight and Config.FastMultiplier or Config.NormalMultiplier
                             elseif Config.FlightMode == "FastOnly" then
-                                if isFastFlight then applyMult = Config.FastMultiplier end
+                                if isFastFlight then
+                                    applyMult = Config.FastMultiplier
+                                end
                             elseif Config.FlightMode == "NormalOnly" then
-                                if not isFastFlight then applyMult = Config.NormalMultiplier end
+                                if not isFastFlight then
+                                    applyMult = Config.NormalMultiplier
+                                end
                             end
 
                             obj.VectorVelocity = currentVel * applyMult
@@ -232,6 +248,7 @@ UserInputService.JumpRequest:Connect(function()
     end
 end)
 
+-- AUTO ATTACK LOOP
 local attackHolding = false
 task.spawn(function()
     while true do
@@ -264,6 +281,7 @@ task.spawn(function()
     end
 end)
 
+-- AUTO DEFENSE LOOP
 local defenseHolding = false
 local defenseEnergyCooldown = false
 task.spawn(function()
@@ -323,6 +341,7 @@ task.spawn(function()
     end
 end)
 
+-- AUTO KI BLAST LOOP
 local kiBlastHolding = false
 local kiBlastEnergyCooldown = false
 task.spawn(function()
@@ -382,6 +401,7 @@ task.spawn(function()
     end
 end)
 
+-- AUTO CHARGE KI LOOP
 local chargeHolding = false
 task.spawn(function()
     while true do
@@ -428,6 +448,9 @@ task.spawn(function()
     end
 end)
 
+-- ==========================================
+-- AUTO FARM ZENIS LOOP (SUPORTE A MÚLTIPLOS NPCS)
+-- ==========================================
 local farmKeyE_Down = false
 local farmKeyQ_Down = false
 
@@ -440,23 +463,35 @@ local function farmPressKey(keyCode)
 end
 
 local function farmHoldKey(keyCode)
-    pcall(function() VirtualInputManager:SendKeyEvent(true, keyCode, false, game) end)
+    pcall(function()
+        VirtualInputManager:SendKeyEvent(true, keyCode, false, game)
+    end)
 end
 
 local function farmReleaseKey(keyCode)
-    pcall(function() VirtualInputManager:SendKeyEvent(false, keyCode, false, game) end)
+    pcall(function()
+        VirtualInputManager:SendKeyEvent(false, keyCode, false, game)
+    end)
 end
 
 local function farmReleaseAllKeys()
-    if farmKeyE_Down then farmReleaseKey(Enum.KeyCode.E); farmKeyE_Down = false end
-    if farmKeyQ_Down then farmReleaseKey(Enum.KeyCode.Q); farmKeyQ_Down = false end
+    if farmKeyE_Down then
+        farmReleaseKey(Enum.KeyCode.E)
+        farmKeyE_Down = false
+    end
+    if farmKeyQ_Down then
+        farmReleaseKey(Enum.KeyCode.Q)
+        farmKeyQ_Down = false
+    end
 end
 
 local function isPlayerGrounded()
     local character = LocalPlayer.Character
     if not character then return false end
     local humanoid = character:FindFirstChildOfClass("Humanoid")
-    if humanoid then return humanoid.FloorMaterial ~= Enum.Material.Air end
+    if humanoid then
+        return humanoid.FloorMaterial ~= Enum.Material.Air
+    end
     return false
 end
 
@@ -487,19 +522,24 @@ end
 
 task.spawn(function()
     local previousTarget = nil
+
     while true do
         if Config.AutoFarmZenis then
             pcall(function()
                 local npc, humanoid, rootPart = getTargetNPC()
+
                 if npc and humanoid and rootPart and humanoid.Health > 0 then
                     local isNewTarget = (npc ~= previousTarget)
                     previousTarget = npc
+
                     local character = LocalPlayer.Character
                     local myRoot = character and (character:FindFirstChild("HumanoidRootPart") or character.PrimaryPart)
 
                     if myRoot then
                         myRoot.CFrame = rootPart.CFrame * CFrame.new(0, 0, 3)
+
                         ensureFlying()
+
                         if isNewTarget then
                             farmReleaseAllKeys()
                             task.wait(0.1)
@@ -510,12 +550,24 @@ task.spawn(function()
                         end
 
                         if Config.SelectedAttackMode == "Ataque" then
-                            if not farmKeyE_Down then farmHoldKey(Enum.KeyCode.E); farmKeyE_Down = true end
+                            if not farmKeyE_Down then
+                                farmHoldKey(Enum.KeyCode.E)
+                                farmKeyE_Down = true
+                            end
                         elseif Config.SelectedAttackMode == "Ki" then
-                            if not farmKeyQ_Down then farmHoldKey(Enum.KeyCode.Q); farmKeyQ_Down = true end
+                            if not farmKeyQ_Down then
+                                farmHoldKey(Enum.KeyCode.Q)
+                                farmKeyQ_Down = true
+                            end
                         elseif Config.SelectedAttackMode == "Ambos" then
-                            if not farmKeyE_Down then farmHoldKey(Enum.KeyCode.E); farmKeyE_Down = true end
-                            if not farmKeyQ_Down then farmHoldKey(Enum.KeyCode.Q); farmKeyQ_Down = true end
+                            if not farmKeyE_Down then
+                                farmHoldKey(Enum.KeyCode.E)
+                                farmKeyE_Down = true
+                            end
+                            if not farmKeyQ_Down then
+                                farmHoldKey(Enum.KeyCode.Q)
+                                farmKeyQ_Down = true
+                            end
                         end
                     end
                 else
@@ -532,12 +584,17 @@ task.spawn(function()
     end
 end)
 
+-- ==========================================
+-- SISTEMA DE ESP PLAYERS
+-- ==========================================
 local espObjects = {}
 local chamsObjects = {}
 
 local function removeESP(player)
     if espObjects[player] then
-        for _, obj in pairs(espObjects[player]) do pcall(function() obj:Remove() end) end
+        for _, obj in pairs(espObjects[player]) do
+            pcall(function() obj:Remove() end)
+        end
         espObjects[player] = nil
     end
     if chamsObjects[player] then
@@ -578,7 +635,9 @@ RunService.RenderStepped:Connect(function()
     end
 
     if not ESPConfig.Enabled or not Drawing then
-        for player, _ in pairs(espObjects) do removeESP(player) end
+        for player, _ in pairs(espObjects) do
+            removeESP(player)
+        end
         return
     end
 
@@ -626,6 +685,7 @@ RunService.RenderStepped:Connect(function()
                 local objs = espObjects[player]
                 if objs then
                     local vector, onScreen = camera:WorldToViewportPoint(hrp.Position)
+
                     if onScreen then
                         local head = char:FindFirstChild("Head")
                         local rootPos = hrp.Position
@@ -697,12 +757,17 @@ RunService.RenderStepped:Connect(function()
     end
 end)
 
+-- ==========================================
+-- SISTEMA DE ESP NPCS
+-- ==========================================
 local npcEspObjects = {}
 local npcChamsObjects = {}
 
 local function removeNPCESP(npc)
     if npcEspObjects[npc] then
-        for _, obj in pairs(npcEspObjects[npc]) do pcall(function() obj:Remove() end) end
+        for _, obj in pairs(npcEspObjects[npc]) do
+            pcall(function() obj:Remove() end)
+        end
         npcEspObjects[npc] = nil
     end
     if npcChamsObjects[npc] then
@@ -714,6 +779,7 @@ end
 RunService.RenderStepped:Connect(function()
     local npcsFolder = workspace:FindFirstChild("Map") and workspace.Map:FindFirstChild("NPCs")
     
+    -- Chams para NPCs
     if NPCESPConfig.Enabled and NPCESPConfig.Chams and npcsFolder then
         for _, npc in ipairs(npcsFolder:GetChildren()) do
             if NPCESPConfig.SelectedNPCs[npc.Name] then
@@ -731,13 +797,21 @@ RunService.RenderStepped:Connect(function()
                         npcChamsObjects[npc] = highlight
                     else
                         npcChamsObjects[npc].FillColor = NPCESPConfig.ChamsColor
-                        if npcChamsObjects[npc].Adornee ~= npc then npcChamsObjects[npc].Adornee = npc end
+                        if npcChamsObjects[npc].Adornee ~= npc then
+                            npcChamsObjects[npc].Adornee = npc
+                        end
                     end
                 else
-                    if npcChamsObjects[npc] then npcChamsObjects[npc]:Destroy(); npcChamsObjects[npc] = nil end
+                    if npcChamsObjects[npc] then
+                        npcChamsObjects[npc]:Destroy()
+                        npcChamsObjects[npc] = nil
+                    end
                 end
             else
-                if npcChamsObjects[npc] then npcChamsObjects[npc]:Destroy(); npcChamsObjects[npc] = nil end
+                if npcChamsObjects[npc] then
+                    npcChamsObjects[npc]:Destroy()
+                    npcChamsObjects[npc] = nil
+                end
             end
         end
     else
@@ -747,8 +821,11 @@ RunService.RenderStepped:Connect(function()
         end
     end
 
+    -- Desenhos (Box, Nomes, Distância)
     if not NPCESPConfig.Enabled or not Drawing or not npcsFolder then
-        for npc, _ in pairs(npcEspObjects) do removeNPCESP(npc) end
+        for npc, _ in pairs(npcEspObjects) do
+            removeNPCESP(npc)
+        end
         return
     end
 
@@ -792,6 +869,7 @@ RunService.RenderStepped:Connect(function()
                 local objs = npcEspObjects[npc]
                 if objs then
                     local vector, onScreen = camera:WorldToViewportPoint(hrp.Position)
+
                     if onScreen then
                         local head = npc:FindFirstChild("Head")
                         local rootPos = hrp.Position
@@ -852,10 +930,15 @@ RunService.RenderStepped:Connect(function()
     end
 
     for npc, _ in pairs(npcEspObjects) do
-        if not activeNPCs[npc] or not npc.Parent then removeNPCESP(npc) end
+        if not activeNPCs[npc] or not npc.Parent then
+            removeNPCESP(npc)
+        end
     end
 end)
 
+-- ==========================================
+-- SISTEMA DE ESP DRAGONBALL E TELEPORT
+-- ==========================================
 local dbObjects = {}
 
 local function IsPedestal(obj)
@@ -874,7 +957,9 @@ local function RemoveDBESP(obj)
     if dbObjects[obj] then
         if dbObjects[obj].Highlight then dbObjects[obj].Highlight:Destroy() end
         if dbObjects[obj].Billboard then dbObjects[obj].Billboard:Destroy() end
-        if dbObjects[obj].Tracer then pcall(function() dbObjects[obj].Tracer:Remove() end) end
+        if dbObjects[obj].Tracer then 
+            pcall(function() dbObjects[obj].Tracer:Remove() end)
+        end
         dbObjects[obj] = nil
     end
 end
@@ -916,6 +1001,7 @@ local function ScanDragonBalls()
         if obj:IsA("Model") and obj ~= LocalPlayer.Character then
             if not IsPedestal(obj) then
                 local hasStructure = obj:FindFirstChild("Decor") or obj:FindFirstChild("Force") or obj:FindFirstChild("Main")
+                
                 if hasStructure then
                     activeItems[obj] = true
                     local targetPart = obj.PrimaryPart or obj:FindFirstChildWhichIsA("BasePart") or obj:FindFirstChild("Main")
@@ -925,6 +1011,7 @@ local function ScanDragonBalls()
                         
                         if not dbObjects[obj] then
                             dbObjects[obj] = {}
+                            
                             local highlight = Instance.new("Highlight")
                             highlight.Name = "DBHighlight"
                             highlight.Adornee = obj
@@ -955,6 +1042,7 @@ local function ScanDragonBalls()
                         end
 
                         local data = dbObjects[obj]
+                        
                         if data.Highlight then
                             data.Highlight.Enabled = DBConfig.Enabled and DBConfig.Highlight
                             data.Highlight.FillColor = DBConfig.HighlightColor
@@ -963,13 +1051,16 @@ local function ScanDragonBalls()
                         if data.Billboard and data.TextLabel then
                             data.Billboard.Enabled = DBConfig.Enabled and (DBConfig.Names or DBConfig.Distance)
                             data.TextLabel.TextColor3 = DBConfig.NameColor
+                            
                             local textComponents = {}
                             if DBConfig.Names then table.insert(textComponents, "DragonBall") end
                             if DBConfig.Distance then table.insert(textComponents, "[" .. dist .. "m]") end
+                            
                             data.TextLabel.Text = table.concat(textComponents, "\n")
                         end
 
-                        if DBConfig.Enabled then UpdateDBTracer(data, targetPart.Position)
+                        if DBConfig.Enabled then
+                            UpdateDBTracer(data, targetPart.Position)
                         else
                             if data.Tracer then data.Tracer.Visible = false end
                         end
@@ -980,19 +1071,25 @@ local function ScanDragonBalls()
     end
 
     for obj, data in pairs(dbObjects) do
-        if not activeItems[obj] or not obj.Parent then RemoveDBESP(obj) end
+        if not activeItems[obj] or not obj.Parent then
+            RemoveDBESP(obj)
+        end
     end
 end
 
 task.spawn(function()
-    while task.wait(0.3) do pcall(ScanDragonBalls) end
+    while task.wait(0.3) do
+        pcall(ScanDragonBalls)
+    end
 end)
 
 RunService.RenderStepped:Connect(function()
     if DBConfig.Enabled and DBConfig.Lines then
         for obj, data in pairs(dbObjects) do
             local targetPart = obj.PrimaryPart or obj:FindFirstChildWhichIsA("BasePart") or obj:FindFirstChild("Main")
-            if targetPart then UpdateDBTracer(data, targetPart.Position) end
+            if targetPart then
+                UpdateDBTracer(data, targetPart.Position)
+            end
         end
     end
 end)
@@ -1001,6 +1098,7 @@ local function TeleportToNearestDragonBall()
     pcall(function()
         local hrp = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
         if not hrp then return end
+
         local nearestObj = nil
         local shortestDist = math.huge
 
@@ -1017,15 +1115,19 @@ local function TeleportToNearestDragonBall()
             end
         end
 
-        if nearestObj then hrp.CFrame = nearestObj.CFrame + Vector3.new(0, 3, 0) end
+        if nearestObj then
+            hrp.CFrame = nearestObj.CFrame + Vector3.new(0, 3, 0)
+        end
     end)
 end
 
+-- Função Auto Get DragonBall (Ignora Cooldown de ProximityPrompt e Retorna à Posição Original)
 local function AutoGetDragonBallRoutine()
     pcall(function()
         local character = LocalPlayer.Character
         local hrp = character and character:FindFirstChild("HumanoidRootPart")
         if not hrp then return end
+
         local nearestObj = nil
         local targetPart = nil
         local shortestDist = math.huge
@@ -1046,9 +1148,12 @@ local function AutoGetDragonBallRoutine()
 
         if nearestObj and targetPart then
             local originalPos = hrp.CFrame
+            
+            -- Teleporta para perto da Dragon Ball
             hrp.CFrame = targetPart.CFrame + Vector3.new(0, 3, 0)
             task.wait(0.15)
             
+            -- Procura e dispara o ProximityPrompt sem cooldown
             local function triggerPromptRecursive(parent)
                 for _, child in ipairs(parent:GetDescendants()) do
                     if child:IsA("ProximityPrompt") then
@@ -1062,11 +1167,16 @@ local function AutoGetDragonBallRoutine()
             
             triggerPromptRecursive(nearestObj)
             task.wait(0.1)
+            
+            -- Retorna para a posição original
             hrp.CFrame = originalPos
         end
     end)
 end
 
+-- ==========================================
+-- SISTEMA DE ESP E TELEPORT - COMERCIANTE
+-- ==========================================
 local merchantObjects = {}
 
 local function UpdateMerchantTracer(objData, targetPos)
@@ -1102,15 +1212,19 @@ local function ScanMerchant()
     local mapFolder = workspace:FindFirstChild("Map")
     local questsFolder = mapFolder and mapFolder:FindFirstChild("Quests")
     local shopObj = questsFolder and questsFolder:FindFirstChild("DragonBallShop")
+
     local activeItems = {}
 
     if shopObj then
         activeItems[shopObj] = true
         local targetPart = shopObj.PrimaryPart or shopObj:FindFirstChildWhichIsA("BasePart") or shopObj:FindFirstChildOfClass("BasePart")
+        
         if targetPart then
             local dist = hrp and math.floor((hrp.Position - targetPart.Position).Magnitude) or 0
+            
             if not merchantObjects[shopObj] then
                 merchantObjects[shopObj] = {}
+                
                 local highlight = Instance.new("Highlight")
                 highlight.Name = "MerchantHighlight"
                 highlight.Adornee = shopObj
@@ -1141,6 +1255,7 @@ local function ScanMerchant()
             end
 
             local data = merchantObjects[shopObj]
+            
             if data.Highlight then
                 data.Highlight.Enabled = MerchantConfig.Enabled and MerchantConfig.Highlight
                 data.Highlight.FillColor = MerchantConfig.HighlightColor
@@ -1149,13 +1264,16 @@ local function ScanMerchant()
             if data.Billboard and data.TextLabel then
                 data.Billboard.Enabled = MerchantConfig.Enabled and (MerchantConfig.Names or MerchantConfig.Distance)
                 data.TextLabel.TextColor3 = MerchantConfig.NameColor
+                
                 local textComponents = {}
                 if MerchantConfig.Names then table.insert(textComponents, "Comerciante") end
                 if MerchantConfig.Distance then table.insert(textComponents, "[" .. dist .. "m]") end
+                
                 data.TextLabel.Text = table.concat(textComponents, "\n")
             end
 
-            if MerchantConfig.Enabled then UpdateMerchantTracer(data, targetPart.Position)
+            if MerchantConfig.Enabled then
+                UpdateMerchantTracer(data, targetPart.Position)
             else
                 if data.Tracer then data.Tracer.Visible = false end
             end
@@ -1173,14 +1291,18 @@ local function ScanMerchant()
 end
 
 task.spawn(function()
-    while task.wait(0.3) do pcall(ScanMerchant) end
+    while task.wait(0.3) do
+        pcall(ScanMerchant)
+    end
 end)
 
 RunService.RenderStepped:Connect(function()
     if MerchantConfig.Enabled and MerchantConfig.Lines then
         for obj, data in pairs(merchantObjects) do
             local targetPart = obj.PrimaryPart or obj:FindFirstChildWhichIsA("BasePart") or obj:FindFirstChildOfClass("BasePart")
-            if targetPart then UpdateMerchantTracer(data, targetPart.Position) end
+            if targetPart then
+                UpdateMerchantTracer(data, targetPart.Position)
+            end
         end
     end
 end)
@@ -1189,17 +1311,23 @@ local function TeleportToMerchant()
     pcall(function()
         local hrp = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
         if not hrp then return end
+
         local mapFolder = workspace:FindFirstChild("Map")
         local questsFolder = mapFolder and mapFolder:FindFirstChild("Quests")
         local shopObj = questsFolder and questsFolder:FindFirstChild("DragonBallShop")
 
         if shopObj then
             local targetPart = shopObj.PrimaryPart or shopObj:FindFirstChildWhichIsA("BasePart") or shopObj:FindFirstChildOfClass("BasePart")
-            if targetPart then hrp.CFrame = targetPart.CFrame + Vector3.new(0, 3, 0) end
+            if targetPart then
+                hrp.CFrame = targetPart.CFrame + Vector3.new(0, 3, 0)
+            end
         end
     end)
 end
 
+-- ==========================================
+-- EFEITO: ONDA AO CLICAR (RIPPLE EFFECT)
+-- ==========================================
 local function CreateRipple(parentBtn)
     parentBtn.ClipsDescendants = true
     local ripple = Instance.new("Frame")
@@ -1210,6 +1338,7 @@ local function CreateRipple(parentBtn)
     ripple.Position = UDim2.new(0.5, 0, 0.5, 0)
     ripple.Size = UDim2.new(0, 0, 0, 0)
     ripple.ZIndex = 50
+    
     Instance.new("UICorner", ripple).CornerRadius = UDim.new(1, 0)
     ripple.Parent = parentBtn
     
@@ -1221,6 +1350,9 @@ local function CreateRipple(parentBtn)
     tween.Completed:Connect(function() ripple:Destroy() end)
 end
 
+-- ==========================================
+-- SÍMBOLO CUSTOMIZADO
+-- ==========================================
 local function CreateCustomSymbol(parent, pos, size, hasBorder)
     local SymbolFrame = Instance.new("Frame", parent)
     SymbolFrame.Size = size
@@ -1245,9 +1377,13 @@ local function CreateCustomSymbol(parent, pos, size, hasBorder)
     SymbolImage.BackgroundTransparency = 1
     SymbolImage.Image = "rbxassetid://80863202828912"
     SymbolImage.ZIndex = 51
+    
     return SymbolFrame
 end
 
+-- ==========================================
+-- 1. TELA DE CARREGAMENTO
+-- ==========================================
 local LoadingFrame = Instance.new("Frame")
 LoadingFrame.Size = UDim2.new(0, 350, 0, 135)
 LoadingFrame.Position = UDim2.new(0.5, 0, 0.5, 0)
@@ -1330,6 +1466,9 @@ ProgressBarFill.BorderSizePixel = 0
 ProgressBarFill.ZIndex = 102
 Instance.new("UICorner", ProgressBarFill).CornerRadius = UDim.new(1, 0)
 
+-- ==========================================
+-- 2. BOTÃO FLUTUANTE
+-- ==========================================
 local FloatingBtn = Instance.new("TextButton")
 FloatingBtn.Name = "FloatingIcon"
 FloatingBtn.Size = UDim2.new(0, 0, 0, 0)
@@ -1360,6 +1499,9 @@ FloatingBtn.MouseLeave:Connect(function()
     TweenService:Create(FloatingBtn, TweenInfo.new(0.3), {Size = UDim2.new(0, 50, 0, 50)}):Play()
 end)
 
+-- ==========================================
+-- 3. PAINEL PRINCIPAL
+-- ==========================================
 local MainPanel = Instance.new("Frame")
 MainPanel.Name = "MainPanel"
 MainPanel.Size = UDim2.new(0, 520, 0, 320)
@@ -1469,6 +1611,9 @@ task.spawn(function()
     end
 end)
 
+-- ==========================================
+-- 4. BARRA SUPERIOR
+-- ==========================================
 local TopBar = Instance.new("Frame", MainPanel)
 TopBar.Name = "TopBar"
 TopBar.Size = UDim2.new(1, 0, 0, 45)
@@ -1479,9 +1624,11 @@ TopBar.Active = true
 local resizing = false
 local startSize = nil
 local startInputPos = nil
+
 local draggingPanel = false
 local dragStartPos = nil
 local startPanelPos = nil
+
 local lastPanelSize = Vector2.new(520, 320)
 
 ResizeHandle.InputBegan:Connect(function(input)
@@ -1521,6 +1668,7 @@ UserInputService.InputChanged:Connect(function(input)
 			local delta = input.Position - startInputPos
 			local newWidth = math.clamp(startSize.X + delta.X, 420, 850)
 			local newHeight = math.clamp(startSize.Y + delta.Y, 260, 600)
+
 			MainPanel.Size = UDim2.new(0, newWidth, 0, newHeight)
 			lastPanelSize = Vector2.new(newWidth, newHeight)
 		end
@@ -1582,7 +1730,11 @@ local function CreateTopButton(name, text, posOffset, sizeW, sizeH, hoverColor, 
 
     Btn.MouseEnter:Connect(function() TweenService:Create(Btn, TweenInfo.new(0.2), {BackgroundColor3 = hoverColor}):Play() end)
     Btn.MouseLeave:Connect(function() TweenService:Create(Btn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(10, 10, 10)}):Play() end)
-    if hasRipple then Btn.MouseButton1Click:Connect(function() CreateRipple(Btn) end) end
+    
+    if hasRipple then
+        Btn.MouseButton1Click:Connect(function() CreateRipple(Btn) end)
+    end
+    
     return Btn
 end
 
@@ -1636,12 +1788,15 @@ RollUpBtn.MouseButton1Click:Connect(function()
     isRolledUp = not isRolledUp
     local targetHeight = isRolledUp and 45 or lastPanelSize.Y
     local size = UDim2.new(0, MainPanel.AbsoluteSize.X, 0, targetHeight)
+    
     TweenService:Create(MainPanel, TweenInfo.new(0.5, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {Size = size}):Play()
+    
     if ResizeHandle then ResizeHandle.Visible = not isRolledUp end
     if BottomBar then BottomBar.Visible = not isRolledUp end
     if TabsContainer then TabsContainer.Visible = not isRolledUp end
     for tName, data in pairs(pages) do
-        if isRolledUp then data.Page.Visible = false
+        if isRolledUp then
+            data.Page.Visible = false
         else
             if tName == currentTab then data.Page.Visible = true end
         end
@@ -1682,6 +1837,9 @@ CloseBtn.MouseButton1Click:Connect(function()
     DexyUI:Destroy()
 end)
 
+-- ==========================================
+-- 5. ABAS E SÍMBOLOS
+-- ==========================================
 TabsContainer = Instance.new("Frame", MainPanel)
 TabsContainer.Size = UDim2.new(1, -20, 0, 35)
 TabsContainer.Position = UDim2.new(0, 10, 0, 55)
@@ -1714,6 +1872,7 @@ local function CreateTabSymbol(parent, iconType)
         InfoCircle.AnchorPoint = Vector2.new(0.5, 0.5)
         InfoCircle.BackgroundTransparency = 1
         InfoCircle.ZIndex = 30
+        
         local CircleStroke = Instance.new("UIStroke", InfoCircle)
         CircleStroke.Color = Color3.fromRGB(255, 60, 60)
         CircleStroke.Thickness = 1.5
@@ -1786,6 +1945,7 @@ local function CreateTabSymbol(parent, iconType)
         OuterEye.BackgroundColor3 = Color3.fromRGB(10, 10, 10)
         OuterEye.BorderSizePixel = 0
         Instance.new("UICorner", OuterEye).CornerRadius = UDim.new(1, 0)
+        
         local OuterStroke = Instance.new("UIStroke", OuterEye)
         OuterStroke.Color = Color3.fromRGB(255, 60, 60)
         OuterStroke.Thickness = 1.5
@@ -1931,8 +2091,12 @@ local function CreateTab(name, iconType)
     return pages[name]
 end
 
+-- ==========================================
+-- COLOR PICKER CANVAS 2D INTERATIVO
+-- ==========================================
 local function BuildWindColorPicker(parentFrame, initialColor, onColorChanged)
     local h, s, v = initialColor:ToHSV()
+
     local pickerContainer = Instance.new("Frame", parentFrame)
     pickerContainer.Size = UDim2.new(1, -16, 0, 130)
     pickerContainer.Position = UDim2.new(0, 8, 0, 0)
@@ -2107,6 +2271,10 @@ local function BuildWindColorPicker(parentFrame, initialColor, onColorChanged)
     return pickerContainer
 end
 
+-- ==========================================
+-- COMPONENTES DA UI
+-- ==========================================
+
 local function CreateSection(parentCol, titleText)
     local SectionLbl = Instance.new("TextLabel", parentCol)
     SectionLbl.Size = UDim2.new(1, -4, 0, 22)
@@ -2148,54 +2316,168 @@ local function CreateButton(parentCol, name, callback)
     end)
 end
 
--- Função auxiliar do Dropdown adicionada para corrigir o erro
-local function CreateDropdown(parentCol, titleText, optionsList, defaultOption, callback)
-    local DropFrame = Instance.new("Frame", parentCol)
-    DropFrame.Size = UDim2.new(1, -4, 0, 32)
-    DropFrame.BackgroundColor3 = Color3.fromRGB(12, 12, 12)
-    DropFrame.BorderSizePixel = 0
-    DropFrame.ZIndex = 30
-    Instance.new("UICorner", DropFrame).CornerRadius = UDim.new(0, 6)
+local function CreateDropdown(parentCol, titleText, options, defaultSelected, onSelect)
+    local baseHeight = 54
+    local selectedOption = defaultSelected or options[1]
+    local isOpen = false
 
-    local Stroke = Instance.new("UIStroke", DropFrame)
+    local DropdownContainer = Instance.new("Frame", parentCol)
+    DropdownContainer.Size = UDim2.new(1, -4, 0, baseHeight)
+    DropdownContainer.BackgroundColor3 = Color3.fromRGB(12, 12, 12)
+    DropdownContainer.BorderSizePixel = 0
+    DropdownContainer.ClipsDescendants = true
+    DropdownContainer.ZIndex = 30
+    Instance.new("UICorner", DropdownContainer).CornerRadius = UDim.new(0, 6)
+
+    local Stroke = Instance.new("UIStroke", DropdownContainer)
     Stroke.Color = Color3.fromRGB(35, 20, 20)
     Stroke.Thickness = 1
 
-    local Title = Instance.new("TextLabel", DropFrame)
-    Title.Size = UDim2.new(0.5, 0, 1, 0)
-    Title.Position = UDim2.new(0, 8, 0, 0)
-    Title.BackgroundTransparency = 1
-    Title.Text = titleText
-    Title.TextColor3 = Color3.fromRGB(220, 220, 220)
-    Title.Font = Enum.Font.GothamSemibold
-    Title.TextSize = 11
-    Title.TextXAlignment = Enum.TextXAlignment.Left
-    Title.ZIndex = 30
+    local TitleLbl = Instance.new("TextLabel", DropdownContainer)
+    TitleLbl.Size = UDim2.new(1, -16, 0, 18)
+    TitleLbl.Position = UDim2.new(0, 8, 0, 4)
+    TitleLbl.BackgroundTransparency = 1
+    TitleLbl.Text = titleText
+    TitleLbl.TextColor3 = Color3.fromRGB(160, 160, 160)
+    TitleLbl.Font = Enum.Font.GothamSemibold
+    TitleLbl.TextSize = 10
+    TitleLbl.TextXAlignment = Enum.TextXAlignment.Left
+    TitleLbl.ZIndex = 31
 
-    local currentChoice = defaultOption
-    local DropBtn = Instance.new("TextButton", DropFrame)
-    DropBtn.Size = UDim2.new(0, 120, 0, 22)
-    DropBtn.Position = UDim2.new(1, -128, 0.5, -11)
-    DropBtn.BackgroundColor3 = Color3.fromRGB(20, 12, 12)
-    DropBtn.Text = currentChoice .. " ▼"
-    DropBtn.TextColor3 = Color3.fromRGB(255, 60, 60)
-    DropBtn.Font = Enum.Font.GothamBold
-    DropBtn.TextSize = 10
-    DropBtn.AutoButtonColor = false
-    DropBtn.ZIndex = 30
-    Instance.new("UICorner", DropBtn).CornerRadius = UDim.new(0, 4)
+    local HeaderBtn = Instance.new("TextButton", DropdownContainer)
+    HeaderBtn.Size = UDim2.new(1, -16, 0, 24)
+    HeaderBtn.Position = UDim2.new(0, 8, 0, 24)
+    HeaderBtn.BackgroundColor3 = Color3.fromRGB(20, 12, 12)
+    HeaderBtn.Text = "  " .. tostring(selectedOption)
+    HeaderBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    HeaderBtn.Font = Enum.Font.GothamBold
+    HeaderBtn.TextSize = 11
+    HeaderBtn.TextXAlignment = Enum.TextXAlignment.Left
+    HeaderBtn.AutoButtonColor = false
+    HeaderBtn.ZIndex = 31
+    Instance.new("UICorner", HeaderBtn).CornerRadius = UDim.new(0, 4)
 
-    local currentIndex = 1
-    for i, opt in ipairs(optionsList) do
-        if opt == defaultOption then currentIndex = i break end
+    local HeaderStroke = Instance.new("UIStroke", HeaderBtn)
+    HeaderStroke.Color = Color3.fromRGB(50, 25, 25)
+    HeaderStroke.Thickness = 1
+
+    local ArrowLbl = Instance.new("TextLabel", HeaderBtn)
+    ArrowLbl.Size = UDim2.new(0, 20, 1, 0)
+    ArrowLbl.Position = UDim2.new(1, -22, 0, 0)
+    ArrowLbl.BackgroundTransparency = 1
+    ArrowLbl.Text = "▼"
+    ArrowLbl.TextColor3 = Color3.fromRGB(255, 60, 60)
+    ArrowLbl.Font = Enum.Font.GothamBold
+    ArrowLbl.TextSize = 9
+    ArrowLbl.ZIndex = 32
+
+    local ListFrame = Instance.new("ScrollingFrame", DropdownContainer)
+    ListFrame.Size = UDim2.new(1, -16, 0, 110)
+    ListFrame.Position = UDim2.new(0, 8, 0, 52)
+    ListFrame.BackgroundColor3 = Color3.fromRGB(8, 8, 8)
+    ListFrame.BorderSizePixel = 0
+    ListFrame.Visible = false
+    ListFrame.ScrollBarThickness = 3
+    ListFrame.ScrollBarImageColor3 = Color3.fromRGB(255, 40, 40)
+    ListFrame.ZIndex = 33
+    ListFrame.CanvasSize = UDim2.new(0, 0, 0, 0)
+    Instance.new("UICorner", ListFrame).CornerRadius = UDim.new(0, 4)
+
+    local ListStroke = Instance.new("UIStroke", ListFrame)
+    ListStroke.Color = Color3.fromRGB(40, 20, 20)
+    ListStroke.Thickness = 1
+
+    local ListLayout = Instance.new("UIListLayout", ListFrame)
+    ListLayout.SortOrder = Enum.SortOrder.LayoutOrder
+    ListLayout.Padding = UDim.new(0, 2)
+
+    ListLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
+        ListFrame.CanvasSize = UDim2.new(0, 0, 0, ListLayout.AbsoluteContentSize.Y + 4)
+    end)
+
+    ListFrame.MouseEnter:Connect(function()
+        setParentScrolling(ListFrame, false)
+    end)
+
+    ListFrame.MouseLeave:Connect(function()
+        setParentScrolling(ListFrame, true)
+    end)
+
+    local optionButtons = {}
+
+    local function updateSelected(opt)
+        selectedOption = opt
+        HeaderBtn.Text = "  " .. tostring(opt)
+        for _, btn in ipairs(optionButtons) do
+            if btn.Name == opt then
+                btn.BackgroundColor3 = Color3.fromRGB(40, 15, 15)
+                btn.TextColor3 = Color3.fromRGB(255, 60, 60)
+            else
+                btn.BackgroundColor3 = Color3.fromRGB(12, 12, 12)
+                btn.TextColor3 = Color3.fromRGB(180, 180, 180)
+            end
+        end
+        if onSelect then onSelect(opt) end
     end
 
-    DropBtn.MouseButton1Click:Connect(function()
-        currentIndex = (currentIndex % #optionsList) + 1
-        currentChoice = optionsList[currentIndex]
-        DropBtn.Text = currentChoice .. " ▼"
-        if callback then callback(currentChoice) end
+    for _, opt in ipairs(options) do
+        local OptBtn = Instance.new("TextButton", ListFrame)
+        OptBtn.Name = opt
+        OptBtn.Size = UDim2.new(1, -4, 0, 22)
+        OptBtn.BackgroundColor3 = (opt == selectedOption) and Color3.fromRGB(40, 15, 15) or Color3.fromRGB(12, 12, 12)
+        OptBtn.BorderSizePixel = 0
+        OptBtn.Text = "  " .. opt
+        OptBtn.TextColor3 = (opt == selectedOption) and Color3.fromRGB(255, 60, 60) or Color3.fromRGB(180, 180, 180)
+        OptBtn.Font = Enum.Font.GothamSemibold
+        OptBtn.TextSize = 10
+        OptBtn.TextXAlignment = Enum.TextXAlignment.Left
+        OptBtn.AutoButtonColor = false
+        OptBtn.ZIndex = 34
+        Instance.new("UICorner", OptBtn).CornerRadius = UDim.new(0, 3)
+
+        OptBtn.MouseEnter:Connect(function()
+            if selectedOption ~= opt then
+                TweenService:Create(OptBtn, TweenInfo.new(0.15), {BackgroundColor3 = Color3.fromRGB(25, 15, 15), TextColor3 = Color3.fromRGB(220, 220, 220)}):Play()
+            end
+        end)
+        OptBtn.MouseLeave:Connect(function()
+            if selectedOption ~= opt then
+                TweenService:Create(OptBtn, TweenInfo.new(0.15), {BackgroundColor3 = Color3.fromRGB(12, 12, 12), TextColor3 = Color3.fromRGB(180, 180, 180)}):Play()
+            end
+        end)
+
+        OptBtn.MouseButton1Click:Connect(function()
+            updateSelected(opt)
+            isOpen = false
+            TweenService:Create(ArrowLbl, TweenInfo.new(0.2), {Rotation = 0}):Play()
+            TweenService:Create(DropdownContainer, TweenInfo.new(0.3, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {Size = UDim2.new(1, -4, 0, baseHeight)}):Play()
+            task.delay(0.3, function()
+                if not isOpen then ListFrame.Visible = false end
+            end)
+        end)
+
+        table.insert(optionButtons, OptBtn)
+    end
+
+    HeaderBtn.MouseButton1Click:Connect(function()
+        isOpen = not isOpen
+        if isOpen then
+            ListFrame.Visible = true
+            TweenService:Create(ArrowLbl, TweenInfo.new(0.2), {Rotation = 180}):Play()
+            TweenService:Create(DropdownContainer, TweenInfo.new(0.3, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {Size = UDim2.new(1, -4, 0, 168)}):Play()
+        else
+            TweenService:Create(ArrowLbl, TweenInfo.new(0.2), {Rotation = 0}):Play()
+            TweenService:Create(DropdownContainer, TweenInfo.new(0.3, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {Size = UDim2.new(1, -4, 0, baseHeight)}):Play()
+            task.delay(0.3, function()
+                if not isOpen then ListFrame.Visible = false end
+            end)
+        end
     end)
+
+    return {
+        GetSelected = function() return selectedOption end,
+        SetSelected = function(opt) updateSelected(opt) end
+    }
 end
 
 local function CreateToggleWithSubOptionsAndMultiSelect(parentCol, name, callback, subOptions, multiSelectData)
@@ -2286,11 +2568,12 @@ local function CreateToggleWithSubOptionsAndMultiSelect(parentCol, name, callbac
         TweenService:Create(ToggleFrame, TweenInfo.new(0.3, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {Size = UDim2.new(1, -4, 0, currentHeight)}):Play()
     end
 
+    -- Se houver dados para seleção múltipla (ex: Toggles de NPCs)
     if multiSelectData then
         local GroupLbl = Instance.new("TextLabel", OptionsContainer)
         GroupLbl.Size = UDim2.new(1, 0, 0, 18)
         GroupLbl.BackgroundTransparency = 1
-        GroupLbl.Text = multiSelectData.Title or "Selecionar:"
+        GroupLbl.Text = multiSelectData.Title or "Selecionar NPCs:"
         GroupLbl.TextColor3 = Color3.fromRGB(160, 160, 160)
         GroupLbl.Font = Enum.Font.GothamSemibold
         GroupLbl.TextSize = 10
@@ -2442,6 +2725,7 @@ local function CreateToggleWithSubOptionsAndMultiSelect(parentCol, name, callbac
     end)
 end
 
+-- Mantém compatibilidade com a função antiga para não quebrar o ESP Players
 local function CreateToggleWithSubOptions(parentCol, name, callback, subOptions)
     CreateToggleWithSubOptionsAndMultiSelect(parentCol, name, callback, subOptions, nil)
 end
@@ -2596,8 +2880,11 @@ local function CreateToggle(parentCol, name, callback, hasConfig, minVal, maxVal
             Instance.new("UICorner", DropBtn).CornerRadius = UDim.new(0, 4)
 
             DropBtn.MouseButton1Click:Connect(function()
-                if currentMethod == "Clique" then currentMethod = "Segurar"
-                else currentMethod = "Clique" end
+                if currentMethod == "Clique" then
+                    currentMethod = "Segurar"
+                else
+                    currentMethod = "Clique"
+                end
                 DropBtn.Text = currentMethod .. " ▼"
                 if methodCallback then methodCallback(currentMethod) end
             end)
@@ -2641,8 +2928,11 @@ local function CreateToggle(parentCol, name, callback, hasConfig, minVal, maxVal
                 local mousePos = UserInputService:GetMouseLocation()
                 local pos = math.clamp((mousePos.X - BarBg.AbsolutePosition.X) / BarBg.AbsoluteSize.X, 0, 1)
                 local val = minVal + ((maxVal - minVal) * pos)
-                if isInteger then val = math.floor(val + 0.5)
-                else val = math.floor(val * 100 + 0.5) / 100 end
+                if isInteger then
+                    val = math.floor(val + 0.5)
+                else
+                    val = math.floor(val * 100 + 0.5) / 100
+                end
                 BarFill.Size = UDim2.new(pos, 0, 1, 0)
                 SubValLbl.Text = tostring(val) .. unitSuffix
                 if speedCallback then speedCallback(val) end
@@ -2651,12 +2941,20 @@ local function CreateToggle(parentCol, name, callback, hasConfig, minVal, maxVal
     end
 end
 
+-- ==========================================
+-- 7. DISTRIBUIR FUNÇÕES NAS ABAS
+-- ==========================================
 local TabInfo = CreateTab("Info", "Info")
 local TabMain = CreateTab("Principal", "Principal")
 local TabPlayer = CreateTab("Jogador", "Jogador")
 local TabVisual = CreateTab("Visual", "Visual")
 local TabMisc = CreateTab("Misc", "Misc")
 
+-- ==========================================
+-- ABA INFO (ATUALIZADA)
+-- ==========================================
+
+-- 1. Cartão do Jogador (Lado Esquerdo - Topo)
 local InfoCard = Instance.new("Frame", TabInfo.Left)
 InfoCard.Size = UDim2.new(1, -4, 0, 135)
 InfoCard.BackgroundColor3 = Color3.fromRGB(12, 12, 12)
@@ -2718,6 +3016,7 @@ DetailsLbl.TextSize = 10
 DetailsLbl.TextXAlignment = Enum.TextXAlignment.Left
 DetailsLbl.ZIndex = 31
 
+-- 2. Estatísticas de Desempenho / Servidor (Lado Esquerdo - Baixo)
 CreateSection(TabInfo.Left, "Desempenho & Servidor")
 
 local StatsServerCard = Instance.new("Frame", TabInfo.Left)
@@ -2764,6 +3063,7 @@ InfoPingLbl.TextSize = 11
 InfoPingLbl.TextXAlignment = Enum.TextXAlignment.Left
 InfoPingLbl.ZIndex = 31
 
+-- Loop para atualizar FPS, Ping e Contagem de Jogadores em Tempo Real
 task.spawn(function()
     local lastTick = tick()
     local frameCount = 0
@@ -2781,13 +3081,19 @@ task.spawn(function()
 
     while task.wait(0.5) do
         pcall(function()
+            -- Contagem de Jogadores
             local maxPlayers = Players.MaxPlayers
             local currentPlayers = #Players:GetPlayers()
             InfoPlayersLbl.Text = "Jogadores no Servidor: " .. currentPlayers .. " / " .. maxPlayers
+
+            -- FPS
             InfoFpsLbl.Text = "FPS: " .. currentFps
 
+            -- Ping
             local pingVal = 0
-            pcall(function() pingVal = math.floor(LocalPlayer:GetNetworkPing() * 1000 + 0.5) end)
+            pcall(function()
+                pingVal = math.floor(LocalPlayer:GetNetworkPing() * 1000 + 0.5)
+            end)
             if pingVal == 0 then
                 pcall(function()
                     local stats = StatsService:FindFirstChild("Network")
@@ -2795,7 +3101,9 @@ task.spawn(function()
                         local serverStats = stats:FindFirstChild("ServerStatsItem")
                         if serverStats then
                             local dataPing = serverStats:FindFirstChild("Data Ping")
-                            if dataPing then pingVal = math.floor(dataPing:GetValue()) end
+                            if dataPing then
+                                pingVal = math.floor(dataPing:GetValue())
+                            end
                         end
                     end
                 end)
@@ -2805,6 +3113,7 @@ task.spawn(function()
     end
 end)
 
+-- 3. Nome do Painel com Versão & Criador (Lado Direito - Topo)
 CreateSection(TabInfo.Right, "Painel & Autor")
 
 local CreditCard = Instance.new("Frame", TabInfo.Right)
@@ -2851,6 +3160,7 @@ DescScriptLbl.TextSize = 10
 DescScriptLbl.TextXAlignment = Enum.TextXAlignment.Left
 DescScriptLbl.ZIndex = 31
 
+-- 4. Notas de Atualização / Changelogs (Lado Direito - Baixo)
 CreateSection(TabInfo.Right, "Notas de Atualização (Changelogs)")
 
 local ChangelogCard = Instance.new("ScrollingFrame", TabInfo.Right)
@@ -2870,9 +3180,11 @@ local ChangelogText = Instance.new("TextLabel", ChangelogCard)
 ChangelogText.Size = UDim2.new(1, -16, 0, 195)
 ChangelogText.Position = UDim2.new(0, 8, 0, 8)
 ChangelogText.BackgroundTransparency = 1
-ChangelogText.Text = [[• [v2.6.0] Adicionado ESP NPCs com toggles de seleção, Box, Chams e Distância.
-• [v2.5.0] Adicionada aba Info completa com monitoramento de Ping e FPS.
-• [v2.4.1] Adicionado suporte otimizado para múltiplos NPCs no Auto Farm Zenis.]]
+ChangelogText.Text = [[• [v2.6.0] Adicionado ESP NPCs com toggles de seleção (Tennenman, Saibamen, Jinkouman), Box, Chams e Distância na aba Visual.
+• [v2.5.0] Adicionada aba Info completa com monitoramento de Ping, FPS e Jogadores.
+• [v2.4.1] Adicionado suporte otimizado para múltiplos NPCs no Auto Farm Zenis.
+• [v2.4.0] Correção no sistema de Anti-Cooldown do ProximityPrompt para Dragon Balls.
+• [v2.0.0] Lançamento inicial oficial do Dexy Insane por Noahzin.]]
 ChangelogText.TextColor3 = Color3.fromRGB(180, 180, 180)
 ChangelogText.Font = Enum.Font.Gotham
 ChangelogText.TextSize = 10
@@ -2882,9 +3194,16 @@ ChangelogText.TextWrapped = true
 ChangelogText.ZIndex = 31
 
 ChangelogCard.CanvasSize = UDim2.new(0, 0, 0, 205)
-ChangelogCard.MouseEnter:Connect(function() setParentScrolling(ChangelogCard, false) end)
-ChangelogCard.MouseLeave:Connect(function() setParentScrolling(ChangelogCard, true) end)
 
+ChangelogCard.MouseEnter:Connect(function()
+    setParentScrolling(ChangelogCard, false)
+end)
+ChangelogCard.MouseLeave:Connect(function()
+    setParentScrolling(ChangelogCard, true)
+end)
+
+
+-- Aba Principal (Lado Esquerdo - Combate Geral)
 CreateToggle(TabMain.Left, "Auto Attack", function(v) 
     Config.AutoAttack = v 
     UserInputService.MouseIconEnabled = not (v or Config.AutoDefense or Config.AutoKiBlast)
@@ -2906,11 +3225,15 @@ end, true, 0, 90, 10, function(v)
     Config.AutoChargeMin = v 
 end, false, nil, "Segurar", "%", true)
 
-CreateToggle(TabMain.Left, "Auto Zenkai", function(v) Config.AutoZenkai = v end, false)
+CreateToggle(TabMain.Left, "Auto Zenkai", function(v)
+    Config.AutoZenkai = v
+end, false)
 
+-- Aba Principal (Lado Direito - Auto Farm Zenis com Toggles de NPCs)
 do
     local baseHeight = 30
     local expandedHeight = 145
+
     local ToggleFrame = Instance.new("Frame", TabMain.Right)
     ToggleFrame.Size = UDim2.new(1, -4, 0, baseHeight)
     ToggleFrame.BackgroundColor3 = Color3.fromRGB(12, 12, 12)
@@ -3035,6 +3358,7 @@ do
                 TweenService:Create(TCircle, TweenInfo.new(0.2), {Position = UDim2.new(0, 2, 0.5, -4), BackgroundColor3 = Color3.fromRGB(180, 180, 180)}):Play()
             end
         end)
+
         yOffset = yOffset + 20
     end
 
@@ -3090,6 +3414,7 @@ do
     end)
 end
 
+-- Aba Jogador (Lado Esquerdo - Controles de Movimento/Voo)
 CreateToggle(TabPlayer.Left, "Pulo Infinito", function(v) Config.InfJump = v end, false)
 
 CreateToggle(TabPlayer.Left, "Ativar Velocidade", function(v) 
@@ -3098,9 +3423,11 @@ end, true, 16, 300, 50, function(v)
     Config.WalkSpeed = v 
 end, false, nil, "Segurar", "", true)
 
+-- SISTEMA DE VOO CONTROLLER INTEGRADO
 do
     local baseHeight = 30
     local expandedHeight = 150
+    
     local ToggleFrame = Instance.new("Frame", TabPlayer.Left)
     ToggleFrame.Size = UDim2.new(1, -4, 0, baseHeight)
     ToggleFrame.BackgroundColor3 = Color3.fromRGB(12, 12, 12)
@@ -3326,6 +3653,7 @@ do
     end)
 end
 
+-- Aba Jogador (Lado Direito - Cartão Compacto de Estatísticas do Player)
 local StatsCard = Instance.new("Frame", TabPlayer.Right)
 StatsCard.Size = UDim2.new(1, -4, 0, 100)
 StatsCard.BackgroundColor3 = Color3.fromRGB(12, 12, 12)
@@ -3407,11 +3735,15 @@ task.spawn(function()
                                 local strVal = tostring(rawVal)
                                 if strVal:find("=") then
                                     local total = 0
-                                    for val in strVal:gmatch("=(%d+)") do total = total + (tonumber(val) or 0) end
+                                    for val in strVal:gmatch("=(%d+)") do
+                                        total = total + (tonumber(val) or 0)
+                                    end
                                     lbl.Text = tostring(total)
                                 elseif strVal:find(",") then
                                     local count = 0
-                                    for _ in strVal:gmatch("%d+") do count = count + 1 end
+                                    for _ in strVal:gmatch("%d+") do
+                                        count = count + 1
+                                    end
                                     lbl.Text = tostring(count)
                                 else
                                     lbl.Text = tostring(tonumber(strVal) or strVal)
@@ -3429,23 +3761,70 @@ task.spawn(function()
     end
 end)
 
+-- Aba Visual
 CreateToggleWithSubOptions(TabVisual.Left, "ESP Players", function(v) 
     ESPConfig.Enabled = v 
 end, {
-    { Name = "Box (Caixa)", GetColor = function() return ESPConfig.BoxColor end, SetColor = function(c) ESPConfig.BoxColor = c end, Callback = function(v) ESPConfig.Boxes = v end },
-    { Name = "Linhas (Tracers)", GetColor = function() return ESPConfig.LineColor end, SetColor = function(c) ESPConfig.LineColor = c end, Callback = function(v) ESPConfig.Lines = v end },
-    { Name = "Nomes do Player", GetColor = function() return ESPConfig.NameColor end, SetColor = function(c) ESPConfig.NameColor = c end, Callback = function(v) ESPConfig.Names = v end },
-    { Name = "Distância em Metros", GetColor = function() return ESPConfig.DistanceColor end, SetColor = function(c) ESPConfig.DistanceColor = c end, Callback = function(v) ESPConfig.Distance = v end },
-    { Name = "Chams (Highlight)", GetColor = function() return ESPConfig.ChamsColor end, SetColor = function(c) ESPConfig.ChamsColor = c end, Callback = function(v) ESPConfig.Chams = v end }
+    {
+        Name = "Box (Caixa)", 
+        GetColor = function() return ESPConfig.BoxColor end,
+        SetColor = function(c) ESPConfig.BoxColor = c end,
+        Callback = function(v) ESPConfig.Boxes = v end
+    },
+    {
+        Name = "Linhas (Tracers)", 
+        GetColor = function() return ESPConfig.LineColor end,
+        SetColor = function(c) ESPConfig.LineColor = c end,
+        Callback = function(v) ESPConfig.Lines = v end
+    },
+    {
+        Name = "Nomes do Player", 
+        GetColor = function() return ESPConfig.NameColor end,
+        SetColor = function(c) ESPConfig.NameColor = c end,
+        Callback = function(v) ESPConfig.Names = v end
+    },
+    {
+        Name = "Distância em Metros", 
+        GetColor = function() return ESPConfig.DistanceColor end,
+        SetColor = function(c) ESPConfig.DistanceColor = c end,
+        Callback = function(v) ESPConfig.Distance = v end
+    },
+    {
+        Name = "Chams (Highlight)", 
+        GetColor = function() return ESPConfig.ChamsColor end,
+        SetColor = function(c) ESPConfig.ChamsColor = c end,
+        Callback = function(v) ESPConfig.Chams = v end
+    }
 })
 
+-- Adicionado ESP NPCs na Aba Visual (Esquerda) com toggles e subopções de Chams, Box, Nomes e Distância
 CreateToggleWithSubOptionsAndMultiSelect(TabVisual.Left, "ESP NPCs", function(v) 
     NPCESPConfig.Enabled = v 
 end, {
-    { Name = "Chams (Highlight)", GetColor = function() return NPCESPConfig.ChamsColor end, SetColor = function(c) NPCESPConfig.ChamsColor = c end, Callback = function(v) NPCESPConfig.Chams = v end },
-    { Name = "Box (Caixa)", GetColor = function() return NPCESPConfig.BoxColor end, SetColor = function(c) NPCESPConfig.BoxColor = c end, Callback = function(v) NPCESPConfig.Boxes = v end },
-    { Name = "Exibir Nomes", GetColor = function() return NPCESPConfig.NameColor end, SetColor = function(c) NPCESPConfig.NameColor = c end, Callback = function(v) NPCESPConfig.Names = v end },
-    { Name = "Exibir Distância", GetColor = function() return NPCESPConfig.DistanceColor end, SetColor = function(c) NPCESPConfig.DistanceColor = c end, Callback = function(v) NPCESPConfig.Distance = v end }
+    {
+        Name = "Chams (Highlight)", 
+        GetColor = function() return NPCESPConfig.ChamsColor end,
+        SetColor = function(c) NPCESPConfig.ChamsColor = c end,
+        Callback = function(v) NPCESPConfig.Chams = v end
+    },
+    {
+        Name = "Box (Caixa)", 
+        GetColor = function() return NPCESPConfig.BoxColor end,
+        SetColor = function(c) NPCESPConfig.BoxColor = c end,
+        Callback = function(v) NPCESPConfig.Boxes = v end
+    },
+    {
+        Name = "Exibir Nomes", 
+        GetColor = function() return NPCESPConfig.NameColor end,
+        SetColor = function(c) NPCESPConfig.NameColor = c end,
+        Callback = function(v) NPCESPConfig.Names = v end
+    },
+    {
+        Name = "Exibir Distância", 
+        GetColor = function() return NPCESPConfig.DistanceColor end,
+        SetColor = function(c) NPCESPConfig.DistanceColor = c end,
+        Callback = function(v) NPCESPConfig.Distance = v end
+    }
 }, {
     Title = "Selecionar NPCs:",
     Items = {"Tennenman", "Saibamen", "Jinkouman"},
@@ -3456,21 +3835,66 @@ end, {
 CreateToggleWithSubOptions(TabVisual.Right, "ESP DragonBall", function(v) 
     DBConfig.Enabled = v 
 end, {
-    { Name = "Highlight (Chams)", GetColor = function() return DBConfig.HighlightColor end, SetColor = function(c) DBConfig.HighlightColor = c end, Callback = function(v) DBConfig.Highlight = v end },
-    { Name = "Exibir Nomes", GetColor = function() return DBConfig.NameColor end, SetColor = function(c) DBConfig.NameColor = c end, Callback = function(v) DBConfig.Names = v end },
-    { Name = "Exibir Distância", GetColor = function() return DBConfig.DistanceColor end, SetColor = function(c) DBConfig.DistanceColor = c end, Callback = function(v) DBConfig.Distance = v end },
-    { Name = "Linhas (Tracers)", GetColor = function() return DBConfig.LineColor end, SetColor = function(c) DBConfig.LineColor = c end, Callback = function(v) DBConfig.Lines = v end }
+    {
+        Name = "Highlight (Chams)", 
+        GetColor = function() return DBConfig.HighlightColor end,
+        SetColor = function(c) DBConfig.HighlightColor = c end,
+        Callback = function(v) DBConfig.Highlight = v end
+    },
+    {
+        Name = "Exibir Nomes", 
+        GetColor = function() return DBConfig.NameColor end,
+        SetColor = function(c) DBConfig.NameColor = c end,
+        Callback = function(v) DBConfig.Names = v end
+    },
+    {
+        Name = "Exibir Distância", 
+        GetColor = function() return DBConfig.DistanceColor end,
+        SetColor = function(c) DBConfig.DistanceColor = c end,
+        Callback = function(v) DBConfig.Distance = v end
+    },
+    {
+        Name = "Linhas (Tracers)", 
+        GetColor = function() return DBConfig.LineColor end,
+        SetColor = function(c) DBConfig.LineColor = c end,
+        Callback = function(v) DBConfig.Lines = v end
+    }
 })
 
 CreateToggleWithSubOptions(TabVisual.Right, "ESP Comerciante", function(v) 
     MerchantConfig.Enabled = v 
 end, {
-    { Name = "Highlight (Chams)", GetColor = function() return MerchantConfig.HighlightColor end, SetColor = function(c) MerchantConfig.HighlightColor = c end, Callback = function(v) MerchantConfig.Highlight = v end },
-    { Name = "Exibir Nomes", GetColor = function() return MerchantConfig.NameColor end, SetColor = function(c) MerchantConfig.NameColor = c end, Callback = function(v) MerchantConfig.Names = v end },
-    { Name = "Exibir Distância", GetColor = function() return MerchantConfig.DistanceColor end, SetColor = function(c) MerchantConfig.DistanceColor = c end, Callback = function(v) MerchantConfig.Distance = v end },
-    { Name = "Linhas (Tracers)", GetColor = function() return MerchantConfig.LineColor end, SetColor = function(c) MerchantConfig.LineColor = c end, Callback = function(v) MerchantConfig.Lines = v end }
+    {
+        Name = "Highlight (Chams)", 
+        GetColor = function() return MerchantConfig.HighlightColor end,
+        SetColor = function(c) MerchantConfig.HighlightColor = c end,
+        Callback = function(v) MerchantConfig.Highlight = v end
+    },
+    {
+        Name = "Exibir Nomes", 
+        GetColor = function() return MerchantConfig.NameColor end,
+        SetColor = function(c) MerchantConfig.NameColor = c end,
+        Callback = function(v) MerchantConfig.Names = v end
+    },
+    {
+        Name = "Exibir Distância", 
+        GetColor = function() return MerchantConfig.DistanceColor end,
+        SetColor = function(c) MerchantConfig.DistanceColor = c end,
+        Callback = function(v) MerchantConfig.Distance = v end
+    },
+    {
+        Name = "Linhas (Tracers)", 
+        GetColor = function() return MerchantConfig.LineColor end,
+        SetColor = function(c) MerchantConfig.LineColor = c end,
+        Callback = function(v) MerchantConfig.Lines = v end
+    }
 })
 
+-- ==========================================
+-- Aba Misc (Organizado por Seções)
+-- ==========================================
+
+-- Seção DragonBall
 CreateSection(TabMisc.Left, "DragonBall")
 
 CreateButton(TabMisc.Left, "Teleportar para Dragonball", function()
@@ -3509,6 +3933,7 @@ DBCountLbl.TextSize = 11
 DBCountLbl.TextXAlignment = Enum.TextXAlignment.Left
 DBCountLbl.ZIndex = 30
 
+-- Seção Comerciante
 CreateSection(TabMisc.Left, "Comerciante")
 
 CreateButton(TabMisc.Left, "Teleportar para Comerciante", function()
@@ -3520,28 +3945,7 @@ CreateToggle(TabMisc.Left, "Auto tp Comerciante", function(v)
     merchantAutoTpTriggered = false
 end, false)
 
-local MerchantStatusFrame = Instance.new("Frame", TabMisc.Left)
-MerchantStatusFrame.Size = UDim2.new(1, -4, 0, 32)
-MerchantStatusFrame.BackgroundColor3 = Color3.fromRGB(12, 12, 12)
-MerchantStatusFrame.BorderSizePixel = 0
-MerchantStatusFrame.ZIndex = 30
-Instance.new("UICorner", MerchantStatusFrame).CornerRadius = UDim.new(0, 6)
-
-local MerchantStatusStroke = Instance.new("UIStroke", MerchantStatusFrame)
-MerchantStatusStroke.Color = Color3.fromRGB(35, 20, 20)
-MerchantStatusStroke.Thickness = 1
-
-local MerchantStatusLbl = Instance.new("TextLabel", MerchantStatusFrame)
-MerchantStatusLbl.Size = UDim2.new(1, -16, 1, 0)
-MerchantStatusLbl.Position = UDim2.new(0, 8, 0, 0)
-MerchantStatusLbl.BackgroundTransparency = 1
-MerchantStatusLbl.Text = "Status Comerciante: Verificando..."
-MerchantStatusLbl.TextColor3 = Color3.fromRGB(220, 220, 220)
-MerchantStatusLbl.Font = Enum.Font.GothamSemibold
-MerchantStatusLbl.TextSize = 11
-MerchantStatusLbl.TextXAlignment = Enum.TextXAlignment.Left
-MerchantStatusLbl.ZIndex = 30
-
+-- Teleport Ilhas na Coluna da Direita da aba Misc
 CreateSection(TabMisc.Right, "Teleport Ilha")
 
 local IslandLocations = {
@@ -3560,7 +3964,16 @@ local IslandLocations = {
 local selectedIsland = "Desert"
 
 CreateDropdown(TabMisc.Right, "Selecione a Ilha", {
-    "Desert", "AbandonedIsland", "DesertWoods", "Forest", "IceIsland", "LargeSland", "Montain", "StarterIsland", "Tournament", "Volcano"
+    "Desert",
+    "AbandonedIsland",
+    "DesertWoods",
+    "Forest",
+    "IceIsland",
+    "LargeSland",
+    "Montain",
+    "StarterIsland",
+    "Tournament",
+    "Volcano"
 }, "Desert", function(chosen)
     selectedIsland = chosen
 end)
@@ -3570,7 +3983,9 @@ CreateButton(TabMisc.Right, "Teleportar para Ilha", function()
     if coords then
         pcall(function()
             local hrp = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
-            if hrp then hrp.CFrame = CFrame.new(coords) end
+            if hrp then
+                hrp.CFrame = CFrame.new(coords)
+            end
         end)
     end
 end)
@@ -3580,28 +3995,14 @@ task.spawn(function()
         pcall(function()
             local count = 0
             for obj, _ in pairs(dbObjects) do
-                if obj and obj.Parent then count = count + 1 end
+                if obj and obj.Parent then
+                    count = count + 1
+                end
             end
             if DBCountLbl then
                 DBCountLbl.Text = "Dragonballs no mapa: " .. count
             end
             
-            local mapFolder = workspace:FindFirstChild("Map")
-            local questsFolder = mapFolder and mapFolder:FindFirstChild("Quests")
-            local shopObj = questsFolder and questsFolder:FindFirstChild("DragonBallShop")
-            
-            if shopObj then
-                if MerchantStatusLbl then
-                    MerchantStatusLbl.Text = "Status Comerciante: [Disponível]"
-                    MerchantStatusLbl.TextColor3 = Color3.fromRGB(46, 204, 113)
-                end
-            else
-                if MerchantStatusLbl then
-                    MerchantStatusLbl.Text = "Status Comerciante: [Não Encontrado]"
-                    MerchantStatusLbl.TextColor3 = Color3.fromRGB(220, 60, 60)
-                end
-            end
-
             if Config.AutoGetDB and count > 0 and not autoGetDBTriggered then
                 autoGetDBTriggered = true
                 AutoGetDragonBallRoutine()
@@ -3617,6 +4018,9 @@ task.spawn(function()
             end
 
             if Config.AutoTpMerchant and not merchantAutoTpTriggered then
+                local mapFolder = workspace:FindFirstChild("Map")
+                local questsFolder = mapFolder and mapFolder:FindFirstChild("Quests")
+                local shopObj = questsFolder and questsFolder:FindFirstChild("DragonBallShop")
                 if shopObj then
                     merchantAutoTpTriggered = true
                     TeleportToMerchant()
@@ -3628,6 +4032,9 @@ task.spawn(function()
     end
 end)
 
+-- ==========================================
+-- 8. SEQUÊNCIA DE CARREGAMENTO & ABERTURA
+-- ==========================================
 task.spawn(function()
     TweenService:Create(LoadStroke, TweenInfo.new(0.5), {Transparency = 0.2}):Play()
     TweenService:Create(LoadLogo, TweenInfo.new(0.5), {ImageTransparency = 0}):Play()
