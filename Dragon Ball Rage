@@ -5,8 +5,18 @@ local RunService = game:GetService("RunService")
 local Players = game:GetService("Players")
 local VirtualInputManager = game:GetService("VirtualInputManager")
 local GuiService = game:GetService("GuiService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local StatsService = game:GetService("Stats")
 
 local LocalPlayer = Players.LocalPlayer
+
+-- Carregamento seguro dos módulos do jogo para o Zenkai
+local network, statUtils, uiState
+pcall(function()
+    network = require(ReplicatedStorage:WaitForChild("Modules"):WaitForChild("Library"):WaitForChild("Network"))
+    statUtils = require(ReplicatedStorage:WaitForChild("Modules"):WaitForChild("Shared"):WaitForChild("StatUtils"))
+    uiState = require(ReplicatedStorage:WaitForChild("Systems"):WaitForChild("UIState"):WaitForChild("uiState"))
+end)
 
 if CoreGui:FindFirstChild("DexyInsaneUI") then
     CoreGui.DexyInsaneUI:Destroy()
@@ -46,19 +56,30 @@ local Config = {
     AutoKiBlastMethod = "Segurar",
     AutoCharge = false,
     AutoChargeMin = 10,
+    AutoZenkai = false,
+    -- Auto Farm Zenis Configs (Seleção múltipla por toggles)
+    AutoFarmZenis = false,
+    SelectedNPCs = {
+        ["Tennenman"] = true,
+        ["Saibamen"] = false,
+        ["Jinkouman"] = false
+    },
+    SelectedAttackMode = "Ambos",
+    -- Jogador & Outros
     InfJump = false,
     EnableWalkSpeed = false,
     WalkSpeed = 50,
     AutoTpDB = false,
+    AutoGetDB = false,
     AutoTpMerchant = false,
-    -- Configurações de Voo Integradas
     FlightEnabled = false,
-    FlightMode = "Both", -- "Both", "FastOnly", "NormalOnly"
+    FlightMode = "Both",
     NormalMultiplier = 1.5,
     FastMultiplier = 3.0
 }
 
 local dbAutoTpTriggered = false
+local autoGetDBTriggered = false
 local merchantAutoTpTriggered = false
 
 local ESPConfig = {
@@ -73,6 +94,24 @@ local ESPConfig = {
     NameColor = Color3.fromRGB(255, 255, 255),
     DistanceColor = Color3.fromRGB(255, 220, 40),
     ChamsColor = Color3.fromRGB(255, 40, 40)
+}
+
+-- Configuração do ESP NPCs
+local NPCESPConfig = {
+    Enabled = false,
+    Boxes = false,
+    Names = false,
+    Distance = false,
+    Chams = false,
+    BoxColor = Color3.fromRGB(0, 255, 200),
+    NameColor = Color3.fromRGB(255, 255, 255),
+    DistanceColor = Color3.fromRGB(0, 255, 200),
+    ChamsColor = Color3.fromRGB(0, 255, 200),
+    SelectedNPCs = {
+        ["Tennenman"] = true,
+        ["Saibamen"] = true,
+        ["Jinkouman"] = true
+    }
 }
 
 local DBConfig = {
@@ -103,6 +142,24 @@ local MerchantConfig = {
 -- LÓGICA REAL DAS FUNÇÕES DO JOGO
 -- ==========================================
 
+-- AUTO ZENKAI LOOP
+task.spawn(function()
+    while true do
+        if Config.AutoZenkai then
+            pcall(function()
+                if network and statUtils and uiState then
+                    local player = uiState.plr or LocalPlayer
+                    if statUtils:CanPlayerZenkai(player) then
+                        network:InvokeServer("RequestZenkaiBoost")
+                        task.wait(1.5)
+                    end
+                end
+            end)
+        end
+        task.wait(0.5)
+    end
+end)
+
 RunService.RenderStepped:Connect(function()
     pcall(function()
         if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then
@@ -120,7 +177,6 @@ RunService.RenderStepped:Connect(function()
     end)
 end)
 
--- APLICAÇÃO INTELIGENTE DA FÍSICA DE VOO
 RunService.RenderStepped:Connect(function()
     if not Config.FlightEnabled then return end
 
@@ -393,6 +449,142 @@ task.spawn(function()
 end)
 
 -- ==========================================
+-- AUTO FARM ZENIS LOOP (SUPORTE A MÚLTIPLOS NPCS)
+-- ==========================================
+local farmKeyE_Down = false
+local farmKeyQ_Down = false
+
+local function farmPressKey(keyCode)
+    pcall(function()
+        VirtualInputManager:SendKeyEvent(true, keyCode, false, game)
+        task.wait(0.05)
+        VirtualInputManager:SendKeyEvent(false, keyCode, false, game)
+    end)
+end
+
+local function farmHoldKey(keyCode)
+    pcall(function()
+        VirtualInputManager:SendKeyEvent(true, keyCode, false, game)
+    end)
+end
+
+local function farmReleaseKey(keyCode)
+    pcall(function()
+        VirtualInputManager:SendKeyEvent(false, keyCode, false, game)
+    end)
+end
+
+local function farmReleaseAllKeys()
+    if farmKeyE_Down then
+        farmReleaseKey(Enum.KeyCode.E)
+        farmKeyE_Down = false
+    end
+    if farmKeyQ_Down then
+        farmReleaseKey(Enum.KeyCode.Q)
+        farmKeyQ_Down = false
+    end
+end
+
+local function isPlayerGrounded()
+    local character = LocalPlayer.Character
+    if not character then return false end
+    local humanoid = character:FindFirstChildOfClass("Humanoid")
+    if humanoid then
+        return humanoid.FloorMaterial ~= Enum.Material.Air
+    end
+    return false
+end
+
+local function ensureFlying()
+    if isPlayerGrounded() then
+        farmPressKey(Enum.KeyCode.Space)
+        task.wait(0.08)
+        farmPressKey(Enum.KeyCode.Space)
+        task.wait(0.2)
+    end
+end
+
+local function getTargetNPC()
+    local npcsFolder = workspace:FindFirstChild("Map") and workspace.Map:FindFirstChild("NPCs")
+    if not npcsFolder then return nil end
+
+    for _, npc in ipairs(npcsFolder:GetChildren()) do
+        if Config.SelectedNPCs[npc.Name] then
+            local humanoid = npc:FindFirstChildOfClass("Humanoid")
+            local rootPart = npc:FindFirstChild("HumanoidRootPart") or npc.PrimaryPart
+            if humanoid and rootPart and humanoid.Health > 0 then
+                return npc, humanoid, rootPart
+            end
+        end
+    end
+    return nil
+end
+
+task.spawn(function()
+    local previousTarget = nil
+
+    while true do
+        if Config.AutoFarmZenis then
+            pcall(function()
+                local npc, humanoid, rootPart = getTargetNPC()
+
+                if npc and humanoid and rootPart and humanoid.Health > 0 then
+                    local isNewTarget = (npc ~= previousTarget)
+                    previousTarget = npc
+
+                    local character = LocalPlayer.Character
+                    local myRoot = character and (character:FindFirstChild("HumanoidRootPart") or character.PrimaryPart)
+
+                    if myRoot then
+                        myRoot.CFrame = rootPart.CFrame * CFrame.new(0, 0, 3)
+
+                        ensureFlying()
+
+                        if isNewTarget then
+                            farmReleaseAllKeys()
+                            task.wait(0.1)
+                            if Config.SelectedAttackMode == "Ki" or Config.SelectedAttackMode == "Ambos" then
+                                farmPressKey(Enum.KeyCode.X)
+                                task.wait(0.15)
+                            end
+                        end
+
+                        if Config.SelectedAttackMode == "Ataque" then
+                            if not farmKeyE_Down then
+                                farmHoldKey(Enum.KeyCode.E)
+                                farmKeyE_Down = true
+                            end
+                        elseif Config.SelectedAttackMode == "Ki" then
+                            if not farmKeyQ_Down then
+                                farmHoldKey(Enum.KeyCode.Q)
+                                farmKeyQ_Down = true
+                            end
+                        elseif Config.SelectedAttackMode == "Ambos" then
+                            if not farmKeyE_Down then
+                                farmHoldKey(Enum.KeyCode.E)
+                                farmKeyE_Down = true
+                            end
+                            if not farmKeyQ_Down then
+                                farmHoldKey(Enum.KeyCode.Q)
+                                farmKeyQ_Down = true
+                            end
+                        end
+                    end
+                else
+                    previousTarget = nil
+                    farmReleaseAllKeys()
+                end
+            end)
+            task.wait(0.1)
+        else
+            previousTarget = nil
+            farmReleaseAllKeys()
+            task.wait(0.3)
+        end
+    end
+end)
+
+-- ==========================================
 -- SISTEMA DE ESP PLAYERS
 -- ==========================================
 local espObjects = {}
@@ -561,6 +753,185 @@ RunService.RenderStepped:Connect(function()
             end
         else
             removeESP(player)
+        end
+    end
+end)
+
+-- ==========================================
+-- SISTEMA DE ESP NPCS
+-- ==========================================
+local npcEspObjects = {}
+local npcChamsObjects = {}
+
+local function removeNPCESP(npc)
+    if npcEspObjects[npc] then
+        for _, obj in pairs(npcEspObjects[npc]) do
+            pcall(function() obj:Remove() end)
+        end
+        npcEspObjects[npc] = nil
+    end
+    if npcChamsObjects[npc] then
+        pcall(function() npcChamsObjects[npc]:Destroy() end)
+        npcChamsObjects[npc] = nil
+    end
+end
+
+RunService.RenderStepped:Connect(function()
+    local npcsFolder = workspace:FindFirstChild("Map") and workspace.Map:FindFirstChild("NPCs")
+    
+    -- Chams para NPCs
+    if NPCESPConfig.Enabled and NPCESPConfig.Chams and npcsFolder then
+        for _, npc in ipairs(npcsFolder:GetChildren()) do
+            if NPCESPConfig.SelectedNPCs[npc.Name] then
+                local humanoid = npc:FindFirstChildOfClass("Humanoid")
+                if humanoid and humanoid.Health > 0 then
+                    if not npcChamsObjects[npc] then
+                        local highlight = Instance.new("Highlight")
+                        highlight.Name = "DexyNPCESPChams"
+                        highlight.Adornee = npc
+                        highlight.FillColor = NPCESPConfig.ChamsColor
+                        highlight.FillTransparency = 0.5
+                        highlight.OutlineColor = Color3.fromRGB(255, 255, 255)
+                        highlight.OutlineTransparency = 0
+                        highlight.Parent = npc
+                        npcChamsObjects[npc] = highlight
+                    else
+                        npcChamsObjects[npc].FillColor = NPCESPConfig.ChamsColor
+                        if npcChamsObjects[npc].Adornee ~= npc then
+                            npcChamsObjects[npc].Adornee = npc
+                        end
+                    end
+                else
+                    if npcChamsObjects[npc] then
+                        npcChamsObjects[npc]:Destroy()
+                        npcChamsObjects[npc] = nil
+                    end
+                end
+            else
+                if npcChamsObjects[npc] then
+                    npcChamsObjects[npc]:Destroy()
+                    npcChamsObjects[npc] = nil
+                end
+            end
+        end
+    else
+        for npc, highlight in pairs(npcChamsObjects) do
+            if highlight then highlight:Destroy() end
+            npcChamsObjects[npc] = nil
+        end
+    end
+
+    -- Desenhos (Box, Nomes, Distância)
+    if not NPCESPConfig.Enabled or not Drawing or not npcsFolder then
+        for npc, _ in pairs(npcEspObjects) do
+            removeNPCESP(npc)
+        end
+        return
+    end
+
+    local camera = workspace.CurrentCamera
+    if not camera then return end
+
+    local activeNPCs = {}
+    for _, npc in ipairs(npcsFolder:GetChildren()) do
+        if NPCESPConfig.SelectedNPCs[npc.Name] then
+            local hrp = npc:FindFirstChild("HumanoidRootPart") or npc.PrimaryPart
+            local humanoid = npc:FindFirstChildOfClass("Humanoid")
+            if hrp and humanoid and humanoid.Health > 0 then
+                activeNPCs[npc] = {hrp = hrp, humanoid = humanoid}
+
+                if not npcEspObjects[npc] then
+                    pcall(function()
+                        npcEspObjects[npc] = {
+                            Box = Drawing.new("Square"),
+                            Name = Drawing.new("Text"),
+                            Distance = Drawing.new("Text")
+                        }
+                        npcEspObjects[npc].Box.Visible = false
+                        npcEspObjects[npc].Box.Thickness = 1.5
+                        npcEspObjects[npc].Box.Color = NPCESPConfig.BoxColor
+                        npcEspObjects[npc].Box.Filled = false
+
+                        npcEspObjects[npc].Name.Visible = false
+                        npcEspObjects[npc].Name.Size = 12
+                        npcEspObjects[npc].Name.Color = NPCESPConfig.NameColor
+                        npcEspObjects[npc].Name.Center = true
+                        npcEspObjects[npc].Name.Outline = true
+
+                        npcEspObjects[npc].Distance.Visible = false
+                        npcEspObjects[npc].Distance.Size = 11
+                        npcEspObjects[npc].Distance.Color = NPCESPConfig.DistanceColor
+                        npcEspObjects[npc].Distance.Center = true
+                        npcEspObjects[npc].Distance.Outline = true
+                    end)
+                end
+
+                local objs = npcEspObjects[npc]
+                if objs then
+                    local vector, onScreen = camera:WorldToViewportPoint(hrp.Position)
+
+                    if onScreen then
+                        local head = npc:FindFirstChild("Head")
+                        local rootPos = hrp.Position
+                        local topPos = head and head.Position + Vector3.new(0, 0.5, 0) or rootPos + Vector3.new(0, 3, 0)
+                        local bottomPos = rootPos - Vector3.new(0, 3, 0)
+
+                        local topScreen, topVisible = camera:WorldToViewportPoint(topPos)
+                        local bottomScreen, bottomVisible = camera:WorldToViewportPoint(bottomPos)
+
+                        if topVisible or bottomVisible then
+                            local height = math.abs(topScreen.Y - bottomScreen.Y)
+                            local width = height / 2
+
+                            if NPCESPConfig.Boxes then
+                                objs.Box.Visible = true
+                                objs.Box.Size = Vector2.new(width, height)
+                                objs.Box.Position = Vector2.new(vector.X - width / 2, topScreen.Y)
+                                objs.Box.Color = NPCESPConfig.BoxColor
+                            else
+                                objs.Box.Visible = false
+                            end
+
+                            if NPCESPConfig.Names then
+                                objs.Name.Visible = true
+                                objs.Name.Text = npc.Name
+                                objs.Name.Position = Vector2.new(vector.X, topScreen.Y - 16)
+                                objs.Name.Color = NPCESPConfig.NameColor
+                            else
+                                objs.Name.Visible = false
+                            end
+
+                            if NPCESPConfig.Distance then
+                                objs.Distance.Visible = true
+                                local dist = math.floor((hrp.Position - camera.CFrame.Position).Magnitude)
+                                objs.Distance.Text = "[" .. dist .. "m]"
+                                objs.Distance.Position = Vector2.new(vector.X, bottomScreen.Y + 2)
+                                objs.Distance.Color = NPCESPConfig.DistanceColor
+                            else
+                                objs.Distance.Visible = false
+                            end
+                        else
+                            objs.Box.Visible = false
+                            objs.Name.Visible = false
+                            objs.Distance.Visible = false
+                        end
+                    else
+                        objs.Box.Visible = false
+                        objs.Name.Visible = false
+                        objs.Distance.Visible = false
+                    end
+                end
+            else
+                removeNPCESP(npc)
+            end
+        else
+            removeNPCESP(npc)
+        end
+    end
+
+    for npc, _ in pairs(npcEspObjects) do
+        if not activeNPCs[npc] or not npc.Parent then
+            removeNPCESP(npc)
         end
     end
 end)
@@ -746,6 +1117,59 @@ local function TeleportToNearestDragonBall()
 
         if nearestObj then
             hrp.CFrame = nearestObj.CFrame + Vector3.new(0, 3, 0)
+        end
+    end)
+end
+
+-- Função Auto Get DragonBall (Ignora Cooldown de ProximityPrompt e Retorna à Posição Original)
+local function AutoGetDragonBallRoutine()
+    pcall(function()
+        local character = LocalPlayer.Character
+        local hrp = character and character:FindFirstChild("HumanoidRootPart")
+        if not hrp then return end
+
+        local nearestObj = nil
+        local targetPart = nil
+        local shortestDist = math.huge
+
+        for obj, _ in pairs(dbObjects) do
+            if obj and obj.Parent then
+                local part = obj.PrimaryPart or obj:FindFirstChildWhichIsA("BasePart") or obj:FindFirstChild("Main")
+                if part then
+                    local dist = (hrp.Position - part.Position).Magnitude
+                    if dist < shortestDist then
+                        shortestDist = dist
+                        nearestObj = obj
+                        targetPart = part
+                    end
+                end
+            end
+        end
+
+        if nearestObj and targetPart then
+            local originalPos = hrp.CFrame
+            
+            -- Teleporta para perto da Dragon Ball
+            hrp.CFrame = targetPart.CFrame + Vector3.new(0, 3, 0)
+            task.wait(0.15)
+            
+            -- Procura e dispara o ProximityPrompt sem cooldown
+            local function triggerPromptRecursive(parent)
+                for _, child in ipairs(parent:GetDescendants()) do
+                    if child:IsA("ProximityPrompt") then
+                        pcall(function()
+                            child.HoldDuration = 0
+                            fireproximityprompt(child)
+                        end)
+                    end
+                end
+            end
+            
+            triggerPromptRecursive(nearestObj)
+            task.wait(0.1)
+            
+            -- Retorna para a posição original
+            hrp.CFrame = originalPos
         end
     end)
 end
@@ -1892,6 +2316,420 @@ local function CreateButton(parentCol, name, callback)
     end)
 end
 
+local function CreateDropdown(parentCol, titleText, options, defaultSelected, onSelect)
+    local baseHeight = 54
+    local selectedOption = defaultSelected or options[1]
+    local isOpen = false
+
+    local DropdownContainer = Instance.new("Frame", parentCol)
+    DropdownContainer.Size = UDim2.new(1, -4, 0, baseHeight)
+    DropdownContainer.BackgroundColor3 = Color3.fromRGB(12, 12, 12)
+    DropdownContainer.BorderSizePixel = 0
+    DropdownContainer.ClipsDescendants = true
+    DropdownContainer.ZIndex = 30
+    Instance.new("UICorner", DropdownContainer).CornerRadius = UDim.new(0, 6)
+
+    local Stroke = Instance.new("UIStroke", DropdownContainer)
+    Stroke.Color = Color3.fromRGB(35, 20, 20)
+    Stroke.Thickness = 1
+
+    local TitleLbl = Instance.new("TextLabel", DropdownContainer)
+    TitleLbl.Size = UDim2.new(1, -16, 0, 18)
+    TitleLbl.Position = UDim2.new(0, 8, 0, 4)
+    TitleLbl.BackgroundTransparency = 1
+    TitleLbl.Text = titleText
+    TitleLbl.TextColor3 = Color3.fromRGB(160, 160, 160)
+    TitleLbl.Font = Enum.Font.GothamSemibold
+    TitleLbl.TextSize = 10
+    TitleLbl.TextXAlignment = Enum.TextXAlignment.Left
+    TitleLbl.ZIndex = 31
+
+    local HeaderBtn = Instance.new("TextButton", DropdownContainer)
+    HeaderBtn.Size = UDim2.new(1, -16, 0, 24)
+    HeaderBtn.Position = UDim2.new(0, 8, 0, 24)
+    HeaderBtn.BackgroundColor3 = Color3.fromRGB(20, 12, 12)
+    HeaderBtn.Text = "  " .. tostring(selectedOption)
+    HeaderBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    HeaderBtn.Font = Enum.Font.GothamBold
+    HeaderBtn.TextSize = 11
+    HeaderBtn.TextXAlignment = Enum.TextXAlignment.Left
+    HeaderBtn.AutoButtonColor = false
+    HeaderBtn.ZIndex = 31
+    Instance.new("UICorner", HeaderBtn).CornerRadius = UDim.new(0, 4)
+
+    local HeaderStroke = Instance.new("UIStroke", HeaderBtn)
+    HeaderStroke.Color = Color3.fromRGB(50, 25, 25)
+    HeaderStroke.Thickness = 1
+
+    local ArrowLbl = Instance.new("TextLabel", HeaderBtn)
+    ArrowLbl.Size = UDim2.new(0, 20, 1, 0)
+    ArrowLbl.Position = UDim2.new(1, -22, 0, 0)
+    ArrowLbl.BackgroundTransparency = 1
+    ArrowLbl.Text = "▼"
+    ArrowLbl.TextColor3 = Color3.fromRGB(255, 60, 60)
+    ArrowLbl.Font = Enum.Font.GothamBold
+    ArrowLbl.TextSize = 9
+    ArrowLbl.ZIndex = 32
+
+    local ListFrame = Instance.new("ScrollingFrame", DropdownContainer)
+    ListFrame.Size = UDim2.new(1, -16, 0, 110)
+    ListFrame.Position = UDim2.new(0, 8, 0, 52)
+    ListFrame.BackgroundColor3 = Color3.fromRGB(8, 8, 8)
+    ListFrame.BorderSizePixel = 0
+    ListFrame.Visible = false
+    ListFrame.ScrollBarThickness = 3
+    ListFrame.ScrollBarImageColor3 = Color3.fromRGB(255, 40, 40)
+    ListFrame.ZIndex = 33
+    ListFrame.CanvasSize = UDim2.new(0, 0, 0, 0)
+    Instance.new("UICorner", ListFrame).CornerRadius = UDim.new(0, 4)
+
+    local ListStroke = Instance.new("UIStroke", ListFrame)
+    ListStroke.Color = Color3.fromRGB(40, 20, 20)
+    ListStroke.Thickness = 1
+
+    local ListLayout = Instance.new("UIListLayout", ListFrame)
+    ListLayout.SortOrder = Enum.SortOrder.LayoutOrder
+    ListLayout.Padding = UDim.new(0, 2)
+
+    ListLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
+        ListFrame.CanvasSize = UDim2.new(0, 0, 0, ListLayout.AbsoluteContentSize.Y + 4)
+    end)
+
+    ListFrame.MouseEnter:Connect(function()
+        setParentScrolling(ListFrame, false)
+    end)
+
+    ListFrame.MouseLeave:Connect(function()
+        setParentScrolling(ListFrame, true)
+    end)
+
+    local optionButtons = {}
+
+    local function updateSelected(opt)
+        selectedOption = opt
+        HeaderBtn.Text = "  " .. tostring(opt)
+        for _, btn in ipairs(optionButtons) do
+            if btn.Name == opt then
+                btn.BackgroundColor3 = Color3.fromRGB(40, 15, 15)
+                btn.TextColor3 = Color3.fromRGB(255, 60, 60)
+            else
+                btn.BackgroundColor3 = Color3.fromRGB(12, 12, 12)
+                btn.TextColor3 = Color3.fromRGB(180, 180, 180)
+            end
+        end
+        if onSelect then onSelect(opt) end
+    end
+
+    for _, opt in ipairs(options) do
+        local OptBtn = Instance.new("TextButton", ListFrame)
+        OptBtn.Name = opt
+        OptBtn.Size = UDim2.new(1, -4, 0, 22)
+        OptBtn.BackgroundColor3 = (opt == selectedOption) and Color3.fromRGB(40, 15, 15) or Color3.fromRGB(12, 12, 12)
+        OptBtn.BorderSizePixel = 0
+        OptBtn.Text = "  " .. opt
+        OptBtn.TextColor3 = (opt == selectedOption) and Color3.fromRGB(255, 60, 60) or Color3.fromRGB(180, 180, 180)
+        OptBtn.Font = Enum.Font.GothamSemibold
+        OptBtn.TextSize = 10
+        OptBtn.TextXAlignment = Enum.TextXAlignment.Left
+        OptBtn.AutoButtonColor = false
+        OptBtn.ZIndex = 34
+        Instance.new("UICorner", OptBtn).CornerRadius = UDim.new(0, 3)
+
+        OptBtn.MouseEnter:Connect(function()
+            if selectedOption ~= opt then
+                TweenService:Create(OptBtn, TweenInfo.new(0.15), {BackgroundColor3 = Color3.fromRGB(25, 15, 15), TextColor3 = Color3.fromRGB(220, 220, 220)}):Play()
+            end
+        end)
+        OptBtn.MouseLeave:Connect(function()
+            if selectedOption ~= opt then
+                TweenService:Create(OptBtn, TweenInfo.new(0.15), {BackgroundColor3 = Color3.fromRGB(12, 12, 12), TextColor3 = Color3.fromRGB(180, 180, 180)}):Play()
+            end
+        end)
+
+        OptBtn.MouseButton1Click:Connect(function()
+            updateSelected(opt)
+            isOpen = false
+            TweenService:Create(ArrowLbl, TweenInfo.new(0.2), {Rotation = 0}):Play()
+            TweenService:Create(DropdownContainer, TweenInfo.new(0.3, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {Size = UDim2.new(1, -4, 0, baseHeight)}):Play()
+            task.delay(0.3, function()
+                if not isOpen then ListFrame.Visible = false end
+            end)
+        end)
+
+        table.insert(optionButtons, OptBtn)
+    end
+
+    HeaderBtn.MouseButton1Click:Connect(function()
+        isOpen = not isOpen
+        if isOpen then
+            ListFrame.Visible = true
+            TweenService:Create(ArrowLbl, TweenInfo.new(0.2), {Rotation = 180}):Play()
+            TweenService:Create(DropdownContainer, TweenInfo.new(0.3, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {Size = UDim2.new(1, -4, 0, 168)}):Play()
+        else
+            TweenService:Create(ArrowLbl, TweenInfo.new(0.2), {Rotation = 0}):Play()
+            TweenService:Create(DropdownContainer, TweenInfo.new(0.3, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {Size = UDim2.new(1, -4, 0, baseHeight)}):Play()
+            task.delay(0.3, function()
+                if not isOpen then ListFrame.Visible = false end
+            end)
+        end
+    end)
+
+    return {
+        GetSelected = function() return selectedOption end,
+        SetSelected = function(opt) updateSelected(opt) end
+    }
+end
+
+local function CreateToggleWithSubOptionsAndMultiSelect(parentCol, name, callback, subOptions, multiSelectData)
+    local baseHeight = 30
+    local currentHeight = baseHeight
+    
+    local ToggleFrame = Instance.new("Frame", parentCol)
+    ToggleFrame.Size = UDim2.new(1, -4, 0, baseHeight)
+    ToggleFrame.BackgroundColor3 = Color3.fromRGB(12, 12, 12)
+    ToggleFrame.BorderSizePixel = 0
+    ToggleFrame.ClipsDescendants = true
+    ToggleFrame.ZIndex = 30
+    Instance.new("UICorner", ToggleFrame).CornerRadius = UDim.new(0, 6)
+    
+    local ToggleStroke = Instance.new("UIStroke", ToggleFrame)
+    ToggleStroke.Color = Color3.fromRGB(35, 20, 20)
+    ToggleStroke.Thickness = 1
+
+    local TitleLbl = Instance.new("TextLabel", ToggleFrame)
+    TitleLbl.Size = UDim2.new(1, -75, 0, 30)
+    TitleLbl.Position = UDim2.new(0, 8, 0, 0)
+    TitleLbl.BackgroundTransparency = 1
+    TitleLbl.Text = name
+    TitleLbl.TextColor3 = Color3.fromRGB(220, 220, 220)
+    TitleLbl.Font = Enum.Font.GothamSemibold
+    TitleLbl.TextSize = 11
+    TitleLbl.TextXAlignment = Enum.TextXAlignment.Left
+    TitleLbl.ZIndex = 30
+
+    local ToggleBtn = Instance.new("TextButton", ToggleFrame)
+    ToggleBtn.Size = UDim2.new(0, 32, 0, 16)
+    ToggleBtn.Position = UDim2.new(1, -38, 0, 7)
+    ToggleBtn.BackgroundColor3 = Color3.fromRGB(25, 15, 15)
+    ToggleBtn.Text = ""
+    ToggleBtn.AutoButtonColor = false
+    ToggleBtn.ZIndex = 30
+    Instance.new("UICorner", ToggleBtn).CornerRadius = UDim.new(1, 0)
+
+    local Circle = Instance.new("Frame", ToggleBtn)
+    Circle.Size = UDim2.new(0, 12, 0, 12)
+    Circle.Position = UDim2.new(0, 2, 0.5, -6)
+    Circle.BackgroundColor3 = Color3.fromRGB(180, 180, 180)
+    Circle.ZIndex = 31
+    Instance.new("UICorner", Circle).CornerRadius = UDim.new(1, 0)
+
+    local isToggled = false
+    ToggleBtn.MouseButton1Click:Connect(function()
+        CreateRipple(ToggleFrame)
+        isToggled = not isToggled
+        if isToggled then
+            TweenService:Create(ToggleBtn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(255, 40, 40)}):Play()
+            TweenService:Create(Circle, TweenInfo.new(0.2), {Position = UDim2.new(0, 18, 0.5, -6), BackgroundColor3 = Color3.fromRGB(255, 255, 255)}):Play()
+        else
+            TweenService:Create(ToggleBtn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(25, 15, 15)}):Play()
+            TweenService:Create(Circle, TweenInfo.new(0.2), {Position = UDim2.new(0, 2, 0.5, -6), BackgroundColor3 = Color3.fromRGB(180, 180, 180)}):Play()
+        end
+        if callback then callback(isToggled) end
+    end)
+
+    local ConfigBtn = Instance.new("TextButton", ToggleFrame)
+    ConfigBtn.Size = UDim2.new(0, 24, 0, 16)
+    ConfigBtn.Position = UDim2.new(1, -66, 0, 7)
+    ConfigBtn.BackgroundColor3 = Color3.fromRGB(20, 12, 12)
+    ConfigBtn.Text = "⚙"
+    ConfigBtn.TextColor3 = Color3.fromRGB(200, 200, 200)
+    ConfigBtn.Font = Enum.Font.GothamBold
+    ConfigBtn.TextSize = 10
+    ConfigBtn.AutoButtonColor = false
+    ConfigBtn.ZIndex = 30
+    Instance.new("UICorner", ConfigBtn).CornerRadius = UDim.new(0, 4)
+
+    local OptionsContainer = Instance.new("Frame", ToggleFrame)
+    OptionsContainer.Size = UDim2.new(1, -16, 0, 0)
+    OptionsContainer.Position = UDim2.new(0, 8, 0, 32)
+    OptionsContainer.BackgroundTransparency = 1
+    OptionsContainer.Visible = false
+    OptionsContainer.ZIndex = 30
+
+    local optionsLayout = Instance.new("UIListLayout", OptionsContainer)
+    optionsLayout.SortOrder = Enum.SortOrder.LayoutOrder
+    optionsLayout.Padding = UDim.new(0, 4)
+
+    local function recalculateHeight()
+        optionsLayout:ApplyLayout()
+        local totalContentY = optionsLayout.AbsoluteContentSize.Y
+        OptionsContainer.Size = UDim2.new(1, -16, 0, totalContentY)
+        currentHeight = 38 + totalContentY + 8
+        TweenService:Create(ToggleFrame, TweenInfo.new(0.3, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {Size = UDim2.new(1, -4, 0, currentHeight)}):Play()
+    end
+
+    -- Se houver dados para seleção múltipla (ex: Toggles de NPCs)
+    if multiSelectData then
+        local GroupLbl = Instance.new("TextLabel", OptionsContainer)
+        GroupLbl.Size = UDim2.new(1, 0, 0, 18)
+        GroupLbl.BackgroundTransparency = 1
+        GroupLbl.Text = multiSelectData.Title or "Selecionar NPCs:"
+        GroupLbl.TextColor3 = Color3.fromRGB(160, 160, 160)
+        GroupLbl.Font = Enum.Font.GothamSemibold
+        GroupLbl.TextSize = 10
+        GroupLbl.TextXAlignment = Enum.TextXAlignment.Left
+
+        for _, itemName in ipairs(multiSelectData.Items) do
+            local Row = Instance.new("Frame", OptionsContainer)
+            Row.Size = UDim2.new(1, 0, 0, 22)
+            Row.BackgroundTransparency = 1
+
+            local Lbl = Instance.new("TextLabel", Row)
+            Lbl.Size = UDim2.new(1, -35, 1, 0)
+            Lbl.Position = UDim2.new(0, 4, 0, 0)
+            Lbl.BackgroundTransparency = 1
+            Lbl.Text = itemName
+            Lbl.TextColor3 = Color3.fromRGB(200, 200, 200)
+            Lbl.Font = Enum.Font.Gotham
+            Lbl.TextSize = 10
+            Lbl.TextXAlignment = Enum.TextXAlignment.Left
+
+            local TBtn = Instance.new("TextButton", Row)
+            TBtn.Size = UDim2.new(0, 26, 0, 13)
+            TBtn.Position = UDim2.new(1, -26, 0, 4)
+            TBtn.BackgroundColor3 = multiSelectData.GetState(itemName) and Color3.fromRGB(255, 40, 40) or Color3.fromRGB(25, 15, 15)
+            TBtn.Text = ""
+            TBtn.AutoButtonColor = false
+            Instance.new("UICorner", TBtn).CornerRadius = UDim.new(1, 0)
+
+            local TCircle = Instance.new("Frame", TBtn)
+            TCircle.Size = UDim2.new(0, 9, 0, 9)
+            TCircle.Position = multiSelectData.GetState(itemName) and UDim2.new(0, 15, 0.5, -4) or UDim2.new(0, 2, 0.5, -4)
+            TCircle.BackgroundColor3 = multiSelectData.GetState(itemName) and Color3.fromRGB(255, 255, 255) or Color3.fromRGB(180, 180, 180)
+            Instance.new("UICorner", TCircle).CornerRadius = UDim.new(1, 0)
+
+            TBtn.MouseButton1Click:Connect(function()
+                local newState = not multiSelectData.GetState(itemName)
+                multiSelectData.SetState(itemName, newState)
+                if newState then
+                    TweenService:Create(TBtn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(255, 40, 40)}):Play()
+                    TweenService:Create(TCircle, TweenInfo.new(0.2), {Position = UDim2.new(0, 15, 0.5, -4), BackgroundColor3 = Color3.fromRGB(255, 255, 255)}):Play()
+                else
+                    TweenService:Create(TBtn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(25, 15, 15)}):Play()
+                    TweenService:Create(TCircle, TweenInfo.new(0.2), {Position = UDim2.new(0, 2, 0.5, -4), BackgroundColor3 = Color3.fromRGB(180, 180, 180)}):Play()
+                end
+            end)
+        end
+    end
+
+    for _, sub in ipairs(subOptions) do
+        local SubRow = Instance.new("Frame", OptionsContainer)
+        SubRow.Size = UDim2.new(1, 0, 0, 24)
+        SubRow.BackgroundTransparency = 1
+        SubRow.ClipsDescendants = true
+        SubRow.ZIndex = 30
+
+        local SubLbl = Instance.new("TextLabel", SubRow)
+        SubLbl.Size = UDim2.new(1, -90, 0, 22)
+        SubLbl.Position = UDim2.new(0, 0, 0, 0)
+        SubLbl.BackgroundTransparency = 1
+        SubLbl.Text = sub.Name
+        SubLbl.TextColor3 = Color3.fromRGB(170, 170, 170)
+        SubLbl.Font = Enum.Font.GothamSemibold
+        SubLbl.TextSize = 10
+        SubLbl.TextXAlignment = Enum.TextXAlignment.Left
+        SubLbl.ZIndex = 30
+
+        local SubToggleBtn = Instance.new("TextButton", SubRow)
+        SubToggleBtn.Size = UDim2.new(0, 26, 0, 14)
+        SubToggleBtn.Position = UDim2.new(1, -26, 0, 4)
+        SubToggleBtn.BackgroundColor3 = Color3.fromRGB(25, 15, 15)
+        SubToggleBtn.Text = ""
+        SubToggleBtn.AutoButtonColor = false
+        SubToggleBtn.ZIndex = 30
+        Instance.new("UICorner", SubToggleBtn).CornerRadius = UDim.new(1, 0)
+
+        local SubCircle = Instance.new("Frame", SubToggleBtn)
+        SubCircle.Size = UDim2.new(0, 10, 0, 10)
+        SubCircle.Position = UDim2.new(0, 2, 0.5, -5)
+        SubCircle.BackgroundColor3 = Color3.fromRGB(180, 180, 180)
+        SubCircle.ZIndex = 31
+        Instance.new("UICorner", SubCircle).CornerRadius = UDim.new(1, 0)
+
+        local subToggled = false
+        SubToggleBtn.MouseButton1Click:Connect(function()
+            subToggled = not subToggled
+            if subToggled then
+                TweenService:Create(SubToggleBtn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(255, 40, 40)}):Play()
+                TweenService:Create(SubCircle, TweenInfo.new(0.2), {Position = UDim2.new(0, 14, 0.5, -5), BackgroundColor3 = Color3.fromRGB(255, 255, 255)}):Play()
+            else
+                TweenService:Create(SubToggleBtn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(25, 15, 15)}):Play()
+                TweenService:Create(SubCircle, TweenInfo.new(0.2), {Position = UDim2.new(0, 2, 0.5, -5), BackgroundColor3 = Color3.fromRGB(180, 180, 180)}):Play()
+            end
+            if sub.Callback then sub.Callback(subToggled) end
+        end)
+
+        if sub.GetColor and sub.SetColor then
+            local SubColorPreview = Instance.new("TextButton", SubRow)
+            SubColorPreview.Size = UDim2.new(0, 28, 0, 16)
+            SubColorPreview.Position = UDim2.new(1, -60, 0, 3)
+            SubColorPreview.BackgroundColor3 = sub.GetColor()
+            SubColorPreview.Text = ""
+            SubColorPreview.AutoButtonColor = false
+            SubColorPreview.ZIndex = 30
+            Instance.new("UICorner", SubColorPreview).CornerRadius = UDim.new(0, 4)
+
+            local SubColorStroke = Instance.new("UIStroke", SubColorPreview)
+            SubColorStroke.Color = Color3.fromRGB(50, 30, 30)
+            SubColorStroke.Thickness = 1
+
+            local pickerOpen = false
+            local activePickerWidget = nil
+
+            SubColorPreview.MouseButton1Click:Connect(function()
+                pickerOpen = not pickerOpen
+                if pickerOpen then
+                    if not activePickerWidget then
+                        activePickerWidget = BuildWindColorPicker(SubRow, sub.GetColor(), function(newC)
+                            sub.SetColor(newC)
+                            SubColorPreview.BackgroundColor3 = newC
+                        end)
+                        activePickerWidget.Position = UDim2.new(0, 0, 0, 26)
+                    end
+                    activePickerWidget.Visible = true
+                    SubRow.Size = UDim2.new(1, 0, 0, 160)
+                else
+                    if activePickerWidget then activePickerWidget.Visible = false end
+                    SubRow.Size = UDim2.new(1, 0, 0, 24)
+                end
+                task.wait()
+                recalculateHeight()
+            end)
+        end
+    end
+
+    local isExpanded = false
+    ConfigBtn.MouseButton1Click:Connect(function()
+        isExpanded = not isExpanded
+        if isExpanded then
+            OptionsContainer.Visible = true
+            recalculateHeight()
+            TweenService:Create(ConfigBtn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(255, 40, 40), TextColor3 = Color3.fromRGB(255, 255, 255)}):Play()
+        else
+            TweenService:Create(ToggleFrame, TweenInfo.new(0.3, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {Size = UDim2.new(1, -4, 0, baseHeight)}):Play()
+            TweenService:Create(ConfigBtn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(20, 12, 12), TextColor3 = Color3.fromRGB(200, 200, 200)}):Play()
+            task.delay(0.3, function()
+                if not isExpanded then OptionsContainer.Visible = false end
+            end)
+        end
+    end)
+end
+
+-- Mantém compatibilidade com a função antiga para não quebrar o ESP Players
+local function CreateToggleWithSubOptions(parentCol, name, callback, subOptions)
+    CreateToggleWithSubOptionsAndMultiSelect(parentCol, name, callback, subOptions, nil)
+end
+
 local function CreateToggle(parentCol, name, callback, hasConfig, minVal, maxVal, defaultVal, speedCallback, hasMethodDropdown, methodCallback, defaultMethod, unitSuffix, isInteger)
     defaultMethod = defaultMethod or "Segurar"
     unitSuffix = unitSuffix or "s"
@@ -2103,197 +2941,6 @@ local function CreateToggle(parentCol, name, callback, hasConfig, minVal, maxVal
     end
 end
 
-local function CreateToggleWithSubOptions(parentCol, name, callback, subOptions)
-    local baseHeight = 30
-    local currentHeight = baseHeight
-    
-    local ToggleFrame = Instance.new("Frame", parentCol)
-    ToggleFrame.Size = UDim2.new(1, -4, 0, baseHeight)
-    ToggleFrame.BackgroundColor3 = Color3.fromRGB(12, 12, 12)
-    ToggleFrame.BorderSizePixel = 0
-    ToggleFrame.ClipsDescendants = true
-    ToggleFrame.ZIndex = 30
-    Instance.new("UICorner", ToggleFrame).CornerRadius = UDim.new(0, 6)
-    
-    local ToggleStroke = Instance.new("UIStroke", ToggleFrame)
-    ToggleStroke.Color = Color3.fromRGB(35, 20, 20)
-    ToggleStroke.Thickness = 1
-
-    local TitleLbl = Instance.new("TextLabel", ToggleFrame)
-    TitleLbl.Size = UDim2.new(1, -75, 0, 30)
-    TitleLbl.Position = UDim2.new(0, 8, 0, 0)
-    TitleLbl.BackgroundTransparency = 1
-    TitleLbl.Text = name
-    TitleLbl.TextColor3 = Color3.fromRGB(220, 220, 220)
-    TitleLbl.Font = Enum.Font.GothamSemibold
-    TitleLbl.TextSize = 11
-    TitleLbl.TextXAlignment = Enum.TextXAlignment.Left
-    TitleLbl.ZIndex = 30
-
-    local ToggleBtn = Instance.new("TextButton", ToggleFrame)
-    ToggleBtn.Size = UDim2.new(0, 32, 0, 16)
-    ToggleBtn.Position = UDim2.new(1, -38, 0, 7)
-    ToggleBtn.BackgroundColor3 = Color3.fromRGB(25, 15, 15)
-    ToggleBtn.Text = ""
-    ToggleBtn.AutoButtonColor = false
-    ToggleBtn.ZIndex = 30
-    Instance.new("UICorner", ToggleBtn).CornerRadius = UDim.new(1, 0)
-
-    local Circle = Instance.new("Frame", ToggleBtn)
-    Circle.Size = UDim2.new(0, 12, 0, 12)
-    Circle.Position = UDim2.new(0, 2, 0.5, -6)
-    Circle.BackgroundColor3 = Color3.fromRGB(180, 180, 180)
-    Circle.ZIndex = 31
-    Instance.new("UICorner", Circle).CornerRadius = UDim.new(1, 0)
-
-    local isToggled = false
-    ToggleBtn.MouseButton1Click:Connect(function()
-        CreateRipple(ToggleFrame)
-        isToggled = not isToggled
-        if isToggled then
-            TweenService:Create(ToggleBtn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(255, 40, 40)}):Play()
-            TweenService:Create(Circle, TweenInfo.new(0.2), {Position = UDim2.new(0, 18, 0.5, -6), BackgroundColor3 = Color3.fromRGB(255, 255, 255)}):Play()
-        else
-            TweenService:Create(ToggleBtn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(25, 15, 15)}):Play()
-            TweenService:Create(Circle, TweenInfo.new(0.2), {Position = UDim2.new(0, 2, 0.5, -6), BackgroundColor3 = Color3.fromRGB(180, 180, 180)}):Play()
-        end
-        if callback then callback(isToggled) end
-    end)
-
-    local ConfigBtn = Instance.new("TextButton", ToggleFrame)
-    ConfigBtn.Size = UDim2.new(0, 24, 0, 16)
-    ConfigBtn.Position = UDim2.new(1, -66, 0, 7)
-    ConfigBtn.BackgroundColor3 = Color3.fromRGB(20, 12, 12)
-    ConfigBtn.Text = "⚙"
-    ConfigBtn.TextColor3 = Color3.fromRGB(200, 200, 200)
-    ConfigBtn.Font = Enum.Font.GothamBold
-    ConfigBtn.TextSize = 10
-    ConfigBtn.AutoButtonColor = false
-    ConfigBtn.ZIndex = 30
-    Instance.new("UICorner", ConfigBtn).CornerRadius = UDim.new(0, 4)
-
-    local OptionsContainer = Instance.new("Frame", ToggleFrame)
-    OptionsContainer.Size = UDim2.new(1, -16, 0, 0)
-    OptionsContainer.Position = UDim2.new(0, 8, 0, 32)
-    OptionsContainer.BackgroundTransparency = 1
-    OptionsContainer.Visible = false
-    OptionsContainer.ZIndex = 30
-
-    local optionsLayout = Instance.new("UIListLayout", OptionsContainer)
-    optionsLayout.SortOrder = Enum.SortOrder.LayoutOrder
-    optionsLayout.Padding = UDim.new(0, 4)
-
-    local function recalculateHeight()
-        optionsLayout:ApplyLayout()
-        local totalContentY = optionsLayout.AbsoluteContentSize.Y
-        OptionsContainer.Size = UDim2.new(1, -16, 0, totalContentY)
-        currentHeight = 38 + totalContentY + 8
-        TweenService:Create(ToggleFrame, TweenInfo.new(0.3, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {Size = UDim2.new(1, -4, 0, currentHeight)}):Play()
-    end
-
-    for _, sub in ipairs(subOptions) do
-        local SubRow = Instance.new("Frame", OptionsContainer)
-        SubRow.Size = UDim2.new(1, 0, 0, 24)
-        SubRow.BackgroundTransparency = 1
-        SubRow.ClipsDescendants = true
-        SubRow.ZIndex = 30
-
-        local SubLbl = Instance.new("TextLabel", SubRow)
-        SubLbl.Size = UDim2.new(1, -90, 0, 22)
-        SubLbl.Position = UDim2.new(0, 0, 0, 0)
-        SubLbl.BackgroundTransparency = 1
-        SubLbl.Text = sub.Name
-        SubLbl.TextColor3 = Color3.fromRGB(170, 170, 170)
-        SubLbl.Font = Enum.Font.GothamSemibold
-        SubLbl.TextSize = 10
-        SubLbl.TextXAlignment = Enum.TextXAlignment.Left
-        SubLbl.ZIndex = 30
-
-        local SubToggleBtn = Instance.new("TextButton", SubRow)
-        SubToggleBtn.Size = UDim2.new(0, 26, 0, 14)
-        SubToggleBtn.Position = UDim2.new(1, -26, 0, 4)
-        SubToggleBtn.BackgroundColor3 = Color3.fromRGB(25, 15, 15)
-        SubToggleBtn.Text = ""
-        SubToggleBtn.AutoButtonColor = false
-        SubToggleBtn.ZIndex = 30
-        Instance.new("UICorner", SubToggleBtn).CornerRadius = UDim.new(1, 0)
-
-        local SubCircle = Instance.new("Frame", SubToggleBtn)
-        SubCircle.Size = UDim2.new(0, 10, 0, 10)
-        SubCircle.Position = UDim2.new(0, 2, 0.5, -5)
-        SubCircle.BackgroundColor3 = Color3.fromRGB(180, 180, 180)
-        SubCircle.ZIndex = 31
-        Instance.new("UICorner", SubCircle).CornerRadius = UDim.new(1, 0)
-
-        local subToggled = false
-        SubToggleBtn.MouseButton1Click:Connect(function()
-            subToggled = not subToggled
-            if subToggled then
-                TweenService:Create(SubToggleBtn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(255, 40, 40)}):Play()
-                TweenService:Create(SubCircle, TweenInfo.new(0.2), {Position = UDim2.new(0, 14, 0.5, -5), BackgroundColor3 = Color3.fromRGB(255, 255, 255)}):Play()
-            else
-                TweenService:Create(SubToggleBtn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(25, 15, 15)}):Play()
-                TweenService:Create(SubCircle, TweenInfo.new(0.2), {Position = UDim2.new(0, 2, 0.5, -5), BackgroundColor3 = Color3.fromRGB(180, 180, 180)}):Play()
-            end
-            if sub.Callback then sub.Callback(subToggled) end
-        end)
-
-        if sub.GetColor and sub.SetColor then
-            local SubColorPreview = Instance.new("TextButton", SubRow)
-            SubColorPreview.Size = UDim2.new(0, 28, 0, 16)
-            SubColorPreview.Position = UDim2.new(1, -60, 0, 3)
-            SubColorPreview.BackgroundColor3 = sub.GetColor()
-            SubColorPreview.Text = ""
-            SubColorPreview.AutoButtonColor = false
-            SubColorPreview.ZIndex = 30
-            Instance.new("UICorner", SubColorPreview).CornerRadius = UDim.new(0, 4)
-
-            local SubColorStroke = Instance.new("UIStroke", SubColorPreview)
-            SubColorStroke.Color = Color3.fromRGB(50, 30, 30)
-            SubColorStroke.Thickness = 1
-
-            local pickerOpen = false
-            local activePickerWidget = nil
-
-            SubColorPreview.MouseButton1Click:Connect(function()
-                pickerOpen = not pickerOpen
-                if pickerOpen then
-                    if not activePickerWidget then
-                        activePickerWidget = BuildWindColorPicker(SubRow, sub.GetColor(), function(newC)
-                            sub.SetColor(newC)
-                            SubColorPreview.BackgroundColor3 = newC
-                        end)
-                        activePickerWidget.Position = UDim2.new(0, 0, 0, 26)
-                    end
-                    activePickerWidget.Visible = true
-                    SubRow.Size = UDim2.new(1, 0, 0, 160)
-                else
-                    if activePickerWidget then activePickerWidget.Visible = false end
-                    SubRow.Size = UDim2.new(1, 0, 0, 24)
-                end
-                task.wait()
-                recalculateHeight()
-            end)
-        end
-    end
-
-    local isExpanded = false
-    ConfigBtn.MouseButton1Click:Connect(function()
-        isExpanded = not isExpanded
-        if isExpanded then
-            OptionsContainer.Visible = true
-            recalculateHeight()
-            TweenService:Create(ConfigBtn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(255, 40, 40), TextColor3 = Color3.fromRGB(255, 255, 255)}):Play()
-        else
-            TweenService:Create(ToggleFrame, TweenInfo.new(0.3, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {Size = UDim2.new(1, -4, 0, baseHeight)}):Play()
-            TweenService:Create(ConfigBtn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(20, 12, 12), TextColor3 = Color3.fromRGB(200, 200, 200)}):Play()
-            task.delay(0.3, function()
-                if not isExpanded then OptionsContainer.Visible = false end
-            end)
-        end
-    end)
-end
-
 -- ==========================================
 -- 7. DISTRIBUIR FUNÇÕES NAS ABAS
 -- ==========================================
@@ -2303,7 +2950,11 @@ local TabPlayer = CreateTab("Jogador", "Jogador")
 local TabVisual = CreateTab("Visual", "Visual")
 local TabMisc = CreateTab("Misc", "Misc")
 
--- Conteúdo da Aba Info - Cartão do Jogador (Lado Esquerdo)
+-- ==========================================
+-- ABA INFO (ATUALIZADA)
+-- ==========================================
+
+-- 1. Cartão do Jogador (Lado Esquerdo - Topo)
 local InfoCard = Instance.new("Frame", TabInfo.Left)
 InfoCard.Size = UDim2.new(1, -4, 0, 135)
 InfoCard.BackgroundColor3 = Color3.fromRGB(12, 12, 12)
@@ -2365,92 +3016,194 @@ DetailsLbl.TextSize = 10
 DetailsLbl.TextXAlignment = Enum.TextXAlignment.Left
 DetailsLbl.ZIndex = 31
 
--- Conteúdo da Aba Info - Cartão de Estatísticas (Lado Direito)
-local StatsCard = Instance.new("Frame", TabInfo.Right)
-StatsCard.Size = UDim2.new(1, -4, 0, 250)
-StatsCard.BackgroundColor3 = Color3.fromRGB(12, 12, 12)
-StatsCard.BorderSizePixel = 0
-StatsCard.ZIndex = 30
-Instance.new("UICorner", StatsCard).CornerRadius = UDim.new(0, 6)
+-- 2. Estatísticas de Desempenho / Servidor (Lado Esquerdo - Baixo)
+CreateSection(TabInfo.Left, "Desempenho & Servidor")
 
-local StatsCardStroke = Instance.new("UIStroke", StatsCard)
-StatsCardStroke.Color = Color3.fromRGB(35, 20, 20)
-StatsCardStroke.Thickness = 1
+local StatsServerCard = Instance.new("Frame", TabInfo.Left)
+StatsServerCard.Size = UDim2.new(1, -4, 0, 75)
+StatsServerCard.BackgroundColor3 = Color3.fromRGB(12, 12, 12)
+StatsServerCard.BorderSizePixel = 0
+StatsServerCard.ZIndex = 30
+Instance.new("UICorner", StatsServerCard).CornerRadius = UDim.new(0, 6)
 
-local StatsTitle = Instance.new("TextLabel", StatsCard)
-StatsTitle.Size = UDim2.new(1, -16, 0, 25)
-StatsTitle.Position = UDim2.new(0, 8, 0, 5)
-StatsTitle.BackgroundTransparency = 1
-StatsTitle.Text = "Estatísticas do Personagem"
-StatsTitle.TextColor3 = Color3.fromRGB(255, 60, 60)
-StatsTitle.Font = Enum.Font.GothamBold
-StatsTitle.TextSize = 12
-StatsTitle.TextXAlignment = Enum.TextXAlignment.Left
-StatsTitle.ZIndex = 31
+local StatsServerStroke = Instance.new("UIStroke", StatsServerCard)
+StatsServerStroke.Color = Color3.fromRGB(35, 20, 20)
+StatsServerStroke.Thickness = 1
 
-local StatsContainer = Instance.new("Frame", StatsCard)
-StatsContainer.Size = UDim2.new(1, -16, 1, -35)
-StatsContainer.Position = UDim2.new(0, 8, 0, 30)
-StatsContainer.BackgroundTransparency = 1
-StatsContainer.ZIndex = 31
+local InfoPlayersLbl = Instance.new("TextLabel", StatsServerCard)
+InfoPlayersLbl.Size = UDim2.new(1, -16, 0, 22)
+InfoPlayersLbl.Position = UDim2.new(0, 8, 0, 6)
+InfoPlayersLbl.BackgroundTransparency = 1
+InfoPlayersLbl.Text = "Jogadores no Servidor: 0 / 0"
+InfoPlayersLbl.TextColor3 = Color3.fromRGB(220, 220, 220)
+InfoPlayersLbl.Font = Enum.Font.GothamSemibold
+InfoPlayersLbl.TextSize = 11
+InfoPlayersLbl.TextXAlignment = Enum.TextXAlignment.Left
+InfoPlayersLbl.ZIndex = 31
 
-local StatsListLayout = Instance.new("UIListLayout", StatsContainer)
-StatsListLayout.SortOrder = Enum.SortOrder.LayoutOrder
-StatsListLayout.Padding = UDim.new(0, 4)
+local InfoFpsLbl = Instance.new("TextLabel", StatsServerCard)
+InfoFpsLbl.Size = UDim2.new(0.5, -8, 0, 22)
+InfoFpsLbl.Position = UDim2.new(0, 8, 0, 28)
+InfoFpsLbl.BackgroundTransparency = 1
+InfoFpsLbl.Text = "FPS: 0"
+InfoFpsLbl.TextColor3 = Color3.fromRGB(46, 204, 113)
+InfoFpsLbl.Font = Enum.Font.GothamBold
+InfoFpsLbl.TextSize = 11
+InfoFpsLbl.TextXAlignment = Enum.TextXAlignment.Left
+InfoFpsLbl.ZIndex = 31
 
-local statLabels = {}
-local statNames = {"Agility", "Attack", "Defense", "Ki", "ZenkaiBoost", "Zeni", "SelectedMode", "Kills", "DragonBalls"}
+local InfoPingLbl = Instance.new("TextLabel", StatsServerCard)
+InfoPingLbl.Size = UDim2.new(0.5, -8, 0, 22)
+InfoPingLbl.Position = UDim2.new(0.5, 0, 0, 28)
+InfoPingLbl.BackgroundTransparency = 1
+InfoPingLbl.Text = "Ping: 0 ms"
+InfoPingLbl.TextColor3 = Color3.fromRGB(255, 220, 40)
+InfoPingLbl.Font = Enum.Font.GothamBold
+InfoPingLbl.TextSize = 11
+InfoPingLbl.TextXAlignment = Enum.TextXAlignment.Left
+InfoPingLbl.ZIndex = 31
 
-for _, statName in ipairs(statNames) do
-    local Row = Instance.new("Frame", StatsContainer)
-    Row.Size = UDim2.new(1, -6, 0, 20)
-    Row.BackgroundTransparency = 1
-    Row.ZIndex = 32
-
-    local KeyLbl = Instance.new("TextLabel", Row)
-    KeyLbl.Size = UDim2.new(0.6, 0, 1, 0)
-    KeyLbl.BackgroundTransparency = 1
-    KeyLbl.Text = statName .. " :"
-    KeyLbl.TextColor3 = Color3.fromRGB(180, 180, 180)
-    KeyLbl.Font = Enum.Font.GothamSemibold
-    KeyLbl.TextSize = 11
-    KeyLbl.TextXAlignment = Enum.TextXAlignment.Left
-    KeyLbl.ZIndex = 32
-
-    local ValLbl = Instance.new("TextLabel", Row)
-    ValLbl.Size = UDim2.new(0.4, -4, 1, 0)
-    ValLbl.Position = UDim2.new(0.6, 0, 0, 0)
-    ValLbl.BackgroundTransparency = 1
-    ValLbl.Text = "0"
-    ValLbl.TextColor3 = Color3.fromRGB(255, 255, 255)
-    ValLbl.Font = Enum.Font.GothamBold
-    ValLbl.TextSize = 11
-    ValLbl.TextScaled = true
-    ValLbl.TextXAlignment = Enum.TextXAlignment.Right
-    ValLbl.ZIndex = 32
-
-    statLabels[statName] = ValLbl
-end
-
+-- Loop para atualizar FPS, Ping e Contagem de Jogadores em Tempo Real
 task.spawn(function()
+    local lastTick = tick()
+    local frameCount = 0
+    local currentFps = 60
+
+    RunService.RenderStepped:Connect(function()
+        frameCount = frameCount + 1
+        local now = tick()
+        if now - lastTick >= 1 then
+            currentFps = math.floor(frameCount / (now - lastTick) + 0.5)
+            frameCount = 0
+            lastTick = now
+        end
+    end)
+
     while task.wait(0.5) do
         pcall(function()
-            local statsFolder = LocalPlayer:FindFirstChild("Stats")
-            if statsFolder then
-                for statName, lbl in pairs(statLabels) do
-                    local statVal = statsFolder:FindFirstChild(statName)
-                    if statVal then
-                        lbl.Text = tostring(statVal.Value)
-                    else
-                        lbl.Text = "N/A"
+            -- Contagem de Jogadores
+            local maxPlayers = Players.MaxPlayers
+            local currentPlayers = #Players:GetPlayers()
+            InfoPlayersLbl.Text = "Jogadores no Servidor: " .. currentPlayers .. " / " .. maxPlayers
+
+            -- FPS
+            InfoFpsLbl.Text = "FPS: " .. currentFps
+
+            -- Ping
+            local pingVal = 0
+            pcall(function()
+                pingVal = math.floor(LocalPlayer:GetNetworkPing() * 1000 + 0.5)
+            end)
+            if pingVal == 0 then
+                pcall(function()
+                    local stats = StatsService:FindFirstChild("Network")
+                    if stats then
+                        local serverStats = stats:FindFirstChild("ServerStatsItem")
+                        if serverStats then
+                            local dataPing = serverStats:FindFirstChild("Data Ping")
+                            if dataPing then
+                                pingVal = math.floor(dataPing:GetValue())
+                            end
+                        end
                     end
-                end
+                end)
             end
+            InfoPingLbl.Text = "Ping: " .. pingVal .. " ms"
         end)
     end
 end)
 
--- Aba Principal
+-- 3. Nome do Painel com Versão & Criador (Lado Direito - Topo)
+CreateSection(TabInfo.Right, "Painel & Autor")
+
+local CreditCard = Instance.new("Frame", TabInfo.Right)
+CreditCard.Size = UDim2.new(1, -4, 0, 85)
+CreditCard.BackgroundColor3 = Color3.fromRGB(12, 12, 12)
+CreditCard.BorderSizePixel = 0
+CreditCard.ZIndex = 30
+Instance.new("UICorner", CreditCard).CornerRadius = UDim.new(0, 6)
+
+local CreditCardStroke = Instance.new("UIStroke", CreditCard)
+CreditCardStroke.Color = Color3.fromRGB(35, 20, 20)
+CreditCardStroke.Thickness = 1
+
+local PanelNameVersionLbl = Instance.new("TextLabel", CreditCard)
+PanelNameVersionLbl.Size = UDim2.new(1, -16, 0, 22)
+PanelNameVersionLbl.Position = UDim2.new(0, 8, 0, 10)
+PanelNameVersionLbl.BackgroundTransparency = 1
+PanelNameVersionLbl.Text = "Dexy Insane (v2.6.0)"
+PanelNameVersionLbl.TextColor3 = Color3.fromRGB(255, 60, 60)
+PanelNameVersionLbl.Font = Enum.Font.GothamBold
+PanelNameVersionLbl.TextSize = 12
+PanelNameVersionLbl.TextXAlignment = Enum.TextXAlignment.Left
+PanelNameVersionLbl.ZIndex = 31
+
+local CreatorLbl = Instance.new("TextLabel", CreditCard)
+CreatorLbl.Size = UDim2.new(1, -16, 0, 20)
+CreatorLbl.Position = UDim2.new(0, 8, 0, 32)
+CreatorLbl.BackgroundTransparency = 1
+CreatorLbl.Text = "Criador: Noahzin"
+CreatorLbl.TextColor3 = Color3.fromRGB(255, 255, 255)
+CreatorLbl.Font = Enum.Font.GothamSemibold
+CreatorLbl.TextSize = 11
+CreatorLbl.TextXAlignment = Enum.TextXAlignment.Left
+CreatorLbl.ZIndex = 31
+
+local DescScriptLbl = Instance.new("TextLabel", CreditCard)
+DescScriptLbl.Size = UDim2.new(1, -16, 0, 20)
+DescScriptLbl.Position = UDim2.new(0, 8, 0, 52)
+DescScriptLbl.BackgroundTransparency = 1
+DescScriptLbl.Text = "Painel exclusivo para Dragon Ball Rage"
+DescScriptLbl.TextColor3 = Color3.fromRGB(150, 150, 150)
+DescScriptLbl.Font = Enum.Font.Gotham
+DescScriptLbl.TextSize = 10
+DescScriptLbl.TextXAlignment = Enum.TextXAlignment.Left
+DescScriptLbl.ZIndex = 31
+
+-- 4. Notas de Atualização / Changelogs (Lado Direito - Baixo)
+CreateSection(TabInfo.Right, "Notas de Atualização (Changelogs)")
+
+local ChangelogCard = Instance.new("ScrollingFrame", TabInfo.Right)
+ChangelogCard.Size = UDim2.new(1, -4, 0, 125)
+ChangelogCard.BackgroundColor3 = Color3.fromRGB(12, 12, 12)
+ChangelogCard.BorderSizePixel = 0
+ChangelogCard.ScrollBarThickness = 3
+ChangelogCard.ScrollBarImageColor3 = Color3.fromRGB(255, 40, 40)
+ChangelogCard.ZIndex = 30
+Instance.new("UICorner", ChangelogCard).CornerRadius = UDim.new(0, 6)
+
+local ChangelogStroke = Instance.new("UIStroke", ChangelogCard)
+ChangelogStroke.Color = Color3.fromRGB(35, 20, 20)
+ChangelogStroke.Thickness = 1
+
+local ChangelogText = Instance.new("TextLabel", ChangelogCard)
+ChangelogText.Size = UDim2.new(1, -16, 0, 195)
+ChangelogText.Position = UDim2.new(0, 8, 0, 8)
+ChangelogText.BackgroundTransparency = 1
+ChangelogText.Text = [[• [v2.6.0] Adicionado ESP NPCs com toggles de seleção (Tennenman, Saibamen, Jinkouman), Box, Chams e Distância na aba Visual.
+• [v2.5.0] Adicionada aba Info completa com monitoramento de Ping, FPS e Jogadores.
+• [v2.4.1] Adicionado suporte otimizado para múltiplos NPCs no Auto Farm Zenis.
+• [v2.4.0] Correção no sistema de Anti-Cooldown do ProximityPrompt para Dragon Balls.
+• [v2.0.0] Lançamento inicial oficial do Dexy Insane por Noahzin.]]
+ChangelogText.TextColor3 = Color3.fromRGB(180, 180, 180)
+ChangelogText.Font = Enum.Font.Gotham
+ChangelogText.TextSize = 10
+ChangelogText.TextXAlignment = Enum.TextXAlignment.Left
+ChangelogText.TextYAlignment = Enum.TextYAlignment.Top
+ChangelogText.TextWrapped = true
+ChangelogText.ZIndex = 31
+
+ChangelogCard.CanvasSize = UDim2.new(0, 0, 0, 205)
+
+ChangelogCard.MouseEnter:Connect(function()
+    setParentScrolling(ChangelogCard, false)
+end)
+ChangelogCard.MouseLeave:Connect(function()
+    setParentScrolling(ChangelogCard, true)
+end)
+
+
+-- Aba Principal (Lado Esquerdo - Combate Geral)
 CreateToggle(TabMain.Left, "Auto Attack", function(v) 
     Config.AutoAttack = v 
     UserInputService.MouseIconEnabled = not (v or Config.AutoDefense or Config.AutoKiBlast)
@@ -2472,7 +3225,196 @@ end, true, 0, 90, 10, function(v)
     Config.AutoChargeMin = v 
 end, false, nil, "Segurar", "%", true)
 
--- Aba Jogador
+CreateToggle(TabMain.Left, "Auto Zenkai", function(v)
+    Config.AutoZenkai = v
+end, false)
+
+-- Aba Principal (Lado Direito - Auto Farm Zenis com Toggles de NPCs)
+do
+    local baseHeight = 30
+    local expandedHeight = 145
+
+    local ToggleFrame = Instance.new("Frame", TabMain.Right)
+    ToggleFrame.Size = UDim2.new(1, -4, 0, baseHeight)
+    ToggleFrame.BackgroundColor3 = Color3.fromRGB(12, 12, 12)
+    ToggleFrame.BorderSizePixel = 0
+    ToggleFrame.ClipsDescendants = true
+    ToggleFrame.ZIndex = 30
+    Instance.new("UICorner", ToggleFrame).CornerRadius = UDim.new(0, 6)
+
+    local ToggleStroke = Instance.new("UIStroke", ToggleFrame)
+    ToggleStroke.Color = Color3.fromRGB(35, 20, 20)
+    ToggleStroke.Thickness = 1
+
+    local TitleLbl = Instance.new("TextLabel", ToggleFrame)
+    TitleLbl.Size = UDim2.new(1, -75, 0, 30)
+    TitleLbl.Position = UDim2.new(0, 8, 0, 0)
+    TitleLbl.BackgroundTransparency = 1
+    TitleLbl.Text = "Auto Farm Zenis"
+    TitleLbl.TextColor3 = Color3.fromRGB(220, 220, 220)
+    TitleLbl.Font = Enum.Font.GothamSemibold
+    TitleLbl.TextSize = 11
+    TitleLbl.TextXAlignment = Enum.TextXAlignment.Left
+    TitleLbl.ZIndex = 30
+
+    local ToggleBtn = Instance.new("TextButton", ToggleFrame)
+    ToggleBtn.Size = UDim2.new(0, 32, 0, 16)
+    ToggleBtn.Position = UDim2.new(1, -38, 0, 7)
+    ToggleBtn.BackgroundColor3 = Color3.fromRGB(25, 15, 15)
+    ToggleBtn.Text = ""
+    ToggleBtn.AutoButtonColor = false
+    ToggleBtn.ZIndex = 30
+    Instance.new("UICorner", ToggleBtn).CornerRadius = UDim.new(1, 0)
+
+    local Circle = Instance.new("Frame", ToggleBtn)
+    Circle.Size = UDim2.new(0, 12, 0, 12)
+    Circle.Position = UDim2.new(0, 2, 0.5, -6)
+    Circle.BackgroundColor3 = Color3.fromRGB(180, 180, 180)
+    Circle.ZIndex = 31
+    Instance.new("UICorner", Circle).CornerRadius = UDim.new(1, 0)
+
+    ToggleBtn.MouseButton1Click:Connect(function()
+        CreateRipple(ToggleFrame)
+        Config.AutoFarmZenis = not Config.AutoFarmZenis
+        if Config.AutoFarmZenis then
+            TweenService:Create(ToggleBtn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(255, 40, 40)}):Play()
+            TweenService:Create(Circle, TweenInfo.new(0.2), {Position = UDim2.new(0, 18, 0.5, -6), BackgroundColor3 = Color3.fromRGB(255, 255, 255)}):Play()
+        else
+            TweenService:Create(ToggleBtn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(25, 15, 15)}):Play()
+            TweenService:Create(Circle, TweenInfo.new(0.2), {Position = UDim2.new(0, 2, 0.5, -6), BackgroundColor3 = Color3.fromRGB(180, 180, 180)}):Play()
+        end
+    end)
+
+    local ConfigBtn = Instance.new("TextButton", ToggleFrame)
+    ConfigBtn.Size = UDim2.new(0, 24, 0, 16)
+    ConfigBtn.Position = UDim2.new(1, -66, 0, 7)
+    ConfigBtn.BackgroundColor3 = Color3.fromRGB(20, 12, 12)
+    ConfigBtn.Text = "⚙"
+    ConfigBtn.TextColor3 = Color3.fromRGB(200, 200, 200)
+    ConfigBtn.Font = Enum.Font.GothamBold
+    ConfigBtn.TextSize = 10
+    ConfigBtn.AutoButtonColor = false
+    ConfigBtn.ZIndex = 30
+    Instance.new("UICorner", ConfigBtn).CornerRadius = UDim.new(0, 4)
+
+    local SettingsContainer = Instance.new("Frame", ToggleFrame)
+    SettingsContainer.Size = UDim2.new(1, -16, 0, 105)
+    SettingsContainer.Position = UDim2.new(0, 8, 0, 32)
+    SettingsContainer.BackgroundTransparency = 1
+    SettingsContainer.Visible = false
+    SettingsContainer.ZIndex = 30
+
+    local NpcTitle = Instance.new("TextLabel", SettingsContainer)
+    NpcTitle.Size = UDim2.new(1, 0, 0, 14)
+    NpcTitle.Position = UDim2.new(0, 0, 0, 0)
+    NpcTitle.BackgroundTransparency = 1
+    NpcTitle.Text = "NPCs Alvo:"
+    NpcTitle.TextColor3 = Color3.fromRGB(160, 160, 160)
+    NpcTitle.Font = Enum.Font.GothamSemibold
+    NpcTitle.TextSize = 10
+    NpcTitle.TextXAlignment = Enum.TextXAlignment.Left
+
+    local npcNames = {"Tennenman", "Saibamen", "Jinkouman"}
+    local yOffset = 16
+
+    for _, npcName in ipairs(npcNames) do
+        local Row = Instance.new("Frame", SettingsContainer)
+        Row.Size = UDim2.new(1, 0, 0, 18)
+        Row.Position = UDim2.new(0, 0, 0, yOffset)
+        Row.BackgroundTransparency = 1
+
+        local Lbl = Instance.new("TextLabel", Row)
+        Lbl.Size = UDim2.new(1, -35, 1, 0)
+        Lbl.Position = UDim2.new(0, 6, 0, 0)
+        Lbl.BackgroundTransparency = 1
+        Lbl.Text = npcName
+        Lbl.TextColor3 = Color3.fromRGB(200, 200, 200)
+        Lbl.Font = Enum.Font.Gotham
+        Lbl.TextSize = 10
+        Lbl.TextXAlignment = Enum.TextXAlignment.Left
+
+        local TBtn = Instance.new("TextButton", Row)
+        TBtn.Size = UDim2.new(0, 26, 0, 13)
+        TBtn.Position = UDim2.new(1, -26, 0, 2)
+        TBtn.BackgroundColor3 = Config.SelectedNPCs[npcName] and Color3.fromRGB(255, 40, 40) or Color3.fromRGB(25, 15, 15)
+        TBtn.Text = ""
+        TBtn.AutoButtonColor = false
+        Instance.new("UICorner", TBtn).CornerRadius = UDim.new(1, 0)
+
+        local TCircle = Instance.new("Frame", TBtn)
+        TCircle.Size = UDim2.new(0, 9, 0, 9)
+        TCircle.Position = Config.SelectedNPCs[npcName] and UDim2.new(0, 15, 0.5, -4) or UDim2.new(0, 2, 0.5, -4)
+        TCircle.BackgroundColor3 = Config.SelectedNPCs[npcName] and Color3.fromRGB(255, 255, 255) or Color3.fromRGB(180, 180, 180)
+        Instance.new("UICorner", TCircle).CornerRadius = UDim.new(1, 0)
+
+        TBtn.MouseButton1Click:Connect(function()
+            Config.SelectedNPCs[npcName] = not Config.SelectedNPCs[npcName]
+            local state = Config.SelectedNPCs[npcName]
+            if state then
+                TweenService:Create(TBtn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(255, 40, 40)}):Play()
+                TweenService:Create(TCircle, TweenInfo.new(0.2), {Position = UDim2.new(0, 15, 0.5, -4), BackgroundColor3 = Color3.fromRGB(255, 255, 255)}):Play()
+            else
+                TweenService:Create(TBtn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(25, 15, 15)}):Play()
+                TweenService:Create(TCircle, TweenInfo.new(0.2), {Position = UDim2.new(0, 2, 0.5, -4), BackgroundColor3 = Color3.fromRGB(180, 180, 180)}):Play()
+            end
+        end)
+
+        yOffset = yOffset + 20
+    end
+
+    local ModeRow = Instance.new("Frame", SettingsContainer)
+    ModeRow.Size = UDim2.new(1, 0, 0, 22)
+    ModeRow.Position = UDim2.new(0, 0, 0, yOffset + 4)
+    ModeRow.BackgroundTransparency = 1
+
+    local ModeLbl = Instance.new("TextLabel", ModeRow)
+    ModeLbl.Size = UDim2.new(0, 80, 1, 0)
+    ModeLbl.BackgroundTransparency = 1
+    ModeLbl.Text = "Modo Ataque:"
+    ModeLbl.TextColor3 = Color3.fromRGB(160, 160, 160)
+    ModeLbl.Font = Enum.Font.GothamSemibold
+    ModeLbl.TextSize = 10
+    ModeLbl.TextXAlignment = Enum.TextXAlignment.Left
+
+    local ModeDropBtn = Instance.new("TextButton", ModeRow)
+    ModeDropBtn.Size = UDim2.new(0, 90, 0, 20)
+    ModeDropBtn.Position = UDim2.new(1, -90, 0, 1)
+    ModeDropBtn.BackgroundColor3 = Color3.fromRGB(20, 12, 12)
+    ModeDropBtn.Text = Config.SelectedAttackMode .. " ▼"
+    ModeDropBtn.TextColor3 = Color3.fromRGB(220, 220, 220)
+    ModeDropBtn.Font = Enum.Font.GothamBold
+    ModeDropBtn.TextSize = 10
+    ModeDropBtn.AutoButtonColor = false
+    Instance.new("UICorner", ModeDropBtn).CornerRadius = UDim.new(0, 4)
+
+    local modeList = {"Ataque", "Ki", "Ambos"}
+    local currentModeIdx = 1
+    for i, v in ipairs(modeList) do if v == Config.SelectedAttackMode then currentModeIdx = i break end end
+
+    ModeDropBtn.MouseButton1Click:Connect(function()
+        currentModeIdx = (currentModeIdx % #modeList) + 1
+        Config.SelectedAttackMode = modeList[currentModeIdx]
+        ModeDropBtn.Text = Config.SelectedAttackMode .. " ▼"
+    end)
+
+    local isExpanded = false
+    ConfigBtn.MouseButton1Click:Connect(function()
+        isExpanded = not isExpanded
+        if isExpanded then
+            SettingsContainer.Visible = true
+            TweenService:Create(ToggleFrame, TweenInfo.new(0.3, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {Size = UDim2.new(1, -4, 0, expandedHeight)}):Play()
+            TweenService:Create(ConfigBtn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(255, 40, 40), TextColor3 = Color3.fromRGB(255, 255, 255)}):Play()
+        else
+            TweenService:Create(ToggleFrame, TweenInfo.new(0.3, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {Size = UDim2.new(1, -4, 0, baseHeight)}):Play()
+            TweenService:Create(ConfigBtn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(20, 12, 12), TextColor3 = Color3.fromRGB(200, 200, 200)}):Play()
+            task.delay(0.3, function()
+                if not isExpanded then SettingsContainer.Visible = false end
+            end)
+        end
+    end)
+end
+
+-- Aba Jogador (Lado Esquerdo - Controles de Movimento/Voo)
 CreateToggle(TabPlayer.Left, "Pulo Infinito", function(v) Config.InfJump = v end, false)
 
 CreateToggle(TabPlayer.Left, "Ativar Velocidade", function(v) 
@@ -2481,7 +3423,7 @@ end, true, 16, 300, 50, function(v)
     Config.WalkSpeed = v 
 end, false, nil, "Segurar", "", true)
 
--- SISTEMA DE VOO CONTROLLER INTEGRADO (FLIGHT SPEED CONTROLLER)
+-- SISTEMA DE VOO CONTROLLER INTEGRADO
 do
     local baseHeight = 30
     local expandedHeight = 150
@@ -2555,7 +3497,6 @@ do
     ContentContainer.Visible = false
     ContentContainer.ZIndex = 30
 
-    -- Botão de Seleção de Modo
     local ModeBtn = Instance.new("TextButton", ContentContainer)
     ModeBtn.Size = UDim2.new(1, 0, 0, 22)
     ModeBtn.Position = UDim2.new(0, 0, 0, 0)
@@ -2583,7 +3524,6 @@ do
         end
     end)
 
-    -- Slider: Velocidade Normal (1.0x - 15.0x)
     local speedLbl1 = Instance.new("TextLabel", ContentContainer)
     speedLbl1.Size = UDim2.new(1, -50, 0, 14)
     speedLbl1.Position = UDim2.new(0, 0, 0, 28)
@@ -2617,7 +3557,6 @@ do
     barFill1.BorderSizePixel = 0
     Instance.new("UICorner", barFill1).CornerRadius = UDim.new(1, 0)
 
-    -- Slider: Velocidade Fast Flight (1.0x - 15.0x)
     local speedLbl2 = Instance.new("TextLabel", ContentContainer)
     speedLbl2.Size = UDim2.new(1, -50, 0, 14)
     speedLbl2.Position = UDim2.new(0, 0, 0, 56)
@@ -2714,6 +3653,114 @@ do
     end)
 end
 
+-- Aba Jogador (Lado Direito - Cartão Compacto de Estatísticas do Player)
+local StatsCard = Instance.new("Frame", TabPlayer.Right)
+StatsCard.Size = UDim2.new(1, -4, 0, 100)
+StatsCard.BackgroundColor3 = Color3.fromRGB(12, 12, 12)
+StatsCard.BorderSizePixel = 0
+StatsCard.ZIndex = 30
+Instance.new("UICorner", StatsCard).CornerRadius = UDim.new(0, 6)
+
+local StatsCardStroke = Instance.new("UIStroke", StatsCard)
+StatsCardStroke.Color = Color3.fromRGB(35, 20, 20)
+StatsCardStroke.Thickness = 1
+
+local StatsTitle = Instance.new("TextLabel", StatsCard)
+StatsTitle.Size = UDim2.new(1, -12, 0, 18)
+StatsTitle.Position = UDim2.new(0, 6, 0, 4)
+StatsTitle.BackgroundTransparency = 1
+StatsTitle.Text = "Estatísticas do Player"
+StatsTitle.TextColor3 = Color3.fromRGB(255, 60, 60)
+StatsTitle.Font = Enum.Font.GothamBold
+StatsTitle.TextSize = 10
+StatsTitle.TextXAlignment = Enum.TextXAlignment.Left
+StatsTitle.ZIndex = 31
+
+local StatsContainer = Instance.new("Frame", StatsCard)
+StatsContainer.Size = UDim2.new(1, -12, 1, -26)
+StatsContainer.Position = UDim2.new(0, 6, 0, 24)
+StatsContainer.BackgroundTransparency = 1
+StatsContainer.ZIndex = 31
+
+local StatsGridLayout = Instance.new("UIGridLayout", StatsContainer)
+StatsGridLayout.CellSize = UDim2.new(0.5, -3, 0, 15)
+StatsGridLayout.CellPadding = UDim2.new(0, 4, 0, 2)
+StatsGridLayout.SortOrder = Enum.SortOrder.LayoutOrder
+
+local statLabels = {}
+local statNames = {"Agility", "Attack", "Defense", "Ki", "ZenkaiBoost", "Zeni", "SelectedMode", "DragonBalls"}
+
+for _, statName in ipairs(statNames) do
+    local ItemFrame = Instance.new("Frame", StatsContainer)
+    ItemFrame.BackgroundTransparency = 1
+    ItemFrame.ZIndex = 32
+
+    local KeyLbl = Instance.new("TextLabel", ItemFrame)
+    KeyLbl.Size = UDim2.new(0.55, 0, 1, 0)
+    KeyLbl.BackgroundTransparency = 1
+    KeyLbl.Text = statName .. ":"
+    KeyLbl.TextColor3 = Color3.fromRGB(160, 160, 160)
+    KeyLbl.Font = Enum.Font.GothamSemibold
+    KeyLbl.TextSize = 9
+    KeyLbl.TextXAlignment = Enum.TextXAlignment.Left
+    KeyLbl.ZIndex = 32
+
+    local ValLbl = Instance.new("TextLabel", ItemFrame)
+    ValLbl.Size = UDim2.new(0.45, 0, 1, 0)
+    ValLbl.Position = UDim2.new(0.55, 0, 0, 0)
+    ValLbl.BackgroundTransparency = 1
+    ValLbl.Text = "0"
+    ValLbl.TextColor3 = Color3.fromRGB(255, 255, 255)
+    ValLbl.Font = Enum.Font.GothamBold
+    ValLbl.TextSize = 9
+    ValLbl.TextXAlignment = Enum.TextXAlignment.Right
+    ValLbl.ZIndex = 32
+
+    statLabels[statName] = ValLbl
+end
+
+task.spawn(function()
+    while task.wait(0.5) do
+        pcall(function()
+            local statsFolder = LocalPlayer:FindFirstChild("Stats")
+            if statsFolder then
+                for statName, lbl in pairs(statLabels) do
+                    local statVal = statsFolder:FindFirstChild(statName)
+                    if statVal then
+                        if statName == "DragonBalls" then
+                            local rawVal = statVal.Value
+                            if type(rawVal) == "number" then
+                                lbl.Text = tostring(rawVal)
+                            else
+                                local strVal = tostring(rawVal)
+                                if strVal:find("=") then
+                                    local total = 0
+                                    for val in strVal:gmatch("=(%d+)") do
+                                        total = total + (tonumber(val) or 0)
+                                    end
+                                    lbl.Text = tostring(total)
+                                elseif strVal:find(",") then
+                                    local count = 0
+                                    for _ in strVal:gmatch("%d+") do
+                                        count = count + 1
+                                    end
+                                    lbl.Text = tostring(count)
+                                else
+                                    lbl.Text = tostring(tonumber(strVal) or strVal)
+                                end
+                            end
+                        else
+                            lbl.Text = tostring(statVal.Value)
+                        end
+                    else
+                        lbl.Text = "0"
+                    end
+                end
+            end
+        end)
+    end
+end)
+
 -- Aba Visual
 CreateToggleWithSubOptions(TabVisual.Left, "ESP Players", function(v) 
     ESPConfig.Enabled = v 
@@ -2739,7 +3786,8 @@ end, {
     {
         Name = "Distância em Metros", 
         GetColor = function() return ESPConfig.DistanceColor end,
-        SetColor = function(c) ESPConfig.Distance = v end
+        SetColor = function(c) ESPConfig.DistanceColor = c end,
+        Callback = function(v) ESPConfig.Distance = v end
     },
     {
         Name = "Chams (Highlight)", 
@@ -2747,6 +3795,41 @@ end, {
         SetColor = function(c) ESPConfig.ChamsColor = c end,
         Callback = function(v) ESPConfig.Chams = v end
     }
+})
+
+-- Adicionado ESP NPCs na Aba Visual (Esquerda) com toggles e subopções de Chams, Box, Nomes e Distância
+CreateToggleWithSubOptionsAndMultiSelect(TabVisual.Left, "ESP NPCs", function(v) 
+    NPCESPConfig.Enabled = v 
+end, {
+    {
+        Name = "Chams (Highlight)", 
+        GetColor = function() return NPCESPConfig.ChamsColor end,
+        SetColor = function(c) NPCESPConfig.ChamsColor = c end,
+        Callback = function(v) NPCESPConfig.Chams = v end
+    },
+    {
+        Name = "Box (Caixa)", 
+        GetColor = function() return NPCESPConfig.BoxColor end,
+        SetColor = function(c) NPCESPConfig.BoxColor = c end,
+        Callback = function(v) NPCESPConfig.Boxes = v end
+    },
+    {
+        Name = "Exibir Nomes", 
+        GetColor = function() return NPCESPConfig.NameColor end,
+        SetColor = function(c) NPCESPConfig.NameColor = c end,
+        Callback = function(v) NPCESPConfig.Names = v end
+    },
+    {
+        Name = "Exibir Distância", 
+        GetColor = function() return NPCESPConfig.DistanceColor end,
+        SetColor = function(c) NPCESPConfig.DistanceColor = c end,
+        Callback = function(v) NPCESPConfig.Distance = v end
+    }
+}, {
+    Title = "Selecionar NPCs:",
+    Items = {"Tennenman", "Saibamen", "Jinkouman"},
+    GetState = function(name) return NPCESPConfig.SelectedNPCs[name] end,
+    SetState = function(name, state) NPCESPConfig.SelectedNPCs[name] = state end
 })
 
 CreateToggleWithSubOptions(TabVisual.Right, "ESP DragonBall", function(v) 
@@ -2807,28 +3890,27 @@ end, {
     }
 })
 
--- Aba Misc
-CreateSection(TabMisc.Left, "Teleportes")
+-- ==========================================
+-- Aba Misc (Organizado por Seções)
+-- ==========================================
+
+-- Seção DragonBall
+CreateSection(TabMisc.Left, "DragonBall")
+
 CreateButton(TabMisc.Left, "Teleportar para Dragonball", function()
     TeleportToNearestDragonBall()
 end)
 
-CreateButton(TabMisc.Left, "Teleportar para Comerciante", function()
-    TeleportToMerchant()
-end)
-
-CreateSection(TabMisc.Left, "Auto Teleporte")
 CreateToggle(TabMisc.Left, "Auto tp DragonBall", function(v)
     Config.AutoTpDB = v
     dbAutoTpTriggered = false
 end, false)
 
-CreateToggle(TabMisc.Left, "Auto tp Comerciante", function(v)
-    Config.AutoTpMerchant = v
-    merchantAutoTpTriggered = false
+CreateToggle(TabMisc.Left, "Auto get DragonBall", function(v)
+    Config.AutoGetDB = v
+    autoGetDBTriggered = false
 end, false)
 
-CreateSection(TabMisc.Left, "Informações do Mapa")
 local DBCountFrame = Instance.new("Frame", TabMisc.Left)
 DBCountFrame.Size = UDim2.new(1, -4, 0, 32)
 DBCountFrame.BackgroundColor3 = Color3.fromRGB(12, 12, 12)
@@ -2851,6 +3933,63 @@ DBCountLbl.TextSize = 11
 DBCountLbl.TextXAlignment = Enum.TextXAlignment.Left
 DBCountLbl.ZIndex = 30
 
+-- Seção Comerciante
+CreateSection(TabMisc.Left, "Comerciante")
+
+CreateButton(TabMisc.Left, "Teleportar para Comerciante", function()
+    TeleportToMerchant()
+end)
+
+CreateToggle(TabMisc.Left, "Auto tp Comerciante", function(v)
+    Config.AutoTpMerchant = v
+    merchantAutoTpTriggered = false
+end, false)
+
+-- Teleport Ilhas na Coluna da Direita da aba Misc
+CreateSection(TabMisc.Right, "Teleport Ilha")
+
+local IslandLocations = {
+    ["Desert"] = Vector3.new(3286.9, 534.7, 172.0),
+    ["AbandonedIsland"] = Vector3.new(-1409.0, 556.4, 3447.2),
+    ["DesertWoods"] = Vector3.new(1267.5, 541.8, -2798.3),
+    ["Forest"] = Vector3.new(-3229.5, 491.8, -4418.2),
+    ["IceIsland"] = Vector3.new(-4110.4, 542.5, -1396.0),
+    ["LargeSland"] = Vector3.new(-2237.8, 550.9, 1539.1),
+    ["Montain"] = Vector3.new(-1617.6, 521.3, -1078.5),
+    ["StarterIsland"] = Vector3.new(-754.3, 542.2, 3048.6),
+    ["Tournament"] = Vector3.new(-734.1, 473.5, -3067.4),
+    ["Volcano"] = Vector3.new(837.5, 1018.4, -4986.3)
+}
+
+local selectedIsland = "Desert"
+
+CreateDropdown(TabMisc.Right, "Selecione a Ilha", {
+    "Desert",
+    "AbandonedIsland",
+    "DesertWoods",
+    "Forest",
+    "IceIsland",
+    "LargeSland",
+    "Montain",
+    "StarterIsland",
+    "Tournament",
+    "Volcano"
+}, "Desert", function(chosen)
+    selectedIsland = chosen
+end)
+
+CreateButton(TabMisc.Right, "Teleportar para Ilha", function()
+    local coords = IslandLocations[selectedIsland]
+    if coords then
+        pcall(function()
+            local hrp = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+            if hrp then
+                hrp.CFrame = CFrame.new(coords)
+            end
+        end)
+    end
+end)
+
 task.spawn(function()
     while task.wait(0.5) do
         pcall(function()
@@ -2862,6 +4001,13 @@ task.spawn(function()
             end
             if DBCountLbl then
                 DBCountLbl.Text = "Dragonballs no mapa: " .. count
+            end
+            
+            if Config.AutoGetDB and count > 0 and not autoGetDBTriggered then
+                autoGetDBTriggered = true
+                AutoGetDragonBallRoutine()
+                task.wait(1.0)
+                autoGetDBTriggered = false
             end
             
             if Config.AutoTpDB and count > 0 and not dbAutoTpTriggered then
