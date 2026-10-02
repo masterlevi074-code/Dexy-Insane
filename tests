@@ -56,7 +56,11 @@ local Config = {
     AutoCharge = false,
     AutoChargeMin = 10,
     AutoZenkai = false,
-    AutoFarmZeni = false,
+    -- Auto Farm Zenis Configs
+    AutoFarmZenis = false,
+    SelectedNPC = "Tennenman",
+    SelectedAttackMode = "Ambos (E + Ki)",
+    -- Jogador & Outros
     InfJump = false,
     EnableWalkSpeed = false,
     WalkSpeed = 50,
@@ -128,20 +132,6 @@ task.spawn(function()
             end)
         end
         task.wait(0.5)
-    end
-end)
-
--- AUTO FARM ZENI LOOP
-task.spawn(function()
-    while true do
-        if Config.AutoFarmZeni then
-            pcall(function()
-                VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.E, false, game)
-                task.wait(0.05)
-                VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.E, false, game)
-            end)
-        end
-        task.wait(0.1)
     end
 end)
 
@@ -429,6 +419,142 @@ task.spawn(function()
                 pcall(function() VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.C, false, game) end)
             end
             task.wait(0.2)
+        end
+    end
+end)
+
+-- ==========================================
+-- AUTO FARM ZENIS LOOP (INTEGRADO)
+-- ==========================================
+local farmKeyE_Down = false
+local farmKeyQ_Down = false
+
+local function farmPressKey(keyCode)
+    pcall(function()
+        VirtualInputManager:SendKeyEvent(true, keyCode, false, game)
+        task.wait(0.05)
+        VirtualInputManager:SendKeyEvent(false, keyCode, false, game)
+    end)
+end
+
+local function farmHoldKey(keyCode)
+    pcall(function()
+        VirtualInputManager:SendKeyEvent(true, keyCode, false, game)
+    end)
+end
+
+local function farmReleaseKey(keyCode)
+    pcall(function()
+        VirtualInputManager:SendKeyEvent(false, keyCode, false, game)
+    end)
+end
+
+local function farmReleaseAllKeys()
+    if farmKeyE_Down then
+        farmReleaseKey(Enum.KeyCode.E)
+        farmKeyE_Down = false
+    end
+    if farmKeyQ_Down then
+        farmReleaseKey(Enum.KeyCode.Q)
+        farmKeyQ_Down = false
+    end
+end
+
+local function isPlayerGrounded()
+    local character = LocalPlayer.Character
+    if not character then return false end
+    local humanoid = character:FindFirstChildOfClass("Humanoid")
+    if humanoid then
+        return humanoid.FloorMaterial ~= Enum.Material.Air
+    end
+    return false
+end
+
+local function ensureFlying()
+    if isPlayerGrounded() then
+        farmPressKey(Enum.KeyCode.Space)
+        task.wait(0.08)
+        farmPressKey(Enum.KeyCode.Space)
+        task.wait(0.2)
+    end
+end
+
+local function getTargetNPC()
+    local npcsFolder = workspace:FindFirstChild("Map") and workspace.Map:FindFirstChild("NPCs")
+    if not npcsFolder then return nil end
+
+    for _, npc in ipairs(npcsFolder:GetChildren()) do
+        if npc.Name == Config.SelectedNPC then
+            local humanoid = npc:FindFirstChildOfClass("Humanoid")
+            local rootPart = npc:FindFirstChild("HumanoidRootPart") or npc.PrimaryPart
+            if humanoid and rootPart and humanoid.Health > 0 then
+                return npc, humanoid, rootPart
+            end
+        end
+    end
+    return nil
+end
+
+task.spawn(function()
+    local previousTarget = nil
+
+    while true do
+        if Config.AutoFarmZenis then
+            pcall(function()
+                local npc, humanoid, rootPart = getTargetNPC()
+
+                if npc and humanoid and rootPart and humanoid.Health > 0 then
+                    local isNewTarget = (npc ~= previousTarget)
+                    previousTarget = npc
+
+                    local character = LocalPlayer.Character
+                    local myRoot = character and (character:FindFirstChild("HumanoidRootPart") or character.PrimaryPart)
+
+                    if myRoot then
+                        myRoot.CFrame = rootPart.CFrame * CFrame.new(0, 0, 3)
+
+                        ensureFlying()
+
+                        if isNewTarget then
+                            farmReleaseAllKeys()
+                            task.wait(0.1)
+                            if Config.SelectedAttackMode == "Ki (X + Q)" or Config.SelectedAttackMode == "Ambos (E + Ki)" then
+                                farmPressKey(Enum.KeyCode.X)
+                                task.wait(0.15)
+                            end
+                        end
+
+                        if Config.SelectedAttackMode == "Ataque (E)" then
+                            if not farmKeyE_Down then
+                                farmHoldKey(Enum.KeyCode.E)
+                                farmKeyE_Down = true
+                            end
+                        elseif Config.SelectedAttackMode == "Ki (X + Q)" then
+                            if not farmKeyQ_Down then
+                                farmHoldKey(Enum.KeyCode.Q)
+                                farmKeyQ_Down = true
+                            end
+                        elseif Config.SelectedAttackMode == "Ambos (E + Ki)" then
+                            if not farmKeyE_Down then
+                                farmHoldKey(Enum.KeyCode.E)
+                                farmKeyE_Down = true
+                            end
+                            if not farmKeyQ_Down then
+                                farmHoldKey(Enum.KeyCode.Q)
+                                farmKeyQ_Down = true
+                            end
+                        end
+                    end
+                else
+                    previousTarget = nil
+                    farmReleaseAllKeys()
+                end
+            end)
+            task.wait(0.1)
+        else
+            previousTarget = nil
+            farmReleaseAllKeys()
+            task.wait(0.3)
         end
     end
 end)
@@ -2570,7 +2696,7 @@ DetailsLbl.TextSize = 10
 DetailsLbl.TextXAlignment = Enum.TextXAlignment.Left
 DetailsLbl.ZIndex = 31
 
--- Aba Principal (Lado Esquerdo)
+-- Aba Principal (Lado Esquerdo - Combate Geral)
 CreateToggle(TabMain.Left, "Auto Attack", function(v) 
     Config.AutoAttack = v 
     UserInputService.MouseIconEnabled = not (v or Config.AutoDefense or Config.AutoKiBlast)
@@ -2596,10 +2722,28 @@ CreateToggle(TabMain.Left, "Auto Zenkai", function(v)
     Config.AutoZenkai = v
 end, false)
 
--- Aba Principal (Lado Direito)
-CreateToggle(TabMain.Right, "Auto Farm Zeni", function(v)
-    Config.AutoFarmZeni = v
+-- Aba Principal (Lado Direito - Auto Farm Zenis Integrado)
+CreateSection(TabMain.Right, "Auto Farm Zenis")
+
+CreateToggle(TabMain.Right, "Ativar Auto Farm Zenis", function(v)
+    Config.AutoFarmZenis = v
 end, false)
+
+CreateDropdown(TabMain.Right, "Selecionar NPC", {
+    "Tennenman",
+    "Saibamen",
+    "Jinkouman"
+}, Config.SelectedNPC, function(chosen)
+    Config.SelectedNPC = chosen
+end)
+
+CreateDropdown(TabMain.Right, "Modo de Ataque", {
+    "Ataque (E)",
+    "Ki (X + Q)",
+    "Ambos (E + Ki)"
+}, Config.SelectedAttackMode, function(chosen)
+    Config.SelectedAttackMode = chosen
+end)
 
 -- Aba Jogador (Lado Esquerdo - Controles de Movimento/Voo)
 CreateToggle(TabPlayer.Left, "Pulo Infinito", function(v) Config.InfJump = v end, false)
@@ -2973,7 +3117,8 @@ end, {
     {
         Name = "Distância em Metros", 
         GetColor = function() return ESPConfig.DistanceColor end,
-        SetColor = function(c) ESPConfig.Distance = v end
+        SetColor = function(c) ESPConfig.DistanceColor = c end,
+        Callback = function(v) ESPConfig.Distance = v end
     },
     {
         Name = "Chams (Highlight)", 
@@ -3084,7 +3229,7 @@ CreateButton(TabMisc.Left, "Teleportar para Comerciante", function()
     TeleportToMerchant()
 end)
 
--- Auto tp Comerciante (Em baixo do botão do comerciante)
+-- Auto tp Comerciante
 CreateToggle(TabMisc.Left, "Auto tp Comerciante", function(v)
     Config.AutoTpMerchant = v
     merchantAutoTpTriggered = false
