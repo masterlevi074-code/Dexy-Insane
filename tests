@@ -58,6 +58,7 @@ local Config = {
     AutoChargeMin = 10,
     AutoZenkai = false,
     AutoFarmZenis = false,
+    AutoFarmKiMin = 10,
     SelectedNPCs = {
         ["Tennenman"] = true,
         ["Saibamen"] = false,
@@ -433,6 +434,7 @@ end)
 -- AUTO FARM ZENIS LOOP
 local farmKeyE_Down = false
 local farmKeyQ_Down = false
+local farmKeyC_Down = false
 
 local function farmPressKey(keyCode)
     pcall(function()
@@ -462,6 +464,10 @@ local function farmReleaseAllKeys()
     if farmKeyQ_Down then
         farmReleaseKey(Enum.KeyCode.Q)
         farmKeyQ_Down = false
+    end
+    if farmKeyC_Down then
+        farmReleaseKey(Enum.KeyCode.C)
+        farmKeyC_Down = false
     end
 end
 
@@ -500,8 +506,26 @@ local function getTargetNPC()
     return nil
 end
 
+local function getPlayerEnergyPercent()
+    local char = workspace:FindFirstChild(LocalPlayer.Name) or LocalPlayer.Character
+    if char then
+        local state = char:FindFirstChild("State")
+        if state then
+            local energyVal = state:FindFirstChild("Energy")
+            local maxEnergyVal = state:FindFirstChild("MaxEnergy")
+            if energyVal and maxEnergyVal and maxEnergyVal.Value > 0 then
+                return (energyVal.Value / maxEnergyVal.Value) * 100
+            end
+        end
+    end
+    return 100
+end
+
 task.spawn(function()
     local previousTarget = nil
+    local bothCurrentMode = "Ataque"
+    local lastBothSwitch = tick()
+    local isChargingFarm = false
 
     while true do
         if Config.AutoFarmZenis then
@@ -517,47 +541,97 @@ task.spawn(function()
 
                     if myRoot then
                         myRoot.CFrame = rootPart.CFrame * CFrame.new(0, 0, 3)
-
                         ensureFlying()
 
-                        if isNewTarget then
-                            farmReleaseAllKeys()
-                            task.wait(0.1)
-                            if Config.SelectedAttackMode == "Ki" or Config.SelectedAttackMode == "Ambos" then
-                                farmPressKey(Enum.KeyCode.X)
-                                task.wait(0.15)
-                            end
-                        end
+                        local energyPct = getPlayerEnergyPercent()
+                        local minKiTrigger = Config.AutoFarmKiMin or 10
 
-                        if Config.SelectedAttackMode == "Ataque" then
-                            if not farmKeyE_Down then
-                                farmHoldKey(Enum.KeyCode.E)
-                                farmKeyE_Down = true
+                        -- Sistema de Recarregar Ki no Farm Zenis
+                        if energyPct <= minKiTrigger or isChargingFarm then
+                            if not isChargingFarm then
+                                isChargingFarm = true
+                                farmReleaseAllKeys()
+                                VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.Q, false, game)
+                                VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.R, false, game)
+                                task.wait(0.03)
+                                VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.Q, false, game)
+                                VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.R, false, game)
+                                task.wait(0.3)
+                                farmHoldKey(Enum.KeyCode.C)
+                                farmKeyC_Down = true
+                            else
+                                if energyPct >= 98 then
+                                    isChargingFarm = false
+                                    farmReleaseKey(Enum.KeyCode.C)
+                                    farmKeyC_Down = false
+                                    task.wait(0.1)
+                                end
                             end
-                        elseif Config.SelectedAttackMode == "Ki" then
-                            if not farmKeyQ_Down then
-                                farmHoldKey(Enum.KeyCode.Q)
-                                farmKeyQ_Down = true
+                        else
+                            if isNewTarget then
+                                farmReleaseAllKeys()
+                                task.wait(0.1)
+                                if Config.SelectedAttackMode == "Ki" or Config.SelectedAttackMode == "Ambos" then
+                                    farmPressKey(Enum.KeyCode.X)
+                                    task.wait(0.15)
+                                end
                             end
-                        elseif Config.SelectedAttackMode == "Ambos" then
-                            if not farmKeyE_Down then
-                                farmHoldKey(Enum.KeyCode.E)
-                                farmKeyE_Down = true
-                            end
-                            if not farmKeyQ_Down then
-                                farmHoldKey(Enum.KeyCode.Q)
-                                farmKeyQ_Down = true
+
+                            if Config.SelectedAttackMode == "Ataque" then
+                                if farmKeyQ_Down then farmReleaseKey(Enum.KeyCode.Q) farmKeyQ_Down = false end
+                                if not farmKeyE_Down then
+                                    farmHoldKey(Enum.KeyCode.E)
+                                    farmKeyE_Down = true
+                                end
+                            elseif Config.SelectedAttackMode == "Ki" then
+                                if farmKeyE_Down then farmReleaseKey(Enum.KeyCode.E) farmKeyE_Down = false end
+                                if not farmKeyQ_Down then
+                                    farmHoldKey(Enum.KeyCode.Q)
+                                    farmKeyQ_Down = true
+                                end
+                            elseif Config.SelectedAttackMode == "Ambos" then
+                                -- Intercala a cada 3 segundos entre Ataque (E) e Ki (Q)
+                                if tick() - lastBothSwitch >= 3 then
+                                    lastBothSwitch = tick()
+                                    if bothCurrentMode == "Ataque" then
+                                        bothCurrentMode = "Ki"
+                                    else
+                                        bothCurrentMode = "Ataque"
+                                    end
+                                    farmReleaseAllKeys()
+                                    task.wait(0.05)
+                                    if bothCurrentMode == "Ki" then
+                                        farmPressKey(Enum.KeyCode.X)
+                                        task.wait(0.1)
+                                    end
+                                end
+
+                                if bothCurrentMode == "Ataque" then
+                                    if farmKeyQ_Down then farmReleaseKey(Enum.KeyCode.Q) farmKeyQ_Down = false end
+                                    if not farmKeyE_Down then
+                                        farmHoldKey(Enum.KeyCode.E)
+                                        farmKeyE_Down = true
+                                    end
+                                else
+                                    if farmKeyE_Down then farmReleaseKey(Enum.KeyCode.E) farmKeyE_Down = false end
+                                    if not farmKeyQ_Down then
+                                        farmHoldKey(Enum.KeyCode.Q)
+                                        farmKeyQ_Down = true
+                                    end
+                                end
                             end
                         end
                     end
                 else
                     previousTarget = nil
+                    isChargingFarm = false
                     farmReleaseAllKeys()
                 end
             end)
             task.wait(0.1)
         else
             previousTarget = nil
+            isChargingFarm = false
             farmReleaseAllKeys()
             task.wait(0.3)
         end
@@ -1072,7 +1146,7 @@ RunService.RenderStepped:Connect(function()
     end
 end)
 
--- TELEPORTE PARA DRAGON BALLS (SUPORTE A MULTIPLAS COM DELAY DE 3s)
+-- TELEPORTE PARA DRAGON BALLS
 local function TeleportToDragonBallsRoutine()
     if isTeleportingDB then return end
     isTeleportingDB = true
@@ -1100,10 +1174,8 @@ local function TeleportToDragonBallsRoutine()
                 return (hrp.Position - a.Position).Magnitude < (hrp.Position - b.Position).Magnitude
             end)
 
-            -- Teleporta para a primeira Dragon Ball
             hrp.CFrame = availableDBs[1].CFrame + Vector3.new(0, 3, 0)
 
-            -- Se houver 2 ou mais Dragon Balls no mapa
             if #availableDBs >= 2 then
                 task.wait(3.0)
                 if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") and availableDBs[2] and availableDBs[2].Parent then
@@ -1161,7 +1233,7 @@ local function AutoGetDragonBallRoutine()
             end
             
             triggerPromptRecursive(nearestObj)
-            task.wait(1.0) -- Espera 1 segundo interagindo antes de retornar
+            task.wait(1.0)
             
             if hrp and hrp.Parent then
                 hrp.CFrame = originalPos
@@ -1171,7 +1243,7 @@ local function AutoGetDragonBallRoutine()
 end
 
 -- ==========================================
--- SISTEMA DE ESP E TELEPORT - COMERCIANTE (COM STATUS DE ITEM)
+-- SISTEMA DE ESP E TELEPORT - COMERCIANTE
 -- ==========================================
 local merchantObjects = {}
 local currentMerchantDragonBall = "Analisando..."
@@ -3216,7 +3288,7 @@ CreateToggle(TabMain.Left, "Auto Zenkai", function(v) Config.AutoZenkai = v end,
 
 do
     local baseHeight = 30
-    local expandedHeight = 145
+    local expandedHeight = 185
 
     local ToggleFrame = Instance.new("Frame", TabMain.Right)
     ToggleFrame.Size = UDim2.new(1, -4, 0, baseHeight)
@@ -3282,7 +3354,7 @@ do
     Instance.new("UICorner", ConfigBtn).CornerRadius = UDim.new(0, 4)
 
     local SettingsContainer = Instance.new("Frame", ToggleFrame)
-    SettingsContainer.Size = UDim2.new(1, -16, 0, 105)
+    SettingsContainer.Size = UDim2.new(1, -16, 0, 145)
     SettingsContainer.Position = UDim2.new(0, 8, 0, 32)
     SettingsContainer.BackgroundTransparency = 1
     SettingsContainer.Visible = false
@@ -3381,6 +3453,45 @@ do
         ModeDropBtn.Text = Config.SelectedAttackMode .. " ▼"
     end)
 
+    -- Slider de limite de Ki para Recarregar
+    local KiSliderRow = Instance.new("Frame", SettingsContainer)
+    KiSliderRow.Size = UDim2.new(1, 0, 0, 30)
+    KiSliderRow.Position = UDim2.new(0, 0, 0, yOffset + 28)
+    KiSliderRow.BackgroundTransparency = 1
+
+    local KiSliderTitle = Instance.new("TextLabel", KiSliderRow)
+    KiSliderTitle.Size = UDim2.new(1, -50, 0, 14)
+    KiSliderTitle.Position = UDim2.new(0, 0, 0, 0)
+    KiSliderTitle.BackgroundTransparency = 1
+    KiSliderTitle.Text = "Ki Mín. para Recarregar:"
+    KiSliderTitle.TextColor3 = Color3.fromRGB(160, 160, 160)
+    KiSliderTitle.Font = Enum.Font.GothamSemibold
+    KiSliderTitle.TextSize = 10
+    KiSliderTitle.TextXAlignment = Enum.TextXAlignment.Left
+
+    local KiSliderValLbl = Instance.new("TextLabel", KiSliderRow)
+    KiSliderValLbl.Size = UDim2.new(0, 50, 0, 14)
+    KiSliderValLbl.Position = UDim2.new(1, -50, 0, 0)
+    KiSliderValLbl.BackgroundTransparency = 1
+    KiSliderValLbl.Text = tostring(Config.AutoFarmKiMin) .. "%"
+    KiSliderValLbl.TextColor3 = Color3.fromRGB(255, 60, 60)
+    KiSliderValLbl.Font = Enum.Font.GothamBold
+    KiSliderValLbl.TextSize = 10
+    KiSliderValLbl.TextXAlignment = Enum.TextXAlignment.Right
+
+    local KiBarBg = Instance.new("Frame", KiSliderRow)
+    KiBarBg.Size = UDim2.new(1, 0, 0, 5)
+    KiBarBg.Position = UDim2.new(0, 0, 0, 18)
+    KiBarBg.BackgroundColor3 = Color3.fromRGB(20, 12, 12)
+    KiBarBg.BorderSizePixel = 0
+    Instance.new("UICorner", KiBarBg).CornerRadius = UDim.new(1, 0)
+
+    local KiBarFill = Instance.new("Frame", KiBarBg)
+    KiBarFill.Size = UDim2.new(Config.AutoFarmKiMin / 90, 0, 1, 0)
+    KiBarFill.BackgroundColor3 = Color3.fromRGB(255, 40, 40)
+    KiBarFill.BorderSizePixel = 0
+    Instance.new("UICorner", KiBarFill).CornerRadius = UDim.new(1, 0)
+
     local isExpanded = false
     ConfigBtn.MouseButton1Click:Connect(function()
         isExpanded = not isExpanded
@@ -3394,6 +3505,34 @@ do
             task.delay(0.3, function()
                 if not isExpanded then SettingsContainer.Visible = false end
             end)
+        end
+    end)
+
+    local draggingKi = false
+    KiBarBg.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            draggingKi = true
+            setParentScrolling(KiBarBg, false)
+        end
+    end)
+
+    UserInputService.InputEnded:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            if draggingKi then
+                draggingKi = false
+                setParentScrolling(KiBarBg, true)
+            end
+        end
+    end)
+
+    RunService.RenderStepped:Connect(function()
+        if draggingKi and isExpanded then
+            local mousePos = UserInputService:GetMouseLocation()
+            local pos = math.clamp((mousePos.X - KiBarBg.AbsolutePosition.X) / KiBarBg.AbsoluteSize.X, 0, 1)
+            local val = math.floor(pos * 90 + 0.5)
+            KiBarFill.Size = UDim2.new(pos, 0, 1, 0)
+            KiSliderValLbl.Text = tostring(val) .. "%"
+            Config.AutoFarmKiMin = val
         end
     end)
 end
@@ -3883,27 +4022,18 @@ CreateToggle(TabMisc.Left, "Auto tp DragonBall", function(v)
     dbAutoTpTriggered = false
 end, false)
 
-local DBCountFrame = Instance.new("Frame", TabMisc.Left)
-DBCountFrame.Size = UDim2.new(1, -4, 0, 32)
-DBCountFrame.BackgroundColor3 = Color3.fromRGB(12, 12, 12)
-DBCountFrame.BorderSizePixel = 0
-DBCountFrame.ZIndex = 30
-Instance.new("UICorner", DBCountFrame).CornerRadius = UDim.new(0, 6)
-
-local DBCountStroke = Instance.new("UIStroke", DBCountFrame)
-DBCountStroke.Color = Color3.fromRGB(35, 20, 20)
-DBCountStroke.Thickness = 1
-
-local DBCountLbl = Instance.new("TextLabel", DBCountFrame)
-DBCountLbl.Size = UDim2.new(1, -16, 1, 0)
-DBCountLbl.Position = UDim2.new(0, 8, 0, 0)
-DBCountLbl.BackgroundTransparency = 1
-DBCountLbl.Text = "Dragonballs no mapa: 0"
-DBCountLbl.TextColor3 = Color3.fromRGB(220, 220, 220)
-DBCountLbl.Font = Enum.Font.GothamSemibold
-DBCountLbl.TextSize = 11
-DBCountLbl.TextXAlignment = Enum.TextXAlignment.Left
-DBCountLbl.ZIndex = 30
+CreateToggle(TabMisc.Left, "Auto get DragonBall", function(v)
+    Config.AutoGetDB = v
+    autoGetDBTriggered = false
+    if not v then
+        for prompt, originalDuration in pairs(originalPromptHoldDurations) do
+            if prompt and prompt.Parent then
+                prompt.HoldDuration = originalDuration
+            end
+        end
+        table.clear(originalPromptHoldDurations)
+    end
+end, false)
 
 -- Display do Status da Dragonball no Mapa (Spawnado / Não Spawnado)
 local DBStatusFrame = Instance.new("Frame", TabMisc.Left)
@@ -3928,19 +4058,28 @@ DBStatusLbl.TextSize = 11
 DBStatusLbl.TextXAlignment = Enum.TextXAlignment.Left
 DBStatusLbl.ZIndex = 30
 
-CreateToggle(TabMisc.Left, "Auto get DragonBall", function(v)
-    Config.AutoGetDB = v
-    autoGetDBTriggered = false
-    if not v then
-        -- Restaura os tempos de cooldown originais ao desligar o Auto Get DragonBall
-        for prompt, originalDuration in pairs(originalPromptHoldDurations) do
-            if prompt and prompt.Parent then
-                prompt.HoldDuration = originalDuration
-            end
-        end
-        table.clear(originalPromptHoldDurations)
-    end
-end, false)
+-- Display da quantidade de Dragonballs no Mapa
+local DBCountFrame = Instance.new("Frame", TabMisc.Left)
+DBCountFrame.Size = UDim2.new(1, -4, 0, 32)
+DBCountFrame.BackgroundColor3 = Color3.fromRGB(12, 12, 12)
+DBCountFrame.BorderSizePixel = 0
+DBCountFrame.ZIndex = 30
+Instance.new("UICorner", DBCountFrame).CornerRadius = UDim.new(0, 6)
+
+local DBCountStroke = Instance.new("UIStroke", DBCountFrame)
+DBCountStroke.Color = Color3.fromRGB(35, 20, 20)
+DBCountStroke.Thickness = 1
+
+local DBCountLbl = Instance.new("TextLabel", DBCountFrame)
+DBCountLbl.Size = UDim2.new(1, -16, 1, 0)
+DBCountLbl.Position = UDim2.new(0, 8, 0, 0)
+DBCountLbl.BackgroundTransparency = 1
+DBCountLbl.Text = "Dragonballs no mapa: 0"
+DBCountLbl.TextColor3 = Color3.fromRGB(220, 220, 220)
+DBCountLbl.Font = Enum.Font.GothamSemibold
+DBCountLbl.TextSize = 11
+DBCountLbl.TextXAlignment = Enum.TextXAlignment.Left
+DBCountLbl.ZIndex = 30
 
 CreateSection(TabMisc.Left, "Comerciante")
 
@@ -4005,13 +4144,13 @@ task.spawn(function()
             if MerchantDBInfoLbl then
                 if currentMerchantDragonBall == "Não spawnado" or currentMerchantDragonBall == "Não encontrado" then
                     MerchantDBInfoLbl.Text = "Status Comerciante: Não spawnado"
-                    MerchantDBInfoLbl.TextColor3 = Color3.fromRGB(255, 60, 60) -- Vermelho
+                    MerchantDBInfoLbl.TextColor3 = Color3.fromRGB(255, 60, 60)
                 elseif currentMerchantDragonBall == "Analisando..." then
                     MerchantDBInfoLbl.Text = "Status Comerciante: Analisando..."
                     MerchantDBInfoLbl.TextColor3 = Color3.fromRGB(220, 220, 220)
                 else
                     MerchantDBInfoLbl.Text = "Status Comerciante: Disponível"
-                    MerchantDBInfoLbl.TextColor3 = Color3.fromRGB(46, 204, 113) -- Verde
+                    MerchantDBInfoLbl.TextColor3 = Color3.fromRGB(46, 204, 113)
                 end
             end
 
@@ -4096,10 +4235,10 @@ task.spawn(function()
             if DBStatusLbl then
                 if count > 0 then
                     DBStatusLbl.Text = "Status Dragonball: Spawnado"
-                    DBStatusLbl.TextColor3 = Color3.fromRGB(46, 204, 113) -- Verde
+                    DBStatusLbl.TextColor3 = Color3.fromRGB(46, 204, 113)
                 else
                     DBStatusLbl.Text = "Status Dragonball: Não Spawnado"
-                    DBStatusLbl.TextColor3 = Color3.fromRGB(255, 60, 60) -- Vermelho
+                    DBStatusLbl.TextColor3 = Color3.fromRGB(255, 60, 60)
                 end
             end
             
