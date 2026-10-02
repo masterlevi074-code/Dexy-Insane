@@ -6,6 +6,7 @@ local Players = game:GetService("Players")
 local VirtualInputManager = game:GetService("VirtualInputManager")
 local GuiService = game:GetService("GuiService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local StatsService = game:GetService("Stats")
 
 local LocalPlayer = Players.LocalPlayer
 
@@ -2693,7 +2694,11 @@ local TabPlayer = CreateTab("Jogador", "Jogador")
 local TabVisual = CreateTab("Visual", "Visual")
 local TabMisc = CreateTab("Misc", "Misc")
 
--- Conteúdo da Aba Info - Cartão do Jogador (Lado Esquerdo)
+-- ==========================================
+-- ABA INFO (ATUALIZADA)
+-- ==========================================
+
+-- 1. Cartão do Jogador (Lado Esquerdo - Topo)
 local InfoCard = Instance.new("Frame", TabInfo.Left)
 InfoCard.Size = UDim2.new(1, -4, 0, 135)
 InfoCard.BackgroundColor3 = Color3.fromRGB(12, 12, 12)
@@ -2754,6 +2759,193 @@ DetailsLbl.Font = Enum.Font.GothamSemibold
 DetailsLbl.TextSize = 10
 DetailsLbl.TextXAlignment = Enum.TextXAlignment.Left
 DetailsLbl.ZIndex = 31
+
+-- 2. Estatísticas de Desempenho / Servidor (Lado Esquerdo - Baixo)
+CreateSection(TabInfo.Left, "Desempenho & Servidor")
+
+local StatsServerCard = Instance.new("Frame", TabInfo.Left)
+StatsServerCard.Size = UDim2.new(1, -4, 0, 75)
+StatsServerCard.BackgroundColor3 = Color3.fromRGB(12, 12, 12)
+StatsServerCard.BorderSizePixel = 0
+StatsServerCard.ZIndex = 30
+Instance.new("UICorner", StatsServerCard).CornerRadius = UDim.new(0, 6)
+
+local StatsServerStroke = Instance.new("UIStroke", StatsServerCard)
+StatsServerStroke.Color = Color3.fromRGB(35, 20, 20)
+StatsServerStroke.Thickness = 1
+
+local InfoPlayersLbl = Instance.new("TextLabel", StatsServerCard)
+InfoPlayersLbl.Size = UDim2.new(1, -16, 0, 22)
+InfoPlayersLbl.Position = UDim2.new(0, 8, 0, 6)
+InfoPlayersLbl.BackgroundTransparency = 1
+InfoPlayersLbl.Text = "Jogadores no Servidor: 0 / 0"
+InfoPlayersLbl.TextColor3 = Color3.fromRGB(220, 220, 220)
+InfoPlayersLbl.Font = Enum.Font.GothamSemibold
+InfoPlayersLbl.TextSize = 11
+InfoPlayersLbl.TextXAlignment = Enum.TextXAlignment.Left
+InfoPlayersLbl.ZIndex = 31
+
+local InfoFpsLbl = Instance.new("TextLabel", StatsServerCard)
+InfoFpsLbl.Size = UDim2.new(0.5, -8, 0, 22)
+InfoFpsLbl.Position = UDim2.new(0, 8, 0, 28)
+InfoFpsLbl.BackgroundTransparency = 1
+InfoFpsLbl.Text = "FPS: 0"
+InfoFpsLbl.TextColor3 = Color3.fromRGB(46, 204, 113)
+InfoFpsLbl.Font = Enum.Font.GothamBold
+InfoFpsLbl.TextSize = 11
+InfoFpsLbl.TextXAlignment = Enum.TextXAlignment.Left
+InfoFpsLbl.ZIndex = 31
+
+local InfoPingLbl = Instance.new("TextLabel", StatsServerCard)
+InfoPingLbl.Size = UDim2.new(0.5, -8, 0, 22)
+InfoPingLbl.Position = UDim2.new(0.5, 0, 0, 28)
+InfoPingLbl.BackgroundTransparency = 1
+InfoPingLbl.Text = "Ping: 0 ms"
+InfoPingLbl.TextColor3 = Color3.fromRGB(255, 220, 40)
+InfoPingLbl.Font = Enum.Font.GothamBold
+InfoPingLbl.TextSize = 11
+InfoPingLbl.TextXAlignment = Enum.TextXAlignment.Left
+InfoPingLbl.ZIndex = 31
+
+-- Loop para atualizar FPS, Ping e Contagem de Jogadores em Tempo Real
+task.spawn(function()
+    local lastTick = tick()
+    local frameCount = 0
+    local currentFps = 60
+
+    RunService.RenderStepped:Connect(function()
+        frameCount = frameCount + 1
+        local now = tick()
+        if now - lastTick >= 1 then
+            currentFps = math.floor(frameCount / (now - lastTick) + 0.5)
+            frameCount = 0
+            lastTick = now
+        end
+    end)
+
+    while task.wait(0.5) do
+        pcall(function()
+            -- Contagem de Jogadores
+            local maxPlayers = Players.MaxPlayers
+            local currentPlayers = #Players:GetPlayers()
+            InfoPlayersLbl.Text = "Jogadores no Servidor: " .. currentPlayers .. " / " .. maxPlayers
+
+            -- FPS
+            InfoFpsLbl.Text = "FPS: " .. currentFps
+
+            -- Ping
+            local pingVal = 0
+            pcall(function()
+                pingVal = math.floor(LocalPlayer:GetNetworkPing() * 1000 + 0.5)
+            end)
+            if pingVal == 0 then
+                pcall(function()
+                    local stats = StatsService:FindFirstChild("Network")
+                    if stats then
+                        local serverStats = stats:FindFirstChild("ServerStatsItem")
+                        if serverStats then
+                            local dataPing = serverStats:FindFirstChild("Data Ping")
+                            if dataPing then
+                                pingVal = math.floor(dataPing:GetValue())
+                            end
+                        end
+                    end
+                end)
+            end
+            InfoPingLbl.Text = "Ping: " .. pingVal .. " ms"
+        end)
+    end
+end)
+
+-- 3. Nome do Painel com Versão & Criador (Lado Direito - Topo)
+CreateSection(TabInfo.Right, "Painel & Autor")
+
+local CreditCard = Instance.new("Frame", TabInfo.Right)
+CreditCard.Size = UDim2.new(1, -4, 0, 85)
+CreditCard.BackgroundColor3 = Color3.fromRGB(12, 12, 12)
+CreditCard.BorderSizePixel = 0
+CreditCard.ZIndex = 30
+Instance.new("UICorner", CreditCard).CornerRadius = UDim.new(0, 6)
+
+local CreditCardStroke = Instance.new("UIStroke", CreditCard)
+CreditCardStroke.Color = Color3.fromRGB(35, 20, 20)
+CreditCardStroke.Thickness = 1
+
+local PanelNameVersionLbl = Instance.new("TextLabel", CreditCard)
+PanelNameVersionLbl.Size = UDim2.new(1, -16, 0, 22)
+PanelNameVersionLbl.Position = UDim2.new(0, 8, 0, 10)
+PanelNameVersionLbl.BackgroundTransparency = 1
+PanelNameVersionLbl.Text = "Dexy Insane (v2.5.0)"
+PanelNameVersionLbl.TextColor3 = Color3.fromRGB(255, 60, 60)
+PanelNameVersionLbl.Font = Enum.Font.GothamBold
+PanelNameVersionLbl.TextSize = 12
+PanelNameVersionLbl.TextXAlignment = Enum.TextXAlignment.Left
+PanelNameVersionLbl.ZIndex = 31
+
+local CreatorLbl = Instance.new("TextLabel", CreditCard)
+CreatorLbl.Size = UDim2.new(1, -16, 0, 20)
+CreatorLbl.Position = UDim2.new(0, 8, 0, 32)
+CreatorLbl.BackgroundTransparency = 1
+CreatorLbl.Text = "Criador: NoahZin"
+CreatorLbl.TextColor3 = Color3.fromRGB(255, 255, 255)
+CreatorLbl.Font = Enum.Font.GothamSemibold
+CreatorLbl.TextSize = 11
+CreatorLbl.TextXAlignment = Enum.TextXAlignment.Left
+CreatorLbl.ZIndex = 31
+
+local DescScriptLbl = Instance.new("TextLabel", CreditCard)
+DescScriptLbl.Size = UDim2.new(1, -16, 0, 20)
+DescScriptLbl.Position = UDim2.new(0, 8, 0, 52)
+DescScriptLbl.BackgroundTransparency = 1
+DescScriptLbl.Text = "Painel exclusivo para Dragon Ball Rage"
+DescScriptLbl.TextColor3 = Color3.fromRGB(150, 150, 150)
+DescScriptLbl.Font = Enum.Font.Gotham
+DescScriptLbl.TextSize = 10
+DescScriptLbl.TextXAlignment = Enum.TextXAlignment.Left
+DescScriptLbl.ZIndex = 31
+
+-- 4. Notas de Atualização / Changelogs (Lado Direito - Baixo)
+CreateSection(TabInfo.Right, "Notas de Atualização (Changelogs)")
+
+local ChangelogCard = Instance.new("ScrollingFrame", TabInfo.Right)
+ChangelogCard.Size = UDim2.new(1, -4, 0, 125)
+ChangelogCard.BackgroundColor3 = Color3.fromRGB(12, 12, 12)
+ChangelogCard.BorderSizePixel = 0
+ChangelogCard.ScrollBarThickness = 3
+ChangelogCard.ScrollBarImageColor3 = Color3.fromRGB(255, 40, 40)
+ChangelogCard.ZIndex = 30
+Instance.new("UICorner", ChangelogCard).CornerRadius = UDim.new(0, 6)
+
+local ChangelogStroke = Instance.new("UIStroke", ChangelogCard)
+ChangelogStroke.Color = Color3.fromRGB(35, 20, 20)
+ChangelogStroke.Thickness = 1
+
+local ChangelogText = Instance.new("TextLabel", ChangelogCard)
+ChangelogText.Size = UDim2.new(1, -16, 0, 180)
+ChangelogText.Position = UDim2.new(0, 8, 0, 8)
+ChangelogText.BackgroundTransparency = 1
+ChangelogText.Text = [[• [v2.5.0] Adicionada aba Info completa com monitoramento de Ping, FPS e Jogadores.
+• [v2.4.1] Adicionado suporte otimizado para múltiplos NPCs no Auto Farm Zenis.
+• [v2.4.0] Correção no sistema de Anti-Cooldown do ProximityPrompt para Dragon Balls.
+• [v2.3.5] Melhorias gerais de fluidez e correções de loops em segundo plano.
+• [v2.0.0] Lançamento inicial oficial do Dexy Insane por Noahzin.]]
+ChangelogText.TextColor3 = Color3.fromRGB(180, 180, 180)
+ChangelogText.Font = Enum.Font.Gotham
+ChangelogText.TextSize = 10
+ChangelogText.TextXAlignment = Enum.TextXAlignment.Left
+ChangelogText.TextYAlignment = Enum.TextYAlignment.Top
+ChangelogText.TextWrapped = true
+ChangelogText.ZIndex = 31
+
+ChangelogCard.CanvasSize = UDim2.new(0, 0, 0, 190)
+
+ChangelogCard.MouseEnter:Connect(function()
+    setParentScrolling(ChangelogCard, false)
+end)
+ChangelogCard.MouseLeave:Connect(function()
+    setParentScrolling(ChangelogCard, true)
+end)
+
 
 -- Aba Principal (Lado Esquerdo - Combate Geral)
 CreateToggle(TabMain.Left, "Auto Attack", function(v) 
