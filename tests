@@ -2568,7 +2568,6 @@ local function CreateToggleWithSubOptionsAndMultiSelect(parentCol, name, callbac
         TweenService:Create(ToggleFrame, TweenInfo.new(0.3, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {Size = UDim2.new(1, -4, 0, currentHeight)}):Play()
     end
 
-    -- Se houver dados para seleção múltipla (ex: Toggles de NPCs)
     if multiSelectData then
         local GroupLbl = Instance.new("TextLabel", OptionsContainer)
         GroupLbl.Size = UDim2.new(1, 0, 0, 18)
@@ -2725,7 +2724,6 @@ local function CreateToggleWithSubOptionsAndMultiSelect(parentCol, name, callbac
     end)
 end
 
--- Mantém compatibilidade com a função antiga para não quebrar o ESP Players
 local function CreateToggleWithSubOptions(parentCol, name, callback, subOptions)
     CreateToggleWithSubOptionsAndMultiSelect(parentCol, name, callback, subOptions, nil)
 end
@@ -2954,7 +2952,6 @@ local TabMisc = CreateTab("Misc", "Misc")
 -- ABA INFO (ATUALIZADA)
 -- ==========================================
 
--- 1. Cartão do Jogador (Lado Esquerdo - Topo)
 local InfoCard = Instance.new("Frame", TabInfo.Left)
 InfoCard.Size = UDim2.new(1, -4, 0, 135)
 InfoCard.BackgroundColor3 = Color3.fromRGB(12, 12, 12)
@@ -3016,7 +3013,6 @@ DetailsLbl.TextSize = 10
 DetailsLbl.TextXAlignment = Enum.TextXAlignment.Left
 DetailsLbl.ZIndex = 31
 
--- 2. Estatísticas de Desempenho / Servidor (Lado Esquerdo - Baixo)
 CreateSection(TabInfo.Left, "Desempenho & Servidor")
 
 local StatsServerCard = Instance.new("Frame", TabInfo.Left)
@@ -3063,7 +3059,6 @@ InfoPingLbl.TextSize = 11
 InfoPingLbl.TextXAlignment = Enum.TextXAlignment.Left
 InfoPingLbl.ZIndex = 31
 
--- Loop para atualizar FPS, Ping e Contagem de Jogadores em Tempo Real
 task.spawn(function()
     local lastTick = tick()
     local frameCount = 0
@@ -3081,15 +3076,12 @@ task.spawn(function()
 
     while task.wait(0.5) do
         pcall(function()
-            -- Contagem de Jogadores
             local maxPlayers = Players.MaxPlayers
             local currentPlayers = #Players:GetPlayers()
             InfoPlayersLbl.Text = "Jogadores no Servidor: " .. currentPlayers .. " / " .. maxPlayers
 
-            -- FPS
             InfoFpsLbl.Text = "FPS: " .. currentFps
 
-            -- Ping
             local pingVal = 0
             pcall(function()
                 pingVal = math.floor(LocalPlayer:GetNetworkPing() * 1000 + 0.5)
@@ -3113,7 +3105,6 @@ task.spawn(function()
     end
 end)
 
--- 3. Nome do Painel com Versão & Criador (Lado Direito - Topo)
 CreateSection(TabInfo.Right, "Painel & Autor")
 
 local CreditCard = Instance.new("Frame", TabInfo.Right)
@@ -3160,7 +3151,6 @@ DescScriptLbl.TextSize = 10
 DescScriptLbl.TextXAlignment = Enum.TextXAlignment.Left
 DescScriptLbl.ZIndex = 31
 
--- 4. Notas de Atualização / Changelogs (Lado Direito - Baixo)
 CreateSection(TabInfo.Right, "Notas de Atualização (Changelogs)")
 
 local ChangelogCard = Instance.new("ScrollingFrame", TabInfo.Right)
@@ -3202,8 +3192,6 @@ ChangelogCard.MouseLeave:Connect(function()
     setParentScrolling(ChangelogCard, true)
 end)
 
-
--- Aba Principal (Lado Esquerdo - Combate Geral)
 CreateToggle(TabMain.Left, "Auto Attack", function(v) 
     Config.AutoAttack = v 
     UserInputService.MouseIconEnabled = not (v or Config.AutoDefense or Config.AutoKiBlast)
@@ -3229,7 +3217,6 @@ CreateToggle(TabMain.Left, "Auto Zenkai", function(v)
     Config.AutoZenkai = v
 end, false)
 
--- Aba Principal (Lado Direito - Auto Farm Zenis com Toggles de NPCs)
 do
     local baseHeight = 30
     local expandedHeight = 145
@@ -3414,7 +3401,6 @@ do
     end)
 end
 
--- Aba Jogador (Lado Esquerdo - Controles de Movimento/Voo)
 CreateToggle(TabPlayer.Left, "Pulo Infinito", function(v) Config.InfJump = v end, false)
 
 CreateToggle(TabPlayer.Left, "Ativar Velocidade", function(v) 
@@ -3423,7 +3409,6 @@ end, true, 16, 300, 50, function(v)
     Config.WalkSpeed = v 
 end, false, nil, "Segurar", "", true)
 
--- SISTEMA DE VOO CONTROLLER INTEGRADO
 do
     local baseHeight = 30
     local expandedHeight = 150
@@ -3653,7 +3638,6 @@ do
     end)
 end
 
--- Aba Jogador (Lado Direito - Cartão Compacto de Estatísticas do Player)
 local StatsCard = Instance.new("Frame", TabPlayer.Right)
 StatsCard.Size = UDim2.new(1, -4, 0, 100)
 StatsCard.BackgroundColor3 = Color3.fromRGB(12, 12, 12)
@@ -3761,7 +3745,6 @@ task.spawn(function()
     end
 end)
 
--- Aba Visual
 CreateToggleWithSubOptions(TabVisual.Left, "ESP Players", function(v) 
     ESPConfig.Enabled = v 
 end, {
@@ -3797,7 +3780,6 @@ end, {
     }
 })
 
--- Adicionado ESP NPCs na Aba Visual (Esquerda) com toggles e subopções de Chams, Box, Nomes e Distância
 CreateToggleWithSubOptionsAndMultiSelect(TabVisual.Left, "ESP NPCs", function(v) 
     NPCESPConfig.Enabled = v 
 end, {
@@ -3894,7 +3876,6 @@ end, {
 -- Aba Misc (Organizado por Seções)
 -- ==========================================
 
--- Seção DragonBall
 CreateSection(TabMisc.Left, "DragonBall")
 
 CreateButton(TabMisc.Left, "Teleportar para Dragonball", function()
@@ -3933,7 +3914,6 @@ DBCountLbl.TextSize = 11
 DBCountLbl.TextXAlignment = Enum.TextXAlignment.Left
 DBCountLbl.ZIndex = 30
 
--- Seção Comerciante
 CreateSection(TabMisc.Left, "Comerciante")
 
 CreateButton(TabMisc.Left, "Teleportar para Comerciante", function()
@@ -3945,7 +3925,7 @@ CreateToggle(TabMisc.Left, "Auto tp Comerciante", function(v)
     merchantAutoTpTriggered = false
 end, false)
 
--- Teleport Ilhas na Coluna da Direita da aba Misc
+-- Teleport Ilhas na Coluna da Direita da aba Misc (Mantido exato ao original)
 CreateSection(TabMisc.Right, "Teleport Ilha")
 
 local IslandLocations = {
