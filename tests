@@ -3918,6 +3918,29 @@ MerchantDBInfoLbl.TextSize = 11
 MerchantDBInfoLbl.TextXAlignment = Enum.TextXAlignment.Left
 MerchantDBInfoLbl.ZIndex = 30
 
+-- Display do Número da Dragon Ball à venda
+local MerchantDBSoldFrame = Instance.new("Frame", TabMisc.Left)
+MerchantDBSoldFrame.Size = UDim2.new(1, -4, 0, 32)
+MerchantDBSoldFrame.BackgroundColor3 = Color3.fromRGB(12, 12, 12)
+MerchantDBSoldFrame.BorderSizePixel = 0
+MerchantDBSoldFrame.ZIndex = 30
+Instance.new("UICorner", MerchantDBSoldFrame).CornerRadius = UDim.new(0, 6)
+
+local MerchantDBSoldStroke = Instance.new("UIStroke", MerchantDBSoldFrame)
+MerchantDBSoldStroke.Color = Color3.fromRGB(35, 20, 20)
+MerchantDBSoldStroke.Thickness = 1
+
+local MerchantDBSoldLbl = Instance.new("TextLabel", MerchantDBSoldFrame)
+MerchantDBSoldLbl.Size = UDim2.new(1, -16, 1, 0)
+MerchantDBSoldLbl.Position = UDim2.new(0, 8, 0, 0)
+MerchantDBSoldLbl.BackgroundTransparency = 1
+MerchantDBSoldLbl.Text = "DragonBall á venda: Analisando..."
+MerchantDBSoldLbl.TextColor3 = Color3.fromRGB(220, 220, 220)
+MerchantDBSoldLbl.Font = Enum.Font.GothamSemibold
+MerchantDBSoldLbl.TextSize = 11
+MerchantDBSoldLbl.TextXAlignment = Enum.TextXAlignment.Left
+MerchantDBSoldLbl.ZIndex = 30
+
 task.spawn(function()
     while task.wait(0.5) do
         pcall(function()
@@ -3929,12 +3952,24 @@ task.spawn(function()
                     MerchantDBInfoLbl.Text = "Status Comerciante: Analisando..."
                     MerchantDBInfoLbl.TextColor3 = Color3.fromRGB(220, 220, 220)
                 else
-                    if currentMerchantDragonBall == "Desconhecida" then
-                        MerchantDBInfoLbl.Text = "Status Comerciante: Disponível"
-                    else
-                        MerchantDBInfoLbl.Text = "Status Comerciante: Disponível (DB: " .. tostring(currentMerchantDragonBall) .. ")"
-                    end
+                    MerchantDBInfoLbl.Text = "Status Comerciante: Disponível"
                     MerchantDBInfoLbl.TextColor3 = Color3.fromRGB(46, 204, 113) -- Verde
+                end
+            end
+
+            if MerchantDBSoldLbl then
+                if currentMerchantDragonBall == "Não spawnado" or currentMerchantDragonBall == "Não encontrado" then
+                    MerchantDBSoldLbl.Text = "DragonBall á venda: Nenhuma"
+                    MerchantDBSoldLbl.TextColor3 = Color3.fromRGB(255, 60, 60)
+                elseif currentMerchantDragonBall == "Analisando..." then
+                    MerchantDBSoldLbl.Text = "DragonBall á venda: Analisando..."
+                    MerchantDBSoldLbl.TextColor3 = Color3.fromRGB(220, 220, 220)
+                elseif currentMerchantDragonBall == "Desconhecida" then
+                    MerchantDBSoldLbl.Text = "DragonBall á venda: Desconhecida"
+                    MerchantDBSoldLbl.TextColor3 = Color3.fromRGB(255, 220, 40)
+                else
+                    MerchantDBSoldLbl.Text = "DragonBall á venda: " .. tostring(currentMerchantDragonBall)
+                    MerchantDBSoldLbl.TextColor3 = Color3.fromRGB(46, 204, 113)
                 end
             end
         end)
