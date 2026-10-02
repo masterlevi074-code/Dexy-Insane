@@ -79,6 +79,10 @@ local Config = {
 local dbAutoTpTriggered = false
 local autoGetDBTriggered = false
 local merchantAutoTpTriggered = false
+local isTeleportingDB = false
+
+-- Armazenamento dos tempos de cooldown originais dos ProximityPrompts
+local originalPromptHoldDurations = {}
 
 -- Mapeamento dos nomes em inglês para números da Dragon Ball
 local numberMap = {
@@ -1068,31 +1072,48 @@ RunService.RenderStepped:Connect(function()
     end
 end)
 
-local function TeleportToNearestDragonBall()
+-- TELEPORTE PARA DRAGON BALLS (SUPORTE A MULTIPLAS COM DELAY DE 3s)
+local function TeleportToDragonBallsRoutine()
+    if isTeleportingDB then return end
+    isTeleportingDB = true
+
     pcall(function()
-        local hrp = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
-        if not hrp then return end
+        local character = LocalPlayer.Character
+        local hrp = character and character:FindFirstChild("HumanoidRootPart")
+        if not hrp then 
+            isTeleportingDB = false 
+            return 
+        end
 
-        local nearestObj = nil
-        local shortestDist = math.huge
-
+        local availableDBs = {}
         for obj, _ in pairs(dbObjects) do
             if obj and obj.Parent then
                 local targetPart = obj.PrimaryPart or obj:FindFirstChildWhichIsA("BasePart") or obj:FindFirstChild("Main")
                 if targetPart then
-                    local dist = (hrp.Position - targetPart.Position).Magnitude
-                    if dist < shortestDist then
-                        shortestDist = dist
-                        nearestObj = targetPart
-                    end
+                    table.insert(availableDBs, targetPart)
                 end
             end
         end
 
-        if nearestObj then
-            hrp.CFrame = nearestObj.CFrame + Vector3.new(0, 3, 0)
+        if #availableDBs > 0 then
+            table.sort(availableDBs, function(a, b)
+                return (hrp.Position - a.Position).Magnitude < (hrp.Position - b.Position).Magnitude
+            end)
+
+            -- Teleporta para a primeira Dragon Ball
+            hrp.CFrame = availableDBs[1].CFrame + Vector3.new(0, 3, 0)
+
+            -- Se houver 2 ou mais Dragon Balls no mapa
+            if #availableDBs >= 2 then
+                task.wait(3.0)
+                if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") and availableDBs[2] and availableDBs[2].Parent then
+                    LocalPlayer.Character.HumanoidRootPart.CFrame = availableDBs[2].CFrame + Vector3.new(0, 3, 0)
+                end
+            end
         end
     end)
+
+    isTeleportingDB = false
 end
 
 local function AutoGetDragonBallRoutine()
@@ -1129,6 +1150,9 @@ local function AutoGetDragonBallRoutine()
                 for _, child in ipairs(parent:GetDescendants()) do
                     if child:IsA("ProximityPrompt") then
                         pcall(function()
+                            if originalPromptHoldDurations[child] == nil then
+                                originalPromptHoldDurations[child] = child.HoldDuration
+                            end
                             child.HoldDuration = 0
                             fireproximityprompt(child)
                         end)
@@ -1137,9 +1161,11 @@ local function AutoGetDragonBallRoutine()
             end
             
             triggerPromptRecursive(nearestObj)
-            task.wait(0.1)
+            task.wait(1.0) -- Espera 1 segundo interagindo antes de retornar
             
-            hrp.CFrame = originalPos
+            if hrp and hrp.Parent then
+                hrp.CFrame = originalPos
+            end
         end
     end)
 end
@@ -3849,17 +3875,12 @@ end, {
 CreateSection(TabMisc.Left, "DragonBall")
 
 CreateButton(TabMisc.Left, "Teleportar para Dragonball", function()
-    TeleportToNearestDragonBall()
+    TeleportToDragonBallsRoutine()
 end)
 
 CreateToggle(TabMisc.Left, "Auto tp DragonBall", function(v)
     Config.AutoTpDB = v
     dbAutoTpTriggered = false
-end, false)
-
-CreateToggle(TabMisc.Left, "Auto get DragonBall", function(v)
-    Config.AutoGetDB = v
-    autoGetDBTriggered = false
 end, false)
 
 local DBCountFrame = Instance.new("Frame", TabMisc.Left)
@@ -3883,6 +3904,43 @@ DBCountLbl.Font = Enum.Font.GothamSemibold
 DBCountLbl.TextSize = 11
 DBCountLbl.TextXAlignment = Enum.TextXAlignment.Left
 DBCountLbl.ZIndex = 30
+
+-- Display do Status da Dragonball no Mapa (Spawnado / Não Spawnado)
+local DBStatusFrame = Instance.new("Frame", TabMisc.Left)
+DBStatusFrame.Size = UDim2.new(1, -4, 0, 32)
+DBStatusFrame.BackgroundColor3 = Color3.fromRGB(12, 12, 12)
+DBStatusFrame.BorderSizePixel = 0
+DBStatusFrame.ZIndex = 30
+Instance.new("UICorner", DBStatusFrame).CornerRadius = UDim.new(0, 6)
+
+local DBStatusStroke = Instance.new("UIStroke", DBStatusFrame)
+DBStatusStroke.Color = Color3.fromRGB(35, 20, 20)
+DBStatusStroke.Thickness = 1
+
+local DBStatusLbl = Instance.new("TextLabel", DBStatusFrame)
+DBStatusLbl.Size = UDim2.new(1, -16, 1, 0)
+DBStatusLbl.Position = UDim2.new(0, 8, 0, 0)
+DBStatusLbl.BackgroundTransparency = 1
+DBStatusLbl.Text = "Status Dragonball: Não Spawnado"
+DBStatusLbl.TextColor3 = Color3.fromRGB(255, 60, 60)
+DBStatusLbl.Font = Enum.Font.GothamSemibold
+DBStatusLbl.TextSize = 11
+DBStatusLbl.TextXAlignment = Enum.TextXAlignment.Left
+DBStatusLbl.ZIndex = 30
+
+CreateToggle(TabMisc.Left, "Auto get DragonBall", function(v)
+    Config.AutoGetDB = v
+    autoGetDBTriggered = false
+    if not v then
+        -- Restaura os tempos de cooldown originais ao desligar o Auto Get DragonBall
+        for prompt, originalDuration in pairs(originalPromptHoldDurations) do
+            if prompt and prompt.Parent then
+                prompt.HoldDuration = originalDuration
+            end
+        end
+        table.clear(originalPromptHoldDurations)
+    end
+end, false)
 
 CreateSection(TabMisc.Left, "Comerciante")
 
@@ -4030,8 +4088,19 @@ task.spawn(function()
                     count = count + 1
                 end
             end
+
             if DBCountLbl then
                 DBCountLbl.Text = "Dragonballs no mapa: " .. count
+            end
+
+            if DBStatusLbl then
+                if count > 0 then
+                    DBStatusLbl.Text = "Status Dragonball: Spawnado"
+                    DBStatusLbl.TextColor3 = Color3.fromRGB(46, 204, 113) -- Verde
+                else
+                    DBStatusLbl.Text = "Status Dragonball: Não Spawnado"
+                    DBStatusLbl.TextColor3 = Color3.fromRGB(255, 60, 60) -- Vermelho
+                end
             end
             
             if Config.AutoGetDB and count > 0 and not autoGetDBTriggered then
@@ -4043,7 +4112,11 @@ task.spawn(function()
             
             if Config.AutoTpDB and count > 0 and not dbAutoTpTriggered then
                 dbAutoTpTriggered = true
-                TeleportToNearestDragonBall()
+                task.spawn(function()
+                    TeleportToDragonBallsRoutine()
+                    task.wait(1.0)
+                    dbAutoTpTriggered = false
+                end)
             elseif not Config.AutoTpDB then
                 dbAutoTpTriggered = false
             end
