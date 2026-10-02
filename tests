@@ -1258,7 +1258,7 @@ local function ScanMerchant()
             end
         end
     else
-        currentMerchantDragonBall = "Não encontrado"
+        currentMerchantDragonBall = "Não spawnado"
     end
 
     for obj, data in pairs(merchantObjects) do
@@ -3911,7 +3911,7 @@ local MerchantDBInfoLbl = Instance.new("TextLabel", MerchantDBInfoFrame)
 MerchantDBInfoLbl.Size = UDim2.new(1, -16, 1, 0)
 MerchantDBInfoLbl.Position = UDim2.new(0, 8, 0, 0)
 MerchantDBInfoLbl.BackgroundTransparency = 1
-MerchantDBInfoLbl.Text = "Dragonball à venda: Analisando..."
+MerchantDBInfoLbl.Text = "Status Comerciante: Analisando..."
 MerchantDBInfoLbl.TextColor3 = Color3.fromRGB(220, 220, 220)
 MerchantDBInfoLbl.Font = Enum.Font.GothamSemibold
 MerchantDBInfoLbl.TextSize = 11
@@ -3922,7 +3922,20 @@ task.spawn(function()
     while task.wait(0.5) do
         pcall(function()
             if MerchantDBInfoLbl then
-                MerchantDBInfoLbl.Text = "Dragonball à venda: " .. tostring(currentMerchantDragonBall)
+                if currentMerchantDragonBall == "Não spawnado" or currentMerchantDragonBall == "Não encontrado" then
+                    MerchantDBInfoLbl.Text = "Status Comerciante: Não spawnado"
+                    MerchantDBInfoLbl.TextColor3 = Color3.fromRGB(255, 60, 60) -- Vermelho
+                elseif currentMerchantDragonBall == "Analisando..." then
+                    MerchantDBInfoLbl.Text = "Status Comerciante: Analisando..."
+                    MerchantDBInfoLbl.TextColor3 = Color3.fromRGB(220, 220, 220)
+                else
+                    if currentMerchantDragonBall == "Desconhecida" then
+                        MerchantDBInfoLbl.Text = "Status Comerciante: Disponível"
+                    else
+                        MerchantDBInfoLbl.Text = "Status Comerciante: Disponível (DB: " .. tostring(currentMerchantDragonBall) .. ")"
+                    end
+                    MerchantDBInfoLbl.TextColor3 = Color3.fromRGB(46, 204, 113) -- Verde
+                end
             end
         end)
     end
