@@ -56,6 +56,7 @@ local Config = {
     AutoCharge = false,
     AutoChargeMin = 10,
     AutoZenkai = false,
+    AutoFarmZeni = false,
     InfJump = false,
     EnableWalkSpeed = false,
     WalkSpeed = 50,
@@ -127,6 +128,20 @@ task.spawn(function()
             end)
         end
         task.wait(0.5)
+    end
+end)
+
+-- AUTO FARM ZENI LOOP
+task.spawn(function()
+    while true do
+        if Config.AutoFarmZeni then
+            pcall(function()
+                VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.E, false, game)
+                task.wait(0.05)
+                VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.E, false, game)
+            end)
+        end
+        task.wait(0.1)
     end
 end)
 
@@ -2555,7 +2570,7 @@ DetailsLbl.TextSize = 10
 DetailsLbl.TextXAlignment = Enum.TextXAlignment.Left
 DetailsLbl.ZIndex = 31
 
--- Aba Principal
+-- Aba Principal (Lado Esquerdo)
 CreateToggle(TabMain.Left, "Auto Attack", function(v) 
     Config.AutoAttack = v 
     UserInputService.MouseIconEnabled = not (v or Config.AutoDefense or Config.AutoKiBlast)
@@ -2579,6 +2594,11 @@ end, false, nil, "Segurar", "%", true)
 
 CreateToggle(TabMain.Left, "Auto Zenkai", function(v)
     Config.AutoZenkai = v
+end, false)
+
+-- Aba Principal (Lado Direito)
+CreateToggle(TabMain.Right, "Auto Farm Zeni", function(v)
+    Config.AutoFarmZeni = v
 end, false)
 
 -- Aba Jogador (Lado Esquerdo - Controles de Movimento/Voo)
@@ -3022,7 +3042,7 @@ end, {
 })
 
 -- ==========================================
--- Aba Misc (ORGANIZAÇÃO REORDENADA CONFORME SOLICITADO)
+-- Aba Misc
 -- ==========================================
 
 -- 1° Botão de teleportar para Dragonball
