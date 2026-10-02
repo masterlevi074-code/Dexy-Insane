@@ -57,7 +57,6 @@ local Config = {
     AutoCharge = false,
     AutoChargeMin = 10,
     AutoZenkai = false,
-    -- Auto Farm Zenis Configs (Seleção múltipla por toggles)
     AutoFarmZenis = false,
     SelectedNPCs = {
         ["Tennenman"] = true,
@@ -65,7 +64,6 @@ local Config = {
         ["Jinkouman"] = false
     },
     SelectedAttackMode = "Ambos",
-    -- Jogador & Outros
     InfJump = false,
     EnableWalkSpeed = false,
     WalkSpeed = 50,
@@ -82,60 +80,40 @@ local dbAutoTpTriggered = false
 local autoGetDBTriggered = false
 local merchantAutoTpTriggered = false
 
-local ESPConfig = {
-    Enabled = false,
-    Boxes = false,
-    Lines = false,
-    Names = false,
-    Distance = false,
-    Chams = false,
-    BoxColor = Color3.fromRGB(255, 40, 40),
-    LineColor = Color3.fromRGB(255, 40, 40),
-    NameColor = Color3.fromRGB(255, 255, 255),
-    DistanceColor = Color3.fromRGB(255, 220, 40),
-    ChamsColor = Color3.fromRGB(255, 40, 40)
+-- Mapeamento dos nomes em inglês para números da Dragon Ball
+local numberMap = {
+    ["One"] = "1",
+    ["Two"] = "2",
+    ["Three"] = "3",
+    ["Four"] = "4",
+    ["Five"] = "5",
+    ["Six"] = "6",
+    ["Seven"] = "7"
 }
 
--- Configuração do ESP NPCs
+local ESPConfig = {
+    Enabled = false, Boxes = false, Lines = false, Names = false, Distance = false, Chams = false,
+    BoxColor = Color3.fromRGB(255, 40, 40), LineColor = Color3.fromRGB(255, 40, 40),
+    NameColor = Color3.fromRGB(255, 255, 255), DistanceColor = Color3.fromRGB(255, 220, 40), ChamsColor = Color3.fromRGB(255, 40, 40)
+}
+
 local NPCESPConfig = {
-    Enabled = false,
-    Boxes = false,
-    Names = false,
-    Distance = false,
-    Chams = false,
-    BoxColor = Color3.fromRGB(0, 255, 200),
-    NameColor = Color3.fromRGB(255, 255, 255),
-    DistanceColor = Color3.fromRGB(0, 255, 200),
-    ChamsColor = Color3.fromRGB(0, 255, 200),
-    SelectedNPCs = {
-        ["Tennenman"] = true,
-        ["Saibamen"] = true,
-        ["Jinkouman"] = true
-    }
+    Enabled = false, Boxes = false, Names = false, Distance = false, Chams = false,
+    BoxColor = Color3.fromRGB(0, 255, 200), NameColor = Color3.fromRGB(255, 255, 255),
+    DistanceColor = Color3.fromRGB(0, 255, 200), ChamsColor = Color3.fromRGB(0, 255, 200),
+    SelectedNPCs = { ["Tennenman"] = true, ["Saibamen"] = true, ["Jinkouman"] = true }
 }
 
 local DBConfig = {
-    Enabled = false,
-    Highlight = false,
-    Names = false,
-    Distance = false,
-    Lines = false,
-    HighlightColor = Color3.fromRGB(255, 165, 0),
-    NameColor = Color3.fromRGB(255, 165, 0),
-    DistanceColor = Color3.fromRGB(255, 165, 0),
-    LineColor = Color3.fromRGB(255, 165, 0)
+    Enabled = false, Highlight = false, Names = false, Distance = false, Lines = false,
+    HighlightColor = Color3.fromRGB(255, 165, 0), NameColor = Color3.fromRGB(255, 165, 0),
+    DistanceColor = Color3.fromRGB(255, 165, 0), LineColor = Color3.fromRGB(255, 165, 0)
 }
 
 local MerchantConfig = {
-    Enabled = false,
-    Highlight = false,
-    Names = false,
-    Distance = false,
-    Lines = false,
-    HighlightColor = Color3.fromRGB(0, 255, 128),
-    NameColor = Color3.fromRGB(0, 255, 128),
-    DistanceColor = Color3.fromRGB(0, 255, 128),
-    LineColor = Color3.fromRGB(0, 255, 128)
+    Enabled = false, Highlight = false, Names = false, Distance = false, Lines = false,
+    HighlightColor = Color3.fromRGB(0, 255, 128), NameColor = Color3.fromRGB(0, 255, 128),
+    DistanceColor = Color3.fromRGB(0, 255, 128), LineColor = Color3.fromRGB(0, 255, 128)
 }
 
 -- ==========================================
@@ -448,9 +426,7 @@ task.spawn(function()
     end
 end)
 
--- ==========================================
--- AUTO FARM ZENIS LOOP (SUPORTE A MÚLTIPLOS NPCS)
--- ==========================================
+-- AUTO FARM ZENIS LOOP
 local farmKeyE_Down = false
 local farmKeyQ_Down = false
 
@@ -779,7 +755,6 @@ end
 RunService.RenderStepped:Connect(function()
     local npcsFolder = workspace:FindFirstChild("Map") and workspace.Map:FindFirstChild("NPCs")
     
-    -- Chams para NPCs
     if NPCESPConfig.Enabled and NPCESPConfig.Chams and npcsFolder then
         for _, npc in ipairs(npcsFolder:GetChildren()) do
             if NPCESPConfig.SelectedNPCs[npc.Name] then
@@ -821,7 +796,6 @@ RunService.RenderStepped:Connect(function()
         end
     end
 
-    -- Desenhos (Box, Nomes, Distância)
     if not NPCESPConfig.Enabled or not Drawing or not npcsFolder then
         for npc, _ in pairs(npcEspObjects) do
             removeNPCESP(npc)
@@ -1121,7 +1095,6 @@ local function TeleportToNearestDragonBall()
     end)
 end
 
--- Função Auto Get DragonBall (Ignora Cooldown de ProximityPrompt e Retorna à Posição Original)
 local function AutoGetDragonBallRoutine()
     pcall(function()
         local character = LocalPlayer.Character
@@ -1149,11 +1122,9 @@ local function AutoGetDragonBallRoutine()
         if nearestObj and targetPart then
             local originalPos = hrp.CFrame
             
-            -- Teleporta para perto da Dragon Ball
             hrp.CFrame = targetPart.CFrame + Vector3.new(0, 3, 0)
             task.wait(0.15)
             
-            -- Procura e dispara o ProximityPrompt sem cooldown
             local function triggerPromptRecursive(parent)
                 for _, child in ipairs(parent:GetDescendants()) do
                     if child:IsA("ProximityPrompt") then
@@ -1168,16 +1139,16 @@ local function AutoGetDragonBallRoutine()
             triggerPromptRecursive(nearestObj)
             task.wait(0.1)
             
-            -- Retorna para a posição original
             hrp.CFrame = originalPos
         end
     end)
 end
 
 -- ==========================================
--- SISTEMA DE ESP E TELEPORT - COMERCIANTE
+-- SISTEMA DE ESP E TELEPORT - COMERCIANTE (COM STATUS DE ITEM)
 -- ==========================================
 local merchantObjects = {}
+local currentMerchantDragonBall = "Analisando..."
 
 local function UpdateMerchantTracer(objData, targetPos)
     local camera = workspace.CurrentCamera
@@ -1219,6 +1190,14 @@ local function ScanMerchant()
         activeItems[shopObj] = true
         local targetPart = shopObj.PrimaryPart or shopObj:FindFirstChildWhichIsA("BasePart") or shopObj:FindFirstChildOfClass("BasePart")
         
+        currentMerchantDragonBall = "Desconhecida"
+        for _, child in ipairs(shopObj:GetDescendants()) do
+            if numberMap[child.Name] then
+                currentMerchantDragonBall = numberMap[child.Name]
+                break
+            end
+        end
+
         if targetPart then
             local dist = hrp and math.floor((hrp.Position - targetPart.Position).Magnitude) or 0
             
@@ -1266,7 +1245,7 @@ local function ScanMerchant()
                 data.TextLabel.TextColor3 = MerchantConfig.NameColor
                 
                 local textComponents = {}
-                if MerchantConfig.Names then table.insert(textComponents, "Comerciante") end
+                if MerchantConfig.Names then table.insert(textComponents, "Comerciante (DB: " .. currentMerchantDragonBall .. ")") end
                 if MerchantConfig.Distance then table.insert(textComponents, "[" .. dist .. "m]") end
                 
                 data.TextLabel.Text = table.concat(textComponents, "\n")
@@ -1278,6 +1257,8 @@ local function ScanMerchant()
                 if data.Tracer then data.Tracer.Visible = false end
             end
         end
+    else
+        currentMerchantDragonBall = "Não spawnado"
     end
 
     for obj, data in pairs(merchantObjects) do
@@ -2568,7 +2549,6 @@ local function CreateToggleWithSubOptionsAndMultiSelect(parentCol, name, callbac
         TweenService:Create(ToggleFrame, TweenInfo.new(0.3, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {Size = UDim2.new(1, -4, 0, currentHeight)}):Play()
     end
 
-    -- Se houver dados para seleção múltipla (ex: Toggles de NPCs)
     if multiSelectData then
         local GroupLbl = Instance.new("TextLabel", OptionsContainer)
         GroupLbl.Size = UDim2.new(1, 0, 0, 18)
@@ -2725,7 +2705,6 @@ local function CreateToggleWithSubOptionsAndMultiSelect(parentCol, name, callbac
     end)
 end
 
--- Mantém compatibilidade com a função antiga para não quebrar o ESP Players
 local function CreateToggleWithSubOptions(parentCol, name, callback, subOptions)
     CreateToggleWithSubOptionsAndMultiSelect(parentCol, name, callback, subOptions, nil)
 end
@@ -2950,11 +2929,7 @@ local TabPlayer = CreateTab("Jogador", "Jogador")
 local TabVisual = CreateTab("Visual", "Visual")
 local TabMisc = CreateTab("Misc", "Misc")
 
--- ==========================================
--- ABA INFO (ATUALIZADA)
--- ==========================================
-
--- 1. Cartão do Jogador (Lado Esquerdo - Topo)
+-- ABA INFO
 local InfoCard = Instance.new("Frame", TabInfo.Left)
 InfoCard.Size = UDim2.new(1, -4, 0, 135)
 InfoCard.BackgroundColor3 = Color3.fromRGB(12, 12, 12)
@@ -3016,7 +2991,6 @@ DetailsLbl.TextSize = 10
 DetailsLbl.TextXAlignment = Enum.TextXAlignment.Left
 DetailsLbl.ZIndex = 31
 
--- 2. Estatísticas de Desempenho / Servidor (Lado Esquerdo - Baixo)
 CreateSection(TabInfo.Left, "Desempenho & Servidor")
 
 local StatsServerCard = Instance.new("Frame", TabInfo.Left)
@@ -3063,7 +3037,6 @@ InfoPingLbl.TextSize = 11
 InfoPingLbl.TextXAlignment = Enum.TextXAlignment.Left
 InfoPingLbl.ZIndex = 31
 
--- Loop para atualizar FPS, Ping e Contagem de Jogadores em Tempo Real
 task.spawn(function()
     local lastTick = tick()
     local frameCount = 0
@@ -3081,15 +3054,12 @@ task.spawn(function()
 
     while task.wait(0.5) do
         pcall(function()
-            -- Contagem de Jogadores
             local maxPlayers = Players.MaxPlayers
             local currentPlayers = #Players:GetPlayers()
             InfoPlayersLbl.Text = "Jogadores no Servidor: " .. currentPlayers .. " / " .. maxPlayers
 
-            -- FPS
             InfoFpsLbl.Text = "FPS: " .. currentFps
 
-            -- Ping
             local pingVal = 0
             pcall(function()
                 pingVal = math.floor(LocalPlayer:GetNetworkPing() * 1000 + 0.5)
@@ -3113,7 +3083,6 @@ task.spawn(function()
     end
 end)
 
--- 3. Nome do Painel com Versão & Criador (Lado Direito - Topo)
 CreateSection(TabInfo.Right, "Painel & Autor")
 
 local CreditCard = Instance.new("Frame", TabInfo.Right)
@@ -3160,7 +3129,6 @@ DescScriptLbl.TextSize = 10
 DescScriptLbl.TextXAlignment = Enum.TextXAlignment.Left
 DescScriptLbl.ZIndex = 31
 
--- 4. Notas de Atualização / Changelogs (Lado Direito - Baixo)
 CreateSection(TabInfo.Right, "Notas de Atualização (Changelogs)")
 
 local ChangelogCard = Instance.new("ScrollingFrame", TabInfo.Right)
@@ -3195,15 +3163,10 @@ ChangelogText.ZIndex = 31
 
 ChangelogCard.CanvasSize = UDim2.new(0, 0, 0, 205)
 
-ChangelogCard.MouseEnter:Connect(function()
-    setParentScrolling(ChangelogCard, false)
-end)
-ChangelogCard.MouseLeave:Connect(function()
-    setParentScrolling(ChangelogCard, true)
-end)
+ChangelogCard.MouseEnter:Connect(function() setParentScrolling(ChangelogCard, false) end)
+ChangelogCard.MouseLeave:Connect(function() setParentScrolling(ChangelogCard, true) end)
 
-
--- Aba Principal (Lado Esquerdo - Combate Geral)
+-- ABA PRINCIPAL
 CreateToggle(TabMain.Left, "Auto Attack", function(v) 
     Config.AutoAttack = v 
     UserInputService.MouseIconEnabled = not (v or Config.AutoDefense or Config.AutoKiBlast)
@@ -3221,15 +3184,10 @@ end, true, 0.05, 0.5, 0.15, function(v) Config.AutoKiBlastSpeed = v end, true, f
 
 CreateToggle(TabMain.Left, "Auto Charge Ki", function(v) 
     Config.AutoCharge = v 
-end, true, 0, 90, 10, function(v) 
-    Config.AutoChargeMin = v 
-end, false, nil, "Segurar", "%", true)
+end, true, 0, 90, 10, function(v) Config.AutoChargeMin = v end, false, nil, "Segurar", "%", true)
 
-CreateToggle(TabMain.Left, "Auto Zenkai", function(v)
-    Config.AutoZenkai = v
-end, false)
+CreateToggle(TabMain.Left, "Auto Zenkai", function(v) Config.AutoZenkai = v end, false)
 
--- Aba Principal (Lado Direito - Auto Farm Zenis com Toggles de NPCs)
 do
     local baseHeight = 30
     local expandedHeight = 145
@@ -3414,7 +3372,7 @@ do
     end)
 end
 
--- Aba Jogador (Lado Esquerdo - Controles de Movimento/Voo)
+-- ABA JOGADOR
 CreateToggle(TabPlayer.Left, "Pulo Infinito", function(v) Config.InfJump = v end, false)
 
 CreateToggle(TabPlayer.Left, "Ativar Velocidade", function(v) 
@@ -3423,7 +3381,6 @@ end, true, 16, 300, 50, function(v)
     Config.WalkSpeed = v 
 end, false, nil, "Segurar", "", true)
 
--- SISTEMA DE VOO CONTROLLER INTEGRADO
 do
     local baseHeight = 30
     local expandedHeight = 150
@@ -3653,7 +3610,6 @@ do
     end)
 end
 
--- Aba Jogador (Lado Direito - Cartão Compacto de Estatísticas do Player)
 local StatsCard = Instance.new("Frame", TabPlayer.Right)
 StatsCard.Size = UDim2.new(1, -4, 0, 100)
 StatsCard.BackgroundColor3 = Color3.fromRGB(12, 12, 12)
@@ -3761,7 +3717,7 @@ task.spawn(function()
     end
 end)
 
--- Aba Visual
+-- ABA VISUAL
 CreateToggleWithSubOptions(TabVisual.Left, "ESP Players", function(v) 
     ESPConfig.Enabled = v 
 end, {
@@ -3797,7 +3753,6 @@ end, {
     }
 })
 
--- Adicionado ESP NPCs na Aba Visual (Esquerda) com toggles e subopções de Chams, Box, Nomes e Distância
 CreateToggleWithSubOptionsAndMultiSelect(TabVisual.Left, "ESP NPCs", function(v) 
     NPCESPConfig.Enabled = v 
 end, {
@@ -3890,11 +3845,7 @@ end, {
     }
 })
 
--- ==========================================
--- Aba Misc (Organizado por Seções)
--- ==========================================
-
--- Seção DragonBall
+-- ABA MISC
 CreateSection(TabMisc.Left, "DragonBall")
 
 CreateButton(TabMisc.Left, "Teleportar para Dragonball", function()
@@ -3933,7 +3884,6 @@ DBCountLbl.TextSize = 11
 DBCountLbl.TextXAlignment = Enum.TextXAlignment.Left
 DBCountLbl.ZIndex = 30
 
--- Seção Comerciante
 CreateSection(TabMisc.Left, "Comerciante")
 
 CreateButton(TabMisc.Left, "Teleportar para Comerciante", function()
@@ -3945,7 +3895,53 @@ CreateToggle(TabMisc.Left, "Auto tp Comerciante", function(v)
     merchantAutoTpTriggered = false
 end, false)
 
--- Teleport Ilhas na Coluna da Direita da aba Misc
+-- Display do Status da Dragon Ball do Comerciante na Aba Misc
+local MerchantDBInfoFrame = Instance.new("Frame", TabMisc.Left)
+MerchantDBInfoFrame.Size = UDim2.new(1, -4, 0, 32)
+MerchantDBInfoFrame.BackgroundColor3 = Color3.fromRGB(12, 12, 12)
+MerchantDBInfoFrame.BorderSizePixel = 0
+MerchantDBInfoFrame.ZIndex = 30
+Instance.new("UICorner", MerchantDBInfoFrame).CornerRadius = UDim.new(0, 6)
+
+local MerchantDBInfoStroke = Instance.new("UIStroke", MerchantDBInfoFrame)
+MerchantDBInfoStroke.Color = Color3.fromRGB(35, 20, 20)
+MerchantDBInfoStroke.Thickness = 1
+
+local MerchantDBInfoLbl = Instance.new("TextLabel", MerchantDBInfoFrame)
+MerchantDBInfoLbl.Size = UDim2.new(1, -16, 1, 0)
+MerchantDBInfoLbl.Position = UDim2.new(0, 8, 0, 0)
+MerchantDBInfoLbl.BackgroundTransparency = 1
+MerchantDBInfoLbl.Text = "Status Comerciante: Analisando..."
+MerchantDBInfoLbl.TextColor3 = Color3.fromRGB(220, 220, 220)
+MerchantDBInfoLbl.Font = Enum.Font.GothamSemibold
+MerchantDBInfoLbl.TextSize = 11
+MerchantDBInfoLbl.TextXAlignment = Enum.TextXAlignment.Left
+MerchantDBInfoLbl.ZIndex = 30
+
+task.spawn(function()
+    while task.wait(0.5) do
+        pcall(function()
+            if MerchantDBInfoLbl then
+                if currentMerchantDragonBall == "Não spawnado" or currentMerchantDragonBall == "Não encontrado" then
+                    MerchantDBInfoLbl.Text = "Status Comerciante: Não spawnado"
+                    MerchantDBInfoLbl.TextColor3 = Color3.fromRGB(255, 60, 60) -- Vermelho
+                elseif currentMerchantDragonBall == "Analisando..." then
+                    MerchantDBInfoLbl.Text = "Status Comerciante: Analisando..."
+                    MerchantDBInfoLbl.TextColor3 = Color3.fromRGB(220, 220, 220)
+                else
+                    if currentMerchantDragonBall == "Desconhecida" then
+                        MerchantDBInfoLbl.Text = "Status Comerciante: Disponível"
+                    else
+                        MerchantDBInfoLbl.Text = "Status Comerciante: Disponível (DB: " .. tostring(currentMerchantDragonBall) .. ")"
+                    end
+                    MerchantDBInfoLbl.TextColor3 = Color3.fromRGB(46, 204, 113) -- Verde
+                end
+            end
+        end)
+    end
+end)
+
+-- Teleport Ilhas
 CreateSection(TabMisc.Right, "Teleport Ilha")
 
 local IslandLocations = {
