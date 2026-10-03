@@ -1177,7 +1177,21 @@ local function TeleportToDragonBallsRoutine()
             hrp.CFrame = availableDBs[1].CFrame + Vector3.new(0, 3, 0)
 
             if #availableDBs >= 2 then
-                task.wait(3.0)
+                local timer = 0
+                while timer < 3.0 do
+                    if not Config.AutoTpDB then
+                        isTeleportingDB = false
+                        return
+                    end
+                    task.wait(0.1)
+                    timer = timer + 0.1
+                end
+
+                if not Config.AutoTpDB then
+                    isTeleportingDB = false
+                    return
+                end
+
                 if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") and availableDBs[2] and availableDBs[2].Parent then
                     LocalPlayer.Character.HumanoidRootPart.CFrame = availableDBs[2].CFrame + Vector3.new(0, 3, 0)
                 end
@@ -2395,7 +2409,7 @@ local function CreateButton(parentCol, name, callback)
     end)
 end
 
-local function CreateDropdown(parentCol, titleText, options, defaultSelected, onSelect)
+local function CreateDropdown(parentCol, titleText, options, defaultSelected, onSelect, refreshOptionsFunc)
     local baseHeight = 54
     local selectedOption = defaultSelected or options[1]
     local isOpen = false
@@ -2499,48 +2513,65 @@ local function CreateDropdown(parentCol, titleText, options, defaultSelected, on
         if onSelect then onSelect(opt) end
     end
 
-    for _, opt in ipairs(options) do
-        local OptBtn = Instance.new("TextButton", ListFrame)
-        OptBtn.Name = opt
-        OptBtn.Size = UDim2.new(1, -4, 0, 22)
-        OptBtn.BackgroundColor3 = (opt == selectedOption) and Color3.fromRGB(40, 15, 15) or Color3.fromRGB(12, 12, 12)
-        OptBtn.BorderSizePixel = 0
-        OptBtn.Text = "  " .. opt
-        OptBtn.TextColor3 = (opt == selectedOption) and Color3.fromRGB(255, 60, 60) or Color3.fromRGB(180, 180, 180)
-        OptBtn.Font = Enum.Font.GothamSemibold
-        OptBtn.TextSize = 10
-        OptBtn.TextXAlignment = Enum.TextXAlignment.Left
-        OptBtn.AutoButtonColor = false
-        OptBtn.ZIndex = 34
-        Instance.new("UICorner", OptBtn).CornerRadius = UDim.new(0, 3)
+    local function populateOptions(optsList)
+        for _, btn in ipairs(optionButtons) do
+            pcall(function() btn:Destroy() end)
+        end
+        table.clear(optionButtons)
 
-        OptBtn.MouseEnter:Connect(function()
-            if selectedOption ~= opt then
-                TweenService:Create(OptBtn, TweenInfo.new(0.15), {BackgroundColor3 = Color3.fromRGB(25, 15, 15), TextColor3 = Color3.fromRGB(220, 220, 220)}):Play()
-            end
-        end)
-        OptBtn.MouseLeave:Connect(function()
-            if selectedOption ~= opt then
-                TweenService:Create(OptBtn, TweenInfo.new(0.15), {BackgroundColor3 = Color3.fromRGB(12, 12, 12), TextColor3 = Color3.fromRGB(180, 180, 180)}):Play()
-            end
-        end)
+        for _, opt in ipairs(optsList) do
+            local OptBtn = Instance.new("TextButton", ListFrame)
+            OptBtn.Name = opt
+            OptBtn.Size = UDim2.new(1, -4, 0, 22)
+            OptBtn.BackgroundColor3 = (opt == selectedOption) and Color3.fromRGB(40, 15, 15) or Color3.fromRGB(12, 12, 12)
+            OptBtn.BorderSizePixel = 0
+            OptBtn.Text = "  " .. opt
+            OptBtn.TextColor3 = (opt == selectedOption) and Color3.fromRGB(255, 60, 60) or Color3.fromRGB(180, 180, 180)
+            OptBtn.Font = Enum.Font.GothamSemibold
+            OptBtn.TextSize = 10
+            OptBtn.TextXAlignment = Enum.TextXAlignment.Left
+            OptBtn.AutoButtonColor = false
+            OptBtn.ZIndex = 34
+            Instance.new("UICorner", OptBtn).CornerRadius = UDim.new(0, 3)
 
-        OptBtn.MouseButton1Click:Connect(function()
-            updateSelected(opt)
-            isOpen = false
-            TweenService:Create(ArrowLbl, TweenInfo.new(0.2), {Rotation = 0}):Play()
-            TweenService:Create(DropdownContainer, TweenInfo.new(0.3, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {Size = UDim2.new(1, -4, 0, baseHeight)}):Play()
-            task.delay(0.3, function()
-                if not isOpen then ListFrame.Visible = false end
+            OptBtn.MouseEnter:Connect(function()
+                if selectedOption ~= opt then
+                    TweenService:Create(OptBtn, TweenInfo.new(0.15), {BackgroundColor3 = Color3.fromRGB(25, 15, 15), TextColor3 = Color3.fromRGB(220, 220, 220)}):Play()
+                end
             end)
-        end)
+            OptBtn.MouseLeave:Connect(function()
+                if selectedOption ~= opt then
+                    TweenService:Create(OptBtn, TweenInfo.new(0.15), {BackgroundColor3 = Color3.fromRGB(12, 12, 12), TextColor3 = Color3.fromRGB(180, 180, 180)}):Play()
+                end
+            end)
 
-        table.insert(optionButtons, OptBtn)
+            OptBtn.MouseButton1Click:Connect(function()
+                updateSelected(opt)
+                isOpen = false
+                TweenService:Create(ArrowLbl, TweenInfo.new(0.2), {Rotation = 0}):Play()
+                TweenService:Create(DropdownContainer, TweenInfo.new(0.3, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {Size = UDim2.new(1, -4, 0, baseHeight)}):Play()
+                task.delay(0.3, function()
+                    if not isOpen then ListFrame.Visible = false end
+                end)
+            end)
+
+            table.insert(optionButtons, OptBtn)
+        end
     end
+
+    populateOptions(options)
 
     HeaderBtn.MouseButton1Click:Connect(function()
         isOpen = not isOpen
         if isOpen then
+            if refreshOptionsFunc then
+                local newOpts = refreshOptionsFunc()
+                populateOptions(newOpts)
+                if not table.find(newOpts, selectedOption) and newOpts[1] then
+                    selectedOption = newOpts[1]
+                    HeaderBtn.Text = "  " .. tostring(selectedOption)
+                end
+            end
             ListFrame.Visible = true
             TweenService:Create(ArrowLbl, TweenInfo.new(0.2), {Rotation = 180}):Play()
             TweenService:Create(DropdownContainer, TweenInfo.new(0.3, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {Size = UDim2.new(1, -4, 0, 168)}):Play()
@@ -3265,6 +3296,8 @@ ChangelogCard.MouseEnter:Connect(function() setParentScrolling(ChangelogCard, fa
 ChangelogCard.MouseLeave:Connect(function() setParentScrolling(ChangelogCard, true) end)
 
 -- ABA PRINCIPAL
+CreateSection(TabMain.Left, "TRAINING")
+
 CreateToggle(TabMain.Left, "Auto Attack", function(v) 
     Config.AutoAttack = v 
     UserInputService.MouseIconEnabled = not (v or Config.AutoDefense or Config.AutoKiBlast)
@@ -4174,7 +4207,7 @@ task.spawn(function()
 end)
 
 -- Teleport Ilhas
-CreateSection(TabMisc.Right, "Teleport Ilha")
+CreateSection(TabMisc.Right, "TELEPORT  ILHA")
 
 local IslandLocations = {
     ["Desert"] = Vector3.new(3286.9, 534.7, 172.0),
@@ -4213,6 +4246,47 @@ CreateButton(TabMisc.Right, "Teleportar para Ilha", function()
             local hrp = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
             if hrp then
                 hrp.CFrame = CFrame.new(coords)
+            end
+        end)
+    end
+end)
+
+-- Teleport Player
+CreateSection(TabMisc.Right, "TELEPORT PLAYER")
+
+local selectedPlayerName = ""
+
+local function getOtherPlayers()
+    local playerList = {}
+    for _, p in ipairs(Players:GetPlayers()) do
+        if p ~= LocalPlayer then
+            table.insert(playerList, p.Name)
+        end
+    end
+    if #playerList == 0 then
+        table.insert(playerList, "Nenhum Player")
+    end
+    table.sort(playerList)
+    return playerList
+end
+
+local initialPlayers = getOtherPlayers()
+selectedPlayerName = initialPlayers[1] or ""
+
+CreateDropdown(TabMisc.Right, "Selecione o Player", initialPlayers, selectedPlayerName, function(chosen)
+    selectedPlayerName = chosen
+end, getOtherPlayers)
+
+CreateButton(TabMisc.Right, "Teleportar para Player", function()
+    if selectedPlayerName and selectedPlayerName ~= "" and selectedPlayerName ~= "Nenhum Player" then
+        pcall(function()
+            local targetPlayer = Players:FindFirstChild(selectedPlayerName)
+            if targetPlayer and targetPlayer.Character then
+                local targetHrp = targetPlayer.Character:FindFirstChild("HumanoidRootPart") or targetPlayer.Character.PrimaryPart
+                local myHrp = LocalPlayer.Character and (LocalPlayer.Character:FindFirstChild("HumanoidRootPart") or LocalPlayer.Character.PrimaryPart)
+                if targetHrp and myHrp then
+                    myHrp.CFrame = targetHrp.CFrame * CFrame.new(0, 0, 3)
+                end
             end
         end)
     end
