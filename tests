@@ -4114,6 +4114,29 @@ DBCountLbl.TextSize = 11
 DBCountLbl.TextXAlignment = Enum.TextXAlignment.Left
 DBCountLbl.ZIndex = 30
 
+-- Display das Estrelas das Dragonballs (Stairs)
+local DBStairsFrame = Instance.new("Frame", TabMisc.Left)
+DBStairsFrame.Size = UDim2.new(1, -4, 0, 32)
+DBStairsFrame.BackgroundColor3 = Color3.fromRGB(12, 12, 12)
+DBStairsFrame.BorderSizePixel = 0
+DBStairsFrame.ZIndex = 30
+Instance.new("UICorner", DBStairsFrame).CornerRadius = UDim.new(0, 6)
+
+local DBStairsStroke = Instance.new("UIStroke", DBStairsFrame)
+DBStairsStroke.Color = Color3.fromRGB(35, 20, 20)
+DBStairsStroke.Thickness = 1
+
+local DBStairsLbl = Instance.new("TextLabel", DBStairsFrame)
+DBStairsLbl.Size = UDim2.new(1, -16, 1, 0)
+DBStairsLbl.Position = UDim2.new(0, 8, 0, 0)
+DBStairsLbl.BackgroundTransparency = 1
+DBStairsLbl.Text = "DragonBall Stairs: (Não Spawnado)"
+DBStairsLbl.TextColor3 = Color3.fromRGB(255, 60, 60)
+DBStairsLbl.Font = Enum.Font.GothamSemibold
+DBStairsLbl.TextSize = 11
+DBStairsLbl.TextXAlignment = Enum.TextXAlignment.Left
+DBStairsLbl.ZIndex = 30
+
 CreateSection(TabMisc.Left, "Comerciante")
 
 CreateButton(TabMisc.Left, "Teleportar para Comerciante", function()
@@ -4296,9 +4319,33 @@ task.spawn(function()
     while task.wait(0.5) do
         pcall(function()
             local count = 0
+            local detectedStars = {}
+
             for obj, _ in pairs(dbObjects) do
                 if obj and obj.Parent then
                     count = count + 1
+                    local starNum = nil
+
+                    -- Identifica a estrela (pelo nome do modelo ou de algum filho)
+                    for _, child in ipairs(obj:GetDescendants()) do
+                        if numberMap[child.Name] then
+                            starNum = numberMap[child.Name]
+                            break
+                        end
+                    end
+
+                    if not starNum then
+                        for nameInMap, numInMap in pairs(numberMap) do
+                            if obj.Name:find(nameInMap) then
+                                starNum = numInMap
+                                break
+                            end
+                        end
+                    end
+
+                    if starNum then
+                        table.insert(detectedStars, starNum)
+                    end
                 end
             end
 
@@ -4313,6 +4360,17 @@ task.spawn(function()
                 else
                     DBStatusLbl.Text = "Status Dragonball: Não Spawnado"
                     DBStatusLbl.TextColor3 = Color3.fromRGB(255, 60, 60)
+                end
+            end
+
+            if DBStairsLbl then
+                if #detectedStars > 0 then
+                    table.sort(detectedStars, function(a, b) return tonumber(a) < tonumber(b) end)
+                    DBStairsLbl.Text = "DragonBall Stairs: " .. table.concat(detectedStars, " | ")
+                    DBStairsLbl.TextColor3 = Color3.fromRGB(46, 204, 113)
+                else
+                    DBStairsLbl.Text = "DragonBall Stairs: (Não Spawnado)"
+                    DBStairsLbl.TextColor3 = Color3.fromRGB(255, 60, 60)
                 end
             end
             
